@@ -17,7 +17,7 @@ The following block formatting options are available:
 
 * {@link features/lists Bulleted list} &ndash; Start a line with `*` or `-` followed by a space.
 * {@link features/lists Numbered list} &ndash; Start a line with `1.` or `1)` followed by a space.
-* {@link features/headings Headings} &ndash; Start a line with `#` or `##` or `###` followed by a space to create a heading 1, heading 2 or heading 3 (up to heading 6 if {@link module:heading/heading~HeadingConfig#options} defines more headings).
+* {@link features/headings Headings} &ndash; Start a line with `#`, `##` or `###` followed by a space to create a heading 1, heading 2 or heading 3 (up to heading 6 if {@link module:heading/heading~HeadingConfig#options} defines more headings).
 * {@link features/block-quote Block quote} &ndash; Start a line with `>` followed by a space.
 * {@link features/code-blocks Code block} &ndash; Start a line with `` ``` ``.
 
@@ -25,10 +25,10 @@ The following block formatting options are available:
 
 The following {@link features/basic-styles basic styles} inline formatting options are available:
 
-* Bold &ndash; Type `**text**` or `__text__`,
-* Italic &ndash; Type `*text*` or `_text_`,
-* Code &ndash; Type ``` `text` ```,
-* Strikethrough &ndash; Type `~~text~~`.
+* **Bold** &ndash; Type `**text**` or `__text__`,
+* *Italic* &ndash; Type `*text*` or `_text_`,
+* `Code` &ndash; Type ``` `text` ```,
+* ~~Strikethrough~~ &ndash; Type `~~text~~`.
 
 ## Autoformatting sample
 
