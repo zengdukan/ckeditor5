@@ -57,7 +57,7 @@ class HCardEditing extends Plugin {
 		this._defineConverters();
 		this._defineClipboardInputOutput();
 
-		// View to model position mapping is needed because h-card element in model is represented by a single element,
+		// The view to model position mapping is needed because h-card element in model is represented by a single element,
 		// but in the view it is a more complex structure.
 		this.editor.editing.mapper.on(
 			'viewToModelPosition',
@@ -127,7 +127,7 @@ class HCardEditing extends Plugin {
 
 		// Processing pasted/dropped content.
 		this.listenTo( viewDocument, 'clipboardInput', ( evt, data ) => {
-			// The clipboard content was already processed by the listener on the higher priority
+			// The clipboard content was already processed by the listener on a higher priority
 			// (for example while pasting into code-block).
 			if ( data.content ) {
 				return;

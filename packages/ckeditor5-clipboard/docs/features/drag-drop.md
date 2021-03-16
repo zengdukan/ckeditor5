@@ -18,7 +18,7 @@ The sample below allows you to drag contacts from the list on the right-hand sid
 
 Photos: [Wikipedia.org](http://en.wikipedia.org).
 
-Source code of the above snippet is available here: [`drag-drop.js`](https://github.com/ckeditor/ckeditor5/tree/master/packages/ckeditor5-clipboard/docs/_snippets/features/drag-drop.js), [`drag-drop.html`](https://github.com/ckeditor/ckeditor5/tree/master/packages/ckeditor5-clipboard/docs/_snippets/features/drag-drop.html).
+The source code of the above snippet is available here: [`drag-drop.js`](https://github.com/ckeditor/ckeditor5/tree/master/packages/ckeditor5-clipboard/docs/_snippets/features/drag-drop.js), [`drag-drop.html`](https://github.com/ckeditor/ckeditor5/tree/master/packages/ckeditor5-clipboard/docs/_snippets/features/drag-drop.html).
 
 ## Related features
 
@@ -27,7 +27,7 @@ CKEditor 5 supports dropping images from the file system by the {@link features/
 ## Installation
 
 <info-box info>
-	This feature is required by the clipboard plugin and is enabled by default in all official builds. The installation instructions are for developers interested in building their own custom rich-text editor.
+	This feature is required by the clipboard plugin and is enabled by default in all official builds. These installation instructions are for developers interested in building their own custom rich-text editor.
 </info-box>
 
 To add this feature to your rich-text editor, install the [`@ckeditor/ckeditor5-clipboard`](https://www.npmjs.com/package/@ckeditor/ckeditor5-clipboard) package:
