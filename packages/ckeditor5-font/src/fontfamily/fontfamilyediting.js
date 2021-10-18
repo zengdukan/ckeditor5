@@ -104,7 +104,7 @@ export default class FontFamilyEditing extends Plugin {
 				value: viewElement => viewElement.getStyle( 'font-family' )
 			},
 			view: {
-				name: 'span',
+				// name: 'span',
 				styles: {
 					'font-family': /.*/
 				}

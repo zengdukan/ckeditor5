@@ -147,7 +147,7 @@ export default class FontSizeEditing extends Plugin {
 				value: viewElement => viewElement.getStyle( 'font-size' )
 			},
 			view: {
-				name: 'span',
+				// name: 'span',
 				styles: {
 					'font-size': /.*/
 				}

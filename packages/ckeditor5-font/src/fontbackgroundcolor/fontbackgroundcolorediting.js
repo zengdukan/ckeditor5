@@ -107,7 +107,7 @@ export default class FontBackgroundColorEditing extends Plugin {
 		editor.data.addStyleProcessorRules( addBackgroundRules );
 		editor.conversion.for( 'upcast' ).elementToAttribute( {
 			view: {
-				name: 'span',
+				// name: 'span',
 				styles: {
 					'background-color': /[\s\S]+/
 				}

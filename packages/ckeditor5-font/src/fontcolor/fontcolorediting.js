@@ -104,7 +104,7 @@ export default class FontColorEditing extends Plugin {
 
 		editor.conversion.for( 'upcast' ).elementToAttribute( {
 			view: {
-				name: 'span',
+				// name: 'span',
 				styles: {
 					'color': /[\s\S]+/
 				}

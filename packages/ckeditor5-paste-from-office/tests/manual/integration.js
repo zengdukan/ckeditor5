@@ -26,6 +26,7 @@ import PasteFromOffice from '../../src/pastefromoffice';
 import { stringify as stringifyView } from '@ckeditor/ckeditor5-engine/src/dev-utils/view';
 
 import { CS_CONFIG } from '@ckeditor/ckeditor5-cloud-services/tests/_utils/cloud-services-config';
+import { FontFamily, FontSize } from '@ckeditor/ckeditor5-font';
 
 const htmlDiv = document.querySelector( '#html' );
 const textDiv = document.querySelector( '#text' );
@@ -48,12 +49,40 @@ ClassicEditor
 			EasyImage,
 			PasteFromOffice,
 			FontColor,
-			FontBackgroundColor
+			FontBackgroundColor,
+			FontSize,
+			FontFamily
 		],
 		toolbar: [ 'heading', '|', 'bold', 'italic', 'strikethrough', 'underline', 'link',
 			'bulletedList', 'numberedList', 'blockQuote', 'insertTable', 'pageBreak', 'undo', 'redo' ],
 		table: {
 			contentToolbar: [ 'tableColumn', 'tableRow', 'mergeTableCells', 'tableProperties', 'tableCellProperties' ]
+		},
+		fontSize: {
+			options: [
+				9,
+				11,
+				13,
+				'default',
+				17,
+				19,
+				21
+			],
+			supportAllValues: true
+		},
+		fontFamily: {
+			options: [
+				'default',
+				'Arial, Helvetica, sans-serif',
+				'Courier New, Courier, monospace',
+				'Georgia, serif',
+				'Lucida Sans Unicode, Lucida Grande, sans-serif',
+				'Tahoma, Geneva, sans-serif',
+				'Times New Roman, Times, serif',
+				'Trebuchet MS, Helvetica, sans-serif',
+				'Verdana, Geneva, sans-serif'
+			],
+			supportAllValues: true
 		},
 		cloudServices: CS_CONFIG
 	} )
