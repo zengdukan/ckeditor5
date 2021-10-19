@@ -27,6 +27,7 @@ import { stringify as stringifyView } from '@ckeditor/ckeditor5-engine/src/dev-u
 
 import { CS_CONFIG } from '@ckeditor/ckeditor5-cloud-services/tests/_utils/cloud-services-config';
 import { FontFamily, FontSize } from '@ckeditor/ckeditor5-font';
+import { Alignment } from '@ckeditor/ckeditor5-alignment';
 
 const htmlDiv = document.querySelector( '#html' );
 const textDiv = document.querySelector( '#text' );
@@ -51,7 +52,8 @@ ClassicEditor
 			FontColor,
 			FontBackgroundColor,
 			FontSize,
-			FontFamily
+			FontFamily,
+			Alignment
 		],
 		toolbar: [ 'heading', '|', 'bold', 'italic', 'strikethrough', 'underline', 'link',
 			'bulletedList', 'numberedList', 'blockQuote', 'insertTable', 'pageBreak', 'undo', 'redo' ],

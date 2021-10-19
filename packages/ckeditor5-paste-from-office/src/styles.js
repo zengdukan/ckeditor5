@@ -9,33 +9,36 @@
  * @module paste-from-office/styles
  */
 
-const filtered = [
-	'break-before',
-	'break-after',
-	'break-inside',
-	'page-break',
-	'page-break-before',
-	'page-break-after',
-	'page-break-inside'
-];
+export function inlineStyles( sheets, document ) {
+	const stylesArray = sortStyles( sheets.flatMap( sheet => parseSheet( sheet ) ) );
+
+	for ( const { selector, style } of stylesArray ) {
+		for ( const element of document.querySelectorAll( selector ) ) {
+			const oldStyle = parseCssText( element.getAttribute( 'style' ) );
+
+			// The styles are applied with decreasing priority so we do not want
+			// to overwrite the existing properties.
+			const newStyle = extend( {}, oldStyle, style );
+
+			element.setAttribute( 'style', writeCssText( newStyle ) );
+		}
+	}
+}
 
 function parseSheet( sheet ) {
-	function getStyles( cssText ) {
-		const startIndex = cssText.indexOf( '{' );
-		const endIndex = cssText.indexOf( '}' );
-
-		return parseCssText( cssText.substring( startIndex + 1, endIndex ), true );
-	}
-
 	const parsedStyles = [];
 	const rules = sheet.cssRules;
 
 	for ( let i = 0; i < rules.length; i++ ) {
 		// To detect if the rule contains styles and is not an at-rule, it's enough to check rule's type.
-		if ( rules[ i ].type === window.CSSRule.STYLE_RULE ) {
+		if ( rules[ i ].type == window.CSSRule.STYLE_RULE ) {
+			const cssText = rules[ i ].cssText;
+			const startIndex = cssText.indexOf( '{' );
+			const endIndex = cssText.indexOf( '}' );
+
 			parsedStyles.push( {
 				selector: rules[ i ].selectorText,
-				styles: filterStyles( getStyles( rules[ i ].cssText ) )
+				style: parseCssText( cssText.substring( startIndex + 1, endIndex ), true )
 			} );
 		}
 	}
@@ -82,19 +85,6 @@ function writeCssText( styles, sort ) {
 	return stylesArr.join( '; ' );
 }
 
-function filterStyles( stylesObj ) {
-	const toRemove = filtered;
-	const newObj = {};
-
-	for ( const style in stylesObj ) {
-		if ( !toRemove.includes( style ) ) {
-			newObj[ style ] = stylesObj[ style ];
-		}
-	}
-
-	return newObj;
-}
-
 function sortStyles( stylesArray ) {
 	// Returns comparison function which sorts all selectors in a way that class selectors are ordered
 	// before the rest of the selectors. The order of the selectors with the same specificity
@@ -115,40 +105,20 @@ function sortStyles( stylesArray ) {
 
 	// True if given CSS selector contains a class selector.
 	function isClassSelector( selector ) {
-		return String( selector ).indexOf( '.' ) != -1;
+		return String( selector ).includes( '.' );
 	}
 
 	return stylesArray.sort( getCompareFunction( stylesArray ) );
 }
 
-export function inlineStyles( sheets, document ) {
-	const stylesArray = sortStyles( sheets.flatMap( sheet => parseSheet( sheet ) ) );
-
-	function applyStyle( document, selector, style ) {
-		for ( const element of document.querySelectorAll( selector ) ) {
-			const oldStyle = parseCssText( element.getAttribute( 'style' ) );
-
-			// The styles are applied with decreasing priority so we do not want
-			// to overwrite the existing properties.
-			const newStyle = extend( {}, oldStyle, style );
-
-			element.setAttribute( 'style', writeCssText( newStyle ) );
-		}
-	}
-
-	stylesArray.forEach( style => {
-		applyStyle( document, style.selector, style.styles );
-	} );
-}
-
 function extend( target, ...sources ) {
 	for ( const source of sources ) {
-		Object.keys( source ).forEach( propertyName => {
-			// Only copy existed fields if in overwrite mode.
-			if ( target[ propertyName ] == null ) {
-				target[ propertyName ] = source[ propertyName ];
+		for ( const [ key, value ] of Object.entries( source ) ) {
+			// Do not override existing properties.
+			if ( target[ key ] == null ) {
+				target[ key ] = value;
 			}
-		} );
+		}
 	}
 
 	return target;
