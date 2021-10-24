@@ -12,7 +12,7 @@
 import { DomConverter, ViewDocument } from 'ckeditor5/src/engine';
 
 import { normalizeSpacing, normalizeSpacerunSpans } from './space';
-import { inlineStyles } from '../styles';
+import { filterStyles, inlineStyles } from '../styles';
 
 /**
  * Parses provided HTML extracting contents of `<body>` and `<style>` tags.
@@ -44,6 +44,7 @@ export function parseHtml( htmlString, stylesProcessor ) {
 	const stylesObject = extractStyles( htmlDocument );
 
 	inlineStyles( stylesObject.styles, htmlDocument );
+	filterStyles( htmlDocument );
 
 	// Get `innerHTML` first as transforming to View modifies the source document.
 	const bodyString = htmlDocument.body.innerHTML;
