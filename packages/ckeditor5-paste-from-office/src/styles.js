@@ -23,7 +23,6 @@ export function inlineStyles( sheets, document ) {
 			// The styles are applied with decreasing priority so we do not want
 			// to overwrite the existing properties.
 			const newStyle = extend( {}, oldStyle, style );
-
 			element.setAttribute( 'style', writeCssText( newStyle ) );
 		}
 	}
@@ -116,7 +115,13 @@ export function normalizeStyles( element ) {
 	parseShorthandMargins( styles );
 	normalizeMargins();
 
-	element.setAttribute( 'style', writeCssText( styles ) );
+	const cssText = writeCssText( styles );
+
+	if ( cssText ) {
+		element.setAttribute( 'style', cssText );
+	} else {
+		element.removeAttribute( 'style' );
+	}
 
 	function matchStyle( ...args ) {
 		return resetStyles.includes( args.filter( arg => arg ).join( ':' ) );
@@ -209,16 +214,14 @@ function parseCssText( styleText, normalize ) {
 	return result;
 }
 
-function writeCssText( styles, sort ) {
+function writeCssText( styles ) {
 	const stylesArr = [];
 
 	for ( const name in styles ) {
 		stylesArr.push( name + ':' + styles[ name ] );
 	}
 
-	if ( sort ) {
-		stylesArr.sort();
-	}
+	stylesArr.sort();
 
 	return stylesArr.join( '; ' );
 }
