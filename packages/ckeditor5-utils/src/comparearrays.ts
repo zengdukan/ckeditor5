@@ -49,4 +49,4 @@ export default function compareArrays( a: Array<unknown>, b: Array<unknown> ): A
 /**
  * @typedef {'extension'|'same'|'prefix'|Number} module:utils/comparearrays~ArrayRelation
  */
-type ArrayRelation = 'extension'|'same'|'prefix'|Number;
+type ArrayRelation = 'extension'|'same'|'prefix'|number;

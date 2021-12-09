@@ -7,6 +7,10 @@
  * @module utils/spy
  */
 
+interface Spy extends Function {
+	called?: true
+}
+
 /**
  * Creates a spy function (ala Sinon.js) that can be used to inspect call to it.
  *
@@ -16,9 +20,9 @@
  *
  * @returns {Function} The spy function.
  */
-function spy() {
+function spy(): Spy{
 	return function spy() {
-		spy.called = true;
+		( spy as Spy ).called = true;
 	};
 }
 

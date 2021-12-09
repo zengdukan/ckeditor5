@@ -13,6 +13,6 @@
  * @param {*} data The value to transform to an array.
  * @returns {Array} An array created from data.
  */
-export default function toArray( data ) {
+export default function toArray<T>( data: T | T[] ): T[] {
 	return Array.isArray( data ) ? data : [ data ];
 }
