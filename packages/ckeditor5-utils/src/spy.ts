@@ -7,7 +7,8 @@
  * @module utils/spy
  */
 
-interface Spy extends Function {
+export interface Spy {
+	(): void;
 	called?: true
 }
 
