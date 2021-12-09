@@ -11,6 +11,19 @@
 
 import CKEditorError from './ckeditorerror';
 
+interface Dictionary {
+	[ messageId: string ]: string | string[]
+}
+
+declare global {
+	var CKEDITOR_TRANSLATIONS: {
+		[language: string]: {
+			dictionary: Dictionary,
+			getPluralForm?: (n: number) => number
+		}
+	}
+}
+
 /* istanbul ignore else */
 if ( !window.CKEDITOR_TRANSLATIONS ) {
 	window.CKEDITOR_TRANSLATIONS = {};
@@ -91,9 +104,9 @@ if ( !window.CKEDITOR_TRANSLATIONS ) {
  * should support plural forms.
  * @param {Function} getPluralForm A function that returns the plural form index (a number).
  */
-export function add( language, translations, getPluralForm ) {
+export function add( language: string, translations: Dictionary, getPluralForm: (n: number) => number ) {
 	if ( !window.CKEDITOR_TRANSLATIONS[ language ] ) {
-		window.CKEDITOR_TRANSLATIONS[ language ] = {};
+		window.CKEDITOR_TRANSLATIONS[ language ] = {} as any;
 	}
 
 	const languageTranslations = window.CKEDITOR_TRANSLATIONS[ language ];
@@ -135,7 +148,7 @@ export function add( language, translations, getPluralForm ) {
  * @param {Number} [quantity] The number of elements for which a plural form should be picked from the target language dictionary.
  * @returns {String} Translated sentence.
  */
-export function _translate( language, message, quantity = 1 ) {
+export function _translate( language: string, message: Message, quantity: number = 1 ): string {
 	if ( typeof quantity !== 'number' ) {
 		/**
 		 * An incorrect value was passed to the translation function. This was probably caused
@@ -169,14 +182,15 @@ export function _translate( language, message, quantity = 1 ) {
 	const dictionary = window.CKEDITOR_TRANSLATIONS[ language ].dictionary;
 	const getPluralForm = window.CKEDITOR_TRANSLATIONS[ language ].getPluralForm || ( n => n === 1 ? 0 : 1 );
 
-	if ( typeof dictionary[ messageId ] === 'string' ) {
-		return dictionary[ messageId ];
+	const translation = dictionary[ messageId ]
+	if ( typeof translation === 'string' ) {
+		return translation;
 	}
 
 	const pluralFormIndex = Number( getPluralForm( quantity ) );
 
 	// Note: The `translate` function is not responsible for replacing `%0, %1, ...` with values.
-	return dictionary[ messageId ][ pluralFormIndex ];
+	return translation[ pluralFormIndex ];
 }
 
 /**
@@ -189,7 +203,7 @@ export function _clear() {
 }
 
 // Checks whether the dictionary exists and translation in that dictionary exists.
-function hasTranslation( language, messageId ) {
+function hasTranslation( language: string, messageId: string ) {
 	return (
 		!!window.CKEDITOR_TRANSLATIONS[ language ] &&
 		!!window.CKEDITOR_TRANSLATIONS[ language ].dictionary[ messageId ]
@@ -214,3 +228,9 @@ function getNumberOfLanguages() {
  * @property {String} [plural] The plural form of the message. This property should be skipped when a message is not supposed
  * to support plural forms. Otherwise it should always be set to a string with the English plural form of the message.
  */
+
+interface Message {
+	string: string,
+	id: string,
+	plural: string
+}

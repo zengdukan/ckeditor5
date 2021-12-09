@@ -18,6 +18,10 @@ export default version;
 /* istanbul ignore next */
 const windowOrGlobal = typeof window === 'object' ? window : global;
 
+declare global {
+	var CKEDITOR_VERSION: string
+}
+
 /* istanbul ignore next */
 if ( windowOrGlobal.CKEDITOR_VERSION ) {
 	/**
