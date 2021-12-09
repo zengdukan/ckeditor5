@@ -21,6 +21,6 @@ const RTL_LANGUAGE_CODES = [
  * @param {String} language The ISO 639-1 or ISO 639-2 language code.
  * @returns {'ltr'|'rtl'}
  */
-export function getLanguageDirection( languageCode ) {
+export function getLanguageDirection( languageCode: string ): 'ltr' | 'rtl' {
 	return RTL_LANGUAGE_CODES.includes( languageCode ) ? 'rtl' : 'ltr';
 }
