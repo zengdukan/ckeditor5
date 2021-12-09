@@ -20,7 +20,7 @@ interface Spy extends Function {
  *
  * @returns {Function} The spy function.
  */
-function spy(): Spy{
+function spy(): Spy {
 	return function spy() {
 		( spy as Spy ).called = true;
 	};

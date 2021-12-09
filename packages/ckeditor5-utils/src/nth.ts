@@ -19,7 +19,7 @@
  * @param {Iterable.<*>} iterable
  * @returns {*}
  */
-export default function nth( index, iterable ) {
+export default function nth<T>( index: number, iterable: Iterable<T> ): T | null {
 	for ( const item of iterable ) {
 		if ( index === 0 ) {
 			return item;
