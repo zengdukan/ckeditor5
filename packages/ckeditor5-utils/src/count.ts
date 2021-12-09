@@ -15,7 +15,7 @@
  * @param {Iterable.<*>} iterator Any iterator.
  * @returns {Number} Number of items returned by that iterator.
  */
-export default function count( iterator ) {
+export default function count( iterator: Iterable<undefined> ) {
 	let count = 0;
 
 	for ( const _ of iterator ) { // eslint-disable-line no-unused-vars
