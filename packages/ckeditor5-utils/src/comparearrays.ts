@@ -23,7 +23,7 @@
  * @param {Array} b Array to compare with.
  * @returns {module:utils/comparearrays~ArrayRelation} How array `a` is related to `b`.
  */
-export default function compareArrays( a, b ) {
+export default function compareArrays( a: Array<unknown>, b: Array<unknown> ): ArrayRelation {
 	const minLen = Math.min( a.length, b.length );
 
 	for ( let i = 0; i < minLen; i++ ) {
@@ -47,5 +47,6 @@ export default function compareArrays( a, b ) {
 }
 
 /**
- * @typedef {'extension'|'same'|'prefix'} module:utils/comparearrays~ArrayRelation
+ * @typedef {'extension'|'same'|'prefix'|Number} module:utils/comparearrays~ArrayRelation
  */
+type ArrayRelation = 'extension'|'same'|'prefix'|Number;
