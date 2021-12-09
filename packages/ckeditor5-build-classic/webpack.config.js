@@ -29,6 +29,10 @@ module.exports = {
 		libraryExport: 'default'
 	},
 
+	resolve: {
+		extensions: [ '.js', '.ts', '.json' ]
+	},
+
 	optimization: {
 		minimizer: [
 			new TerserPlugin( {
@@ -59,6 +63,11 @@ module.exports = {
 
 	module: {
 		rules: [
+			{
+				test: /\.ts$/,
+				use: 'ts-loader',
+				exclude: /node_modules/
+			},
 			{
 				test: /\.svg$/,
 				use: [ 'raw-loader' ]

@@ -14,4 +14,4 @@ yarn.lock
 mrgit.json
 
 build/
-!packages/ckeditor5-build-*/build
+# !packages/ckeditor5-build-*/build
