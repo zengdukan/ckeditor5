@@ -44,6 +44,10 @@ export const DOCUMENTATION_URL =
  * @extends Error
  */
 export default class CKEditorError extends Error {
+	name: 'CKEditorError';
+	context: object|null;
+	data: object|undefined;
+
 	/**
 	 * Creates an instance of the CKEditorError class.
 	 *
@@ -58,7 +62,7 @@ export default class CKEditorError extends Error {
 	 * will be appended to the error message, so the data are quickly visible in the console. The original
 	 * data object will also be later available under the {@link #data} property.
 	 */
-	constructor( errorName, context, data ) {
+	constructor( errorName:string, context: object|null, data?: object|undefined ) {
 		super( getErrorMessage( errorName, data ) );
 
 		/**
@@ -85,7 +89,7 @@ export default class CKEditorError extends Error {
 	 * Checks if the error is of the `CKEditorError` type.
 	 * @returns {Boolean}
 	 */
-	is( type ) {
+	is( type: any ) {
 		return type === 'CKEditorError';
 	}
 
@@ -99,8 +103,8 @@ export default class CKEditorError extends Error {
 	 * @param {Object} context An object connected through properties with the editor instance. This context will be used
 	 * by the watchdog to verify which editor should be restarted.
 	 */
-	static rethrowUnexpectedError( err, context ) {
-		if ( err.is && err.is( 'CKEditorError' ) ) {
+	static rethrowUnexpectedError( err: Error, context: object ) {
+		if ( (err as any).is && (err as any).is( 'CKEditorError' ) ) {
 			throw err;
 		}
 
@@ -142,7 +146,7 @@ export default class CKEditorError extends Error {
  * @param {String} errorName The error name to be logged.
  * @param {Object} [data] Additional data to be logged.
  */
-export function logWarning( errorName, data ) {
+export function logWarning( errorName: string, data: object ) {
 	console.warn( ...formatConsoleArguments( errorName, data ) );
 }
 
@@ -166,7 +170,7 @@ export function logWarning( errorName, data ) {
  * @param {String} errorName The error name to be logged.
  * @param {Object} [data] Additional data to be logged.
  */
-export function logError( errorName, data ) {
+export function logError( errorName: string, data: object ) {
 	console.error( ...formatConsoleArguments( errorName, data ) );
 }
 
@@ -175,7 +179,7 @@ export function logError( errorName, data ) {
 // @private
 // @param {String} errorName
 // @returns {string}
-function getLinkToDocumentationMessage( errorName ) {
+function getLinkToDocumentationMessage( errorName: string ) {
 	return `\nRead more: ${ DOCUMENTATION_URL }#error-${ errorName }`;
 }
 
@@ -185,9 +189,9 @@ function getLinkToDocumentationMessage( errorName ) {
 // @param {String} errorName
 // @param {Object} [data]
 // @returns {string}
-function getErrorMessage( errorName, data ) {
+function getErrorMessage( errorName: string, data: object|undefined ) {
 	const processedObjects = new WeakSet();
-	const circularReferencesReplacer = ( key, value ) => {
+	const circularReferencesReplacer = ( key: unknown, value: any ) => {
 		if ( typeof value === 'object' && value !== null ) {
 			if ( processedObjects.has( value ) ) {
 				return `[object ${ value.constructor.name }]`;
@@ -211,7 +215,7 @@ function getErrorMessage( errorName, data ) {
 // @param {String} errorName
 // @param {Object} [data]
 // @returns {Array}
-function formatConsoleArguments( errorName, data ) {
+function formatConsoleArguments( errorName: string, data: object ) {
 	const documentationMessage = getLinkToDocumentationMessage( errorName );
 
 	return data ? [ errorName, data, documentationMessage ] : [ errorName, documentationMessage ];
