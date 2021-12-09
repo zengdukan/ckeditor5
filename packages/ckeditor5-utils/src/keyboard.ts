@@ -53,7 +53,7 @@ const keyCodeNames = Object.fromEntries(
  * or a keystroke data object.
  * @returns {Number} Key or keystroke code.
  */
-export function getCode( key ) {
+export function getCode( key: string|KeystrokeInfo ) {
 	let keyCode;
 
 	if ( typeof key == 'string' ) {
@@ -101,7 +101,7 @@ export function getCode( key ) {
  * @param {String|Array.<Number|String>} keystroke The keystroke definition.
  * @returns {Number} Keystroke code.
  */
-export function parseKeystroke( keystroke ) {
+export function parseKeystroke( keystroke: string | (number|string)[] ) {
 	if ( typeof keystroke == 'string' ) {
 		keystroke = splitKeystrokeText( keystroke );
 	}
@@ -118,7 +118,7 @@ export function parseKeystroke( keystroke ) {
  * @param {String} keystroke The keystroke text.
  * @returns {String} The keystroke text specific for the environment.
  */
-export function getEnvKeystrokeText( keystroke ) {
+export function getEnvKeystrokeText( keystroke: string ) {
 	let keystrokeCode = parseKeystroke( keystroke );
 
 	const modifiersToGlyphs = Object.entries( env.isMac ? modifiersToGlyphsMac : modifiersToGlyphsNonMac );
@@ -142,7 +142,7 @@ export function getEnvKeystrokeText( keystroke ) {
  * @param {Number} keyCode A key code as in {@link module:utils/keyboard~KeystrokeInfo#keyCode}.
  * @returns {Boolean}
  */
-export function isArrowKeyCode( keyCode ) {
+export function isArrowKeyCode( keyCode: number ) {
 	return keyCode == keyCodes.arrowright ||
 		keyCode == keyCodes.arrowleft ||
 		keyCode == keyCodes.arrowup ||
@@ -161,7 +161,7 @@ export function isArrowKeyCode( keyCode ) {
  * {@link module:utils/locale~Locale#contentLanguageDirection}.
  * @returns {'left'|'up'|'right'|'down'} Localized arrow direction.
  */
-export function getLocalizedArrowKeyCodeDirection( keyCode, contentLanguageDirection ) {
+export function getLocalizedArrowKeyCodeDirection( keyCode: number, contentLanguageDirection: 'ltr'|'rtl' ) {
 	const isLtrContent = contentLanguageDirection === 'ltr';
 
 	switch ( keyCode ) {
@@ -185,7 +185,7 @@ export function getLocalizedArrowKeyCodeDirection( keyCode, contentLanguageDirec
 //
 // @param {String} key The key name (see {@link module:utils/keyboard~keyCodes}).
 // @returns {Number} Key code.
-function getEnvKeyCode( key ) {
+function getEnvKeyCode( key: string ) {
 	// Don't remap modifier key for forced modifiers.
 	if ( key.endsWith( '!' ) ) {
 		return getCode( key.slice( 0, -1 ) );
@@ -208,14 +208,14 @@ function getEnvKeyCode( key ) {
  * {@link module:utils/locale~Locale#contentLanguageDirection}.
  * @returns {Boolean}
  */
-export function isForwardArrowKeyCode( keyCode, contentLanguageDirection ) {
+export function isForwardArrowKeyCode( keyCode: number, contentLanguageDirection: 'ltr'|'rtl' ) {
 	const localizedKeyCodeDirection = getLocalizedArrowKeyCodeDirection( keyCode, contentLanguageDirection );
 
 	return localizedKeyCodeDirection === 'down' || localizedKeyCodeDirection === 'right';
 }
 
-function generateKnownKeyCodes() {
-	const keyCodes = {
+function generateKnownKeyCodes(): { [keyCode: string]: number } {
+	const keyCodes: { [keyCode: string]: number } = {
 		arrowleft: 37,
 		arrowup: 38,
 		arrowright: 39,
@@ -260,7 +260,7 @@ function generateKnownKeyCodes() {
 	return keyCodes;
 }
 
-function splitKeystrokeText( keystroke ) {
+function splitKeystrokeText( keystroke: string ) {
 	return keystroke.split( '+' ).map( key => key.trim() );
 }
 
@@ -269,6 +269,13 @@ function splitKeystrokeText( keystroke ) {
  *
  * @interface module:utils/keyboard~KeystrokeInfo
  */
+interface KeystrokeInfo {
+	altKey: boolean,
+	metaKey: boolean,
+	ctrlKey: boolean,
+	shiftKey: boolean,
+	keyCode: number
+}
 
 /**
  * The [key code](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode).
