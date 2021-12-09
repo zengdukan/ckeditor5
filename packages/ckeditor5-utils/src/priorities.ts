@@ -12,6 +12,7 @@
  *
  * @typedef {'highest'|'high'|'normal'|'low'|'lowest'} module:utils/priorities~PriorityString
  */
+type PriorityString = 'highest'|'high'|'normal'|'low'|'lowest';
 
 /**
  * Provides group of constants to use instead of hardcoding numeric priority values.
@@ -26,7 +27,7 @@ const priorities = {
 	 * @param {module:utils/priorities~PriorityString|Number} priority Priority to convert.
 	 * @returns {Number} Converted priority.
 	 */
-	get( priority ) {
+	get( priority: PriorityString | number ): number {
 		if ( typeof priority != 'number' ) {
 			return this[ priority ] || this.normal;
 		} else {
@@ -39,6 +40,6 @@ const priorities = {
 	normal: 0,
 	low: -1000,
 	lowest: -100000
-};
+} as const;
 
 export default priorities;
