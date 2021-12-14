@@ -216,16 +216,12 @@ export default class Autosave extends Plugin {
 	}
 
 	/**
-	 * Calls autosave callback immediately if there are any changes to save.
+	 * Calls autosave callback.
 	 */
 	save() {
-		if ( this.state !== 'synchronized' ) {
-			this._debouncedSave.cancel();
+		this._debouncedSave.cancel();
 
-			return this._save();
-		}
-
-		return Promise.resolve();
+		return this._save();
 	}
 
 	/**
