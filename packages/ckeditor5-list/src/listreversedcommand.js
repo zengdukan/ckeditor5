@@ -20,8 +20,9 @@ export default class ListReversedCommand extends Command {
 	* @inheritDoc
 	*/
 	refresh() {
-		this.value = this._getValue();
-		this.isEnabled = this._checkEnabled();
+		const value = this._getValue();
+		this.value = value;
+		this.isEnabled = value != null;
 	}
 
 	/**
@@ -57,19 +58,5 @@ export default class ListReversedCommand extends Command {
 		}
 
 		return null;
-	}
-
-	/**
-	 * Checks whether the command can be enabled in the current context.
-	 *
-	 * @private
-	 * @returns {Boolean} Whether the command should be enabled.
-	 */
-	_checkEnabled() {
-		const editor = this.editor;
-
-		const numberedList = editor.commands.get( 'numberedList' );
-
-		return numberedList.isEnabled;
 	}
 }
