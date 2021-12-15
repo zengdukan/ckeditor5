@@ -277,7 +277,10 @@ function createListPropertiesView( {
 
 		listPropertiesView.reversedSwitchButtonView.bind( 'isEnabled' ).to( listReversedCommand );
 		listPropertiesView.reversedSwitchButtonView.bind( 'isOn' ).to( listReversedCommand, 'value' );
-		listPropertiesView.on( 'listReversed', () => editor.execute( 'listReversed' ) );
+		listPropertiesView.on( 'listReversed', () => {
+			const isReversed = listReversedCommand.value;
+			editor.execute( 'listReversed', { reversed: !isReversed } );
+		} );
 	}
 
 	// Make sure applying styles closes the dropdown.

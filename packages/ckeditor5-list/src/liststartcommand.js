@@ -20,9 +20,8 @@ export default class ListStartCommand extends Command {
 	* @inheritDoc
 	*/
 	refresh() {
-		const value = this._getValue();
-		this.value = value;
-		this.isEnabled = value != null;
+		this.value = this._getValue();
+		this.isEnabled = this._checkEnabled();
 	}
 
 	/**
@@ -58,5 +57,19 @@ export default class ListStartCommand extends Command {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Checks whether the command can be enabled in the current context.
+	 *
+	 * @private
+	 * @returns {Boolean} Whether the command should be enabled.
+	 */
+	_checkEnabled() {
+		const editor = this.editor;
+
+		const numberedList = editor.commands.get( 'numberedList' );
+
+		return numberedList.isEnabled;
 	}
 }
