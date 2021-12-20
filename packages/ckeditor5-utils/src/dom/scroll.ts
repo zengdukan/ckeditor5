@@ -33,7 +33,7 @@ export function scrollViewportToShowTarget(
 
 	// Iterate over all windows, starting from target's parent window up to window#top.
 	while ( currentWindow ) {
-		let firstAncestorToScroll;
+		let firstAncestorToScroll: HTMLElement;
 
 		// Let's scroll target's ancestors first to reveal it. Then, once the ancestor scrolls
 		// settled down, the algorithm can eventually scroll the viewport of the current window.
@@ -68,7 +68,7 @@ export function scrollViewportToShowTarget(
 			// rendered within. It will be useful to re–calculate the rect of the target
 			// in the parent window's relative geometry. The target's rect must be shifted
 			// by it's iframe's position.
-			currentFrame = currentWindow.frameElement as HTMLElement;
+			currentFrame = currentWindow.frameElement as HTMLElement | null;
 			currentWindow = currentWindow.parent;
 
 			// If the current window has some parent but frameElement is inaccessible, then they have

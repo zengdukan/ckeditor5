@@ -19,7 +19,7 @@
  * @returns {Array.<Node|DocumentFragment>} Array of given `node` parents.
  */
 export default function getAncestors( node: Node ): Node[] {
-	const nodes = [];
+	const nodes: Node[] = [];
 	let currentNode: Node | null = node;
 
 	// We are interested in `Node`s `DocumentFragment`s only.

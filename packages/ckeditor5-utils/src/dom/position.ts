@@ -108,7 +108,7 @@ export function getOptimalPosition( { element, target, positions, limiter, fitIn
 		bestPosition = new Position( positions[ 0 ], positionOptions );
 	} else {
 		const limiterRect = limiter && new Rect( limiter ).getVisible();
-		const viewportRect = fitInViewport && getConstrainedViewportRect( viewportOffsetConfig );
+		const viewportRect = fitInViewport ? getConstrainedViewportRect( viewportOffsetConfig ) : undefined;
 
 		// @if CK_DEBUG_POSITION // if ( viewportRect ) {
 		// @if CK_DEBUG_POSITION //		RectDrawer.draw( viewportRect, { outlineWidth: '5px' }, 'Viewport' );
@@ -134,14 +134,14 @@ export function getOptimalPosition( { element, target, positions, limiter, fitIn
 // @param {Object} An object containing viewportOffset config.
 // @returns {utils/dom/rect~Rect} A shrunken rect of the viewport.
 function getConstrainedViewportRect( viewportOffsetConfig: ViewportOffsetConfig ): Rect {
-	viewportOffsetConfig = Object.assign( { top: 0, bottom: 0, left: 0, right: 0 }, viewportOffsetConfig );
+	const config = Object.assign( { top: 0, bottom: 0, left: 0, right: 0 }, viewportOffsetConfig );
 
 	const viewportRect = new Rect( global.window );
 
-	viewportRect.top += viewportOffsetConfig.top;
-	viewportRect.height -= viewportOffsetConfig.top;
-	viewportRect.bottom -= viewportOffsetConfig.bottom;
-	viewportRect.height -= viewportOffsetConfig.bottom;
+	viewportRect.top += config.top;
+	viewportRect.height -= config.top;
+	viewportRect.bottom -= config.bottom;
+	viewportRect.height -= config.bottom;
 
 	return viewportRect;
 }
@@ -267,8 +267,8 @@ function getRectForAbsolutePositioning( rect: Rect ): Rect {
  * in DOM, they will make it display it in the right place in the viewport.
  */
 export class Position {
-	readonly name!: string;
-	readonly config!: object;
+	readonly name!: string | null;
+	readonly config?: object;
 	private readonly _positioningFunctionCorrdinates!: { left: number; top: number };
 	private readonly _options!: PositionOptions;
 	private _cachedAbsoluteRect?: Rect;
@@ -304,7 +304,7 @@ export class Position {
 		 * Position name.
 		 *
 		 * @readonly
-		 * @member {String} #name
+		 * @member {String|null} #name
 		 */
 
 		/**
@@ -314,7 +314,7 @@ export class Position {
 		 * {@link module:utils/dom/position~getOptimalPosition} helper.
 		 *
 		 * @readonly
-		 * @member {Object} #config
+		 * @member {Object|undefined} #config
 		 */
 	}
 
@@ -432,7 +432,7 @@ interface PositionOptions {
 	elementRect: Rect,
 	targetRect: Rect,
 	viewportRect?: Rect,
-	limiterRect?: Rect
+	limiterRect?: Rect | null,
 	positionedElementAncestor?: HTMLElement | null
 }
 
@@ -497,15 +497,15 @@ export interface Options {
 	readonly target: RectSource | ( () => RectSource );
 	readonly positions: readonly PositioningFunction[]
 	readonly limiter?: RectSource | ( () => RectSource );
-	readonly fitInViewport: boolean;
+	readonly fitInViewport?: boolean;
 	readonly viewportOffsetConfig: ViewportOffsetConfig;
 }
 
 interface ViewportOffsetConfig {
-	readonly top: number;
-	readonly right: number;
-	readonly bottom: number;
-	readonly left: number;
+	readonly top?: number;
+	readonly right?: number;
+	readonly bottom?: number;
+	readonly left?: number;
 }
 
 /**
@@ -549,6 +549,6 @@ interface ViewportOffsetConfig {
 type PositioningFunction = ( elementRect: Rect, targetRect: Rect, viewportRect?: Rect ) => {
 	top: number;
 	left: number;
-	name: string;
+	name: string | null;
 	config?: object;
 } | null;

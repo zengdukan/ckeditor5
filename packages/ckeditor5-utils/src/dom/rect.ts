@@ -17,7 +17,7 @@ type RectProperty = 'top' | 'right' | 'bottom' | 'left' | 'width' | 'height';
 const rectProperties: RectProperty[] = [ 'top', 'right', 'bottom', 'left', 'width', 'height' ];
 
 export type RectLike = { readonly [prop in RectProperty]: number };
-export type RectSource = HTMLElement | Range | Window | DOMRect | Rect | RectLike;
+export type RectSource = HTMLElement | Range | Window | RectLike;
 
 /**
  * A helper class representing a `ClientRect` object, e.g. value returned by
@@ -255,7 +255,7 @@ export default class Rect {
 	 *
 	 * @returns {module:utils/dom/rect~Rect|null} A visible rect instance or `null`, if there's none.
 	 */
-	getVisible() {
+	getVisible(): Rect | null {
 		// const source: { parentNode?: Node, commonAncestorContainer?: Node } = this._source;
 		const source: RectSource & { parentNode?: Node | null, commonAncestorContainer?: Node | null } = this._source;
 		let visibleRect = this.clone();
@@ -462,6 +462,7 @@ function isBody( elementOrRange: RectSource | Node ): elementOrRange is HTMLBody
 // Checks if provided object is a DOM Element.
 //
 // Typings for lodash don't act like type guard.
+//
 // @private
 // @param {*} value
 // @returns {Boolean}
