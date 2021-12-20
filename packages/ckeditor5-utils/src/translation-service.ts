@@ -11,17 +11,13 @@
 
 import CKEditorError from './ckeditorerror';
 
-interface Dictionary {
-	[ messageId: string ]: string | string[]
-}
-
 declare global {
 	var CKEDITOR_TRANSLATIONS: {
 		[language: string]: {
 			dictionary: Dictionary,
 			getPluralForm?: (n: number) => number
-		}
-	}
+		};
+	};
 }
 
 /* istanbul ignore else */
@@ -104,7 +100,11 @@ if ( !window.CKEDITOR_TRANSLATIONS ) {
  * should support plural forms.
  * @param {Function} getPluralForm A function that returns the plural form index (a number).
  */
-export function add( language: string, translations: Dictionary, getPluralForm: (n: number) => number ) {
+export function add(
+	language: string,
+	translations: Dictionary,
+	getPluralForm?: (n: number) => number
+): void {
 	if ( !window.CKEDITOR_TRANSLATIONS[ language ] ) {
 		window.CKEDITOR_TRANSLATIONS[ language ] = {} as any;
 	}
@@ -173,7 +173,7 @@ export function _translate( language: string, message: Message, quantity: number
 	if ( numberOfLanguages === 0 || !hasTranslation( language, messageId ) ) {
 		if ( quantity !== 1 ) {
 			// Return the default plural form that was passed in the `message.plural` parameter.
-			return message.plural;
+			return message.plural!;
 		}
 
 		return message.string;
@@ -198,19 +198,19 @@ export function _translate( language: string, message: Message, quantity: number
  *
  * @protected
  */
-export function _clear() {
+export function _clear(): void {
 	window.CKEDITOR_TRANSLATIONS = {};
 }
 
 // Checks whether the dictionary exists and translation in that dictionary exists.
-function hasTranslation( language: string, messageId: string ) {
+function hasTranslation( language: string, messageId: string ): boolean {
 	return (
 		!!window.CKEDITOR_TRANSLATIONS[ language ] &&
 		!!window.CKEDITOR_TRANSLATIONS[ language ].dictionary[ messageId ]
 	);
 }
 
-function getNumberOfLanguages() {
+function getNumberOfLanguages(): number {
 	return Object.keys( window.CKEDITOR_TRANSLATIONS ).length;
 }
 
@@ -229,8 +229,12 @@ function getNumberOfLanguages() {
  * to support plural forms. Otherwise it should always be set to a string with the English plural form of the message.
  */
 
-interface Message {
-	string: string,
-	id: string,
-	plural: string
+export interface Message {
+	string: string;
+	id?: string;
+	plural?: string;
+}
+
+interface Dictionary {
+	[ messageId: string ]: string | string[];
 }

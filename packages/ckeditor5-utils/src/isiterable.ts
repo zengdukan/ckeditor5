@@ -13,6 +13,6 @@
  * @param {*} value The value to check.
  * @returns {Boolean} True if value implements iterator interface.
  */
-export default function isIterable( value: any ): value is Iterable<unknown> {
+export default function isIterable( value: any ): value is Iterable<any> {
 	return !!( value && value[ Symbol.iterator ] );
 }

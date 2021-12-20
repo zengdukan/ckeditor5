@@ -14,8 +14,9 @@
  *
  * @param {Object|Array} obj1
  * @param {Object|Array} obj2
+ * @returns {Boolean}
  */
-export default function areConnectedThroughProperties( obj1: object, obj2: object ) {
+export default function areConnectedThroughProperties( obj1: object, obj2: object ): boolean {
 	if ( obj1 === obj2 && isObject( obj1 ) ) {
 		return true;
 	}
@@ -35,7 +36,7 @@ export default function areConnectedThroughProperties( obj1: object, obj2: objec
 // Traverses JS structure and stores all sub-nodes, including the head node.
 // It walks into each iterable structures with the `try catch` block to omit errors that might be thrown during
 // tree walking. All primitives, functions and built-ins are skipped.
-function getSubNodes( head: object ) {
+function getSubNodes( head: unknown ): Set<unknown> {
 	const nodes = [ head ];
 
 	// Nodes are stored to prevent infinite looping.
@@ -51,22 +52,22 @@ function getSubNodes( head: object ) {
 		subNodes.add( node );
 
 		// Handle arrays, maps, sets, custom collections that implements `[ Symbol.iterator ]()`, etc.
-		if ( ( node as Iterable<object> )[ Symbol.iterator ] ) {
+		if ( ( node as Iterable<unknown> )[ Symbol.iterator ] ) {
 			// The custom editor iterators might cause some problems if the editor is crashed.
 			try {
-				nodes.push( ...( node as Iterable<object> ) );
+				nodes.push( ...( node as Iterable<unknown> ) );
 			} catch ( err ) {
 				// eslint-disable-line no-empty
 			}
 		} else {
-			nodes.push( ...( Object.values( node as {[key: string]: object} ) as Iterable<object> ) );
+			nodes.push( ...Object.values( node as any ) );
 		}
 	}
 
 	return subNodes;
 }
 
-function shouldNodeBeSkipped( node: any ) {
+function shouldNodeBeSkipped( node: unknown ): boolean {
 	const type = Object.prototype.toString.call( node );
 
 	return (
@@ -87,6 +88,6 @@ function shouldNodeBeSkipped( node: any ) {
 	);
 }
 
-function isObject( structure: any ) {
+function isObject( structure: unknown ): boolean {
 	return typeof structure === 'object' && structure !== null;
 }

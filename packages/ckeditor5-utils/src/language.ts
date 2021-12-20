@@ -7,6 +7,8 @@
  * @module utils/language
  */
 
+export type LanguageDirection = 'ltr' | 'rtl';
+
 const RTL_LANGUAGE_CODES = [
 	'ar', 'ara', // Arabic
 	'fa', 'per', 'fas', // Persian
@@ -21,6 +23,6 @@ const RTL_LANGUAGE_CODES = [
  * @param {String} language The ISO 639-1 or ISO 639-2 language code.
  * @returns {'ltr'|'rtl'}
  */
-export function getLanguageDirection( languageCode: string ): 'ltr' | 'rtl' {
+export function getLanguageDirection( languageCode: string ): LanguageDirection {
 	return RTL_LANGUAGE_CODES.includes( languageCode ) ? 'rtl' : 'ltr';
 }

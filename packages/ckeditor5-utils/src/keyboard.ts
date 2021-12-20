@@ -9,6 +9,7 @@
  * @module utils/keyboard
  */
 
+import { LanguageDirection } from './language';
 import CKEditorError from './ckeditorerror';
 import env from './env';
 
@@ -17,13 +18,13 @@ const modifiersToGlyphsMac = {
 	cmd: '⌘',
 	alt: '⌥',
 	shift: '⇧'
-};
+} as const;
 
 const modifiersToGlyphsNonMac = {
 	ctrl: 'Ctrl+',
 	alt: 'Alt+',
 	shift: 'Shift+'
-};
+} as const;
 
 /**
  * An object with `keyName => keyCode` pairs for a set of known keys.
@@ -53,8 +54,8 @@ const keyCodeNames = Object.fromEntries(
  * or a keystroke data object.
  * @returns {Number} Key or keystroke code.
  */
-export function getCode( key: string|KeystrokeInfo ) {
-	let keyCode;
+export function getCode( key: string | KeystrokeInfo ): number {
+	let keyCode: number | undefined;
 
 	if ( typeof key == 'string' ) {
 		keyCode = keyCodes[ key.toLowerCase() ];
@@ -101,7 +102,7 @@ export function getCode( key: string|KeystrokeInfo ) {
  * @param {String|Array.<Number|String>} keystroke The keystroke definition.
  * @returns {Number} Keystroke code.
  */
-export function parseKeystroke( keystroke: string | (number|string)[] ) {
+export function parseKeystroke( keystroke: string | ( number | string )[] ): number {
 	if ( typeof keystroke == 'string' ) {
 		keystroke = splitKeystrokeText( keystroke );
 	}
@@ -118,7 +119,7 @@ export function parseKeystroke( keystroke: string | (number|string)[] ) {
  * @param {String} keystroke The keystroke text.
  * @returns {String} The keystroke text specific for the environment.
  */
-export function getEnvKeystrokeText( keystroke: string ) {
+export function getEnvKeystrokeText( keystroke: string ): string {
 	let keystrokeCode = parseKeystroke( keystroke );
 
 	const modifiersToGlyphs = Object.entries( env.isMac ? modifiersToGlyphsMac : modifiersToGlyphsNonMac );
@@ -142,12 +143,14 @@ export function getEnvKeystrokeText( keystroke: string ) {
  * @param {Number} keyCode A key code as in {@link module:utils/keyboard~KeystrokeInfo#keyCode}.
  * @returns {Boolean}
  */
-export function isArrowKeyCode( keyCode: number ) {
+export function isArrowKeyCode( keyCode: number ): boolean {
 	return keyCode == keyCodes.arrowright ||
 		keyCode == keyCodes.arrowleft ||
 		keyCode == keyCodes.arrowup ||
 		keyCode == keyCodes.arrowdown;
 }
+
+export type LocalizedArrowKeyCodeDirection = 'left' | 'up' | 'right' | 'down';
 
 /**
  * Returns the direction in which the {@link module:engine/model/documentselection~DocumentSelection selection}
@@ -161,7 +164,10 @@ export function isArrowKeyCode( keyCode: number ) {
  * {@link module:utils/locale~Locale#contentLanguageDirection}.
  * @returns {'left'|'up'|'right'|'down'} Localized arrow direction.
  */
-export function getLocalizedArrowKeyCodeDirection( keyCode: number, contentLanguageDirection: 'ltr'|'rtl' ) {
+export function getLocalizedArrowKeyCodeDirection(
+	keyCode: number,
+	contentLanguageDirection: LanguageDirection
+): LocalizedArrowKeyCodeDirection | undefined {
 	const isLtrContent = contentLanguageDirection === 'ltr';
 
 	switch ( keyCode ) {
@@ -185,7 +191,7 @@ export function getLocalizedArrowKeyCodeDirection( keyCode: number, contentLangu
 //
 // @param {String} key The key name (see {@link module:utils/keyboard~keyCodes}).
 // @returns {Number} Key code.
-function getEnvKeyCode( key: string ) {
+function getEnvKeyCode( key: string ): number {
 	// Don't remap modifier key for forced modifiers.
 	if ( key.endsWith( '!' ) ) {
 		return getCode( key.slice( 0, -1 ) );
@@ -208,7 +214,10 @@ function getEnvKeyCode( key: string ) {
  * {@link module:utils/locale~Locale#contentLanguageDirection}.
  * @returns {Boolean}
  */
-export function isForwardArrowKeyCode( keyCode: number, contentLanguageDirection: 'ltr'|'rtl' ) {
+export function isForwardArrowKeyCode(
+	keyCode: number,
+	contentLanguageDirection: LanguageDirection
+): boolean {
 	const localizedKeyCodeDirection = getLocalizedArrowKeyCodeDirection( keyCode, contentLanguageDirection );
 
 	return localizedKeyCodeDirection === 'down' || localizedKeyCodeDirection === 'right';
@@ -260,7 +269,7 @@ function generateKnownKeyCodes(): { [keyCode: string]: number } {
 	return keyCodes;
 }
 
-function splitKeystrokeText( keystroke: string ) {
+function splitKeystrokeText( keystroke: string ): string[] {
 	return keystroke.split( '+' ).map( key => key.trim() );
 }
 
@@ -269,7 +278,7 @@ function splitKeystrokeText( keystroke: string ) {
  *
  * @interface module:utils/keyboard~KeystrokeInfo
  */
-interface KeystrokeInfo {
+export interface KeystrokeInfo {
 	altKey: boolean,
 	metaKey: boolean,
 	ctrlKey: boolean,

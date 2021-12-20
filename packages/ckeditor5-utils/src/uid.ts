@@ -9,7 +9,7 @@
 
 // A hash table of hex numbers to avoid using toString() in uid() which is costly.
 // [ '00', '01', '02', ..., 'fe', 'ff' ]
-const HEX_NUMBERS = new Array( 256 ).fill( 'a' )
+const HEX_NUMBERS = new Array( 256 ).fill( '' )
 	.map( ( val, index ) => ( '0' + ( index ).toString( 16 ) ).slice( -2 ) );
 
 /**

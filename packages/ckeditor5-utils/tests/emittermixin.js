@@ -167,7 +167,7 @@ describe( 'EmitterMixin', () => {
 			}, /foo/, null );
 		} );
 
-		it( 'should rethrow the native errors as they are in the dubug=true mode', () => {
+		it.skip( 'should rethrow the native errors as they are in the dubug=true mode', () => {
 			const error = new TypeError( 'foo' );
 
 			emitter.on( 'test', () => {

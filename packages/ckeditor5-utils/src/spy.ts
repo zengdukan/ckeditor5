@@ -9,7 +9,7 @@
 
 export interface Spy {
 	(): void;
-	called?: true
+	called?: true;
 }
 
 /**

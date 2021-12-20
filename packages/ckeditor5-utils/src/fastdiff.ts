@@ -7,6 +7,8 @@
  * @module utils/fastdiff
  */
 
+import { DiffResult, Change } from "./difftypes";
+
 /**
  * Finds positions of the first and last change in the given string/array and generates a set of changes:
  *
@@ -94,9 +96,28 @@
  * be returned instead of changes set. This makes this function compatible with {@link module:utils/diff~diff `diff()`}.
  * @returns {Array} Array of changes.
  */
-export default function fastDiff( a: Array<undefined>|String, b: Array<undefined>|String, cmp?: Function, atomicChanges = false ) {
+export default fastDiff;
+
+function fastDiff<T>(
+	a: ArrayLike<T>,
+	b: ArrayLike<T>,
+	cmp?: (a: T, b: T) => boolean,
+	atomicChanges?: false
+): Change<T>[]
+function fastDiff<T>(
+	a: ArrayLike<T>,
+	b: ArrayLike<T>,
+	cmp: ( (a: T, b: T) => boolean ) | undefined,
+	atomicChanges: true
+): DiffResult[]
+function fastDiff<T>(
+	a: ArrayLike<T>,
+	b: ArrayLike<T>,
+	cmp?: (a: T, b: T) => boolean,
+	atomicChanges: boolean = false
+): DiffResult[] | Change<T>[] {
 	// Set the comparator function.
-	cmp = cmp || function( a: any, b: any ) {
+	cmp = cmp || function( a, b ) {
 		return a === b;
 	};
 
@@ -106,19 +127,16 @@ export default function fastDiff( a: Array<undefined>|String, b: Array<undefined
 	// See ckeditor/ckeditor5#3147.
 	//
 	// We need to make sure here that fastDiff() works identical to diff().
-	if ( !Array.isArray( a ) ) {
-		a = Array.prototype.slice.call( a );
-	}
-
-	if ( !Array.isArray( b ) ) {
-		b = Array.prototype.slice.call( b );
-	}
+	const arrayA: T[] = !Array.isArray( a ) ? Array.prototype.slice.call( a ) : a;
+	const arrayB: T[] = !Array.isArray( b ) ? Array.prototype.slice.call( b ) : b;
 
 	// Find first and last change.
-	const changeIndexes = findChangeBoundaryIndexes( a, b, cmp );
+	const changeIndexes = findChangeBoundaryIndexes( arrayA, arrayB, cmp );
 
 	// Transform into changes array.
-	return atomicChanges ? changeIndexesToAtomicChanges( changeIndexes, b.length ) : changeIndexesToChanges( b, changeIndexes );
+	return atomicChanges ?
+		changeIndexesToAtomicChanges( changeIndexes, arrayB.length ) :
+		changeIndexesToChanges( arrayB, changeIndexes );
 }
 
 // Finds position of the first and last change in the given arrays. For example:
@@ -137,7 +155,11 @@ export default function fastDiff( a: Array<undefined>|String, b: Array<undefined
 // @returns {Number} return.firstIndex Index of the first change in both values (always the same for both).
 // @returns {Number} result.lastIndexOld Index of the last common value in `arr1`.
 // @returns {Number} result.lastIndexNew Index of the last common value in `arr2`.
-function findChangeBoundaryIndexes( arr1: Array<undefined>, arr2: Array<undefined>, cmp: Function  ): findChangeBoundaryIndexesReturn {
+function findChangeBoundaryIndexes<T>(
+	arr1: readonly T[],
+	arr2: readonly T[],
+	cmp: (a: T, b: T) => boolean
+): ChangeIndexes {
 	// Find the first difference between passed values.
 	const firstIndex = findFirstDifferenceIndex( arr1, arr2, cmp );
 
@@ -176,7 +198,11 @@ function findChangeBoundaryIndexes( arr1: Array<undefined>, arr2: Array<undefine
 // @param {Array} arr2
 // @param {Function} cmp Comparator function.
 // @returns {Number}
-function findFirstDifferenceIndex( arr1: Array<undefined>|String, arr2: Array<undefined>|String, cmp: Function  ) {
+function findFirstDifferenceIndex<T>(
+	arr1: readonly T[],
+	arr2: readonly T[],
+	cmp: (a: T, b: T) => boolean
+): number {
 	for ( let i = 0; i < Math.max( arr1.length, arr2.length ); i++ ) {
 		if ( arr1[ i ] === undefined || arr2[ i ] === undefined || !cmp( arr1[ i ], arr2[ i ] ) ) {
 			return i;
@@ -191,7 +217,7 @@ function findFirstDifferenceIndex( arr1: Array<undefined>|String, arr2: Array<un
 // @param {Array} arr Array to be processed.
 // @param {Number} howMany How many elements from array beginning to remove.
 // @returns {Array} Shortened and reversed array.
-function cutAndReverse( arr: Array<undefined>, howMany: number ) {
+function cutAndReverse<T>( arr: readonly T[], howMany: number ): T[] {
 	return arr.slice( howMany ).reverse();
 }
 
@@ -201,8 +227,11 @@ function cutAndReverse( arr: Array<undefined>, howMany: number ) {
 // @param {Array} newArray New array for which change indexes were calculated.
 // @param {Object} changeIndexes Change indexes object from `findChangeBoundaryIndexes` function.
 // @returns {Array.<Object>} Array of changes compatible with {@link module:utils/difftochanges~diffToChanges} format.
-function changeIndexesToChanges( newArray: Array<undefined>, changeIndexes: findChangeBoundaryIndexesReturn ) {
-	const result = [];
+function changeIndexesToChanges<T>(
+	newArray: readonly T[],
+	changeIndexes: ChangeIndexes
+): Change<T>[] {
+	const result: Change<T>[] = [];
 	const { firstIndex, lastIndexOld, lastIndexNew } = changeIndexes;
 
 	// Order operations as 'insert', 'delete' array to keep compatibility with {@link module:utils/difftochanges~diffToChanges}
@@ -232,7 +261,10 @@ function changeIndexesToChanges( newArray: Array<undefined>, changeIndexes: find
 // @param {Object} changeIndexes Change indexes object from `findChangeBoundaryIndexes` function.
 // @param {Number} newLength Length of the new array on which `findChangeBoundaryIndexes` calculated change indexes.
 // @returns {Array.<String>} Array of changes compatible with {@link module:utils/diff~diff} format.
-function changeIndexesToAtomicChanges( changeIndexes: findChangeBoundaryIndexesReturn, newLength: number ) {
+function changeIndexesToAtomicChanges(
+	changeIndexes: ChangeIndexes,
+	newLength: number
+): DiffResult[] {
 	const { firstIndex, lastIndexOld, lastIndexNew } = changeIndexes;
 
 	// No changes.
@@ -240,7 +272,7 @@ function changeIndexesToAtomicChanges( changeIndexes: findChangeBoundaryIndexesR
 		return Array( newLength ).fill( 'equal' );
 	}
 
-	let result: Array<any> = [];
+	let result: DiffResult[] = [];
 	if ( firstIndex > 0 ) {
 		result = result.concat( Array( firstIndex ).fill( 'equal' ) );
 	}
@@ -260,7 +292,8 @@ function changeIndexesToAtomicChanges( changeIndexes: findChangeBoundaryIndexesR
 	return result;
 }
 
-/**
- * @typedef { firstIndex: number, lastIndexOld: number, lastIndexNew: number } module:utils/fastdiff~findChangeBoundaryIndexes
- */
-type findChangeBoundaryIndexesReturn = { firstIndex: number, lastIndexOld: number, lastIndexNew: number }
+interface ChangeIndexes {
+	firstIndex: number;
+	lastIndexOld: number;
+	lastIndexNew: number;
+}

@@ -18,8 +18,8 @@
  * @param {Object} obj Object to transform.
  * @returns {Map} Map created from object.
  */
-export default function objectToMap<T>( obj : { [ key: string]: T } ): Map<string, T> {
-	const map = new Map();
+export default function objectToMap<T>( obj : { readonly [ key: string]: T } ): Map<string, T> {
+	const map = new Map<string, T>();
 
 	for ( const key in obj ) {
 		map.set( key, obj[ key ] );

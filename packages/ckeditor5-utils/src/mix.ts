@@ -32,17 +32,17 @@
  */
 export default function mix( baseClass: Function, ...mixins: object[] ): void {
 	mixins.forEach( mixin => {
-		let keys: (string | symbol)[] = Object.getOwnPropertyNames( mixin );
-		keys = keys.concat( Object.getOwnPropertySymbols( mixin ) );
-		keys.forEach( key => {
-			if ( key in baseClass.prototype ) {
-				return;
-			}
+		( Object.getOwnPropertyNames( mixin ) as ( string | symbol )[] )
+			.concat( Object.getOwnPropertySymbols( mixin ) )
+			.forEach( key => {
+				if ( key in baseClass.prototype ) {
+					return;
+				}
 
-			const sourceDescriptor = Object.getOwnPropertyDescriptor( mixin, key )!;
-			sourceDescriptor.enumerable = false;
+				const sourceDescriptor = Object.getOwnPropertyDescriptor( mixin, key )!;
+				sourceDescriptor.enumerable = false;
 
-			Object.defineProperty( baseClass.prototype, key, sourceDescriptor );
+				Object.defineProperty( baseClass.prototype, key, sourceDescriptor );
 		} );
 	} );
 }
