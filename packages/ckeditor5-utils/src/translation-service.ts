@@ -172,6 +172,7 @@ export function _translate( language: string, message: Message, quantity: number
 
 	if ( numberOfLanguages === 0 || !hasTranslation( language, messageId ) ) {
 		if ( quantity !== 1 ) {
+			// TS MIGRATION TODO: plural is optional. Document this case or add exception.
 			// Return the default plural form that was passed in the `message.plural` parameter.
 			return message.plural!;
 		}

@@ -183,6 +183,7 @@ const ObservableMixin: Observable = {
 			return;
 		}
 
+		// // TS MIGRATION TODO: the method doesn't check if it's really initialized.
 		const boundProperties = this[ boundPropertiesSymbol ]!;
 		const boundObservables = this[ boundObservablesSymbol ]!;
 

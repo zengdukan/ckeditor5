@@ -33,7 +33,7 @@ class FocusTracker {
 	isFocused!: boolean;
 	focusedElement!: HTMLElement | null;
 	private _elements: Set<HTMLElement>;
-	private _nextEventLoopTimeout: any;
+	private _nextEventLoopTimeout: ReturnType<typeof setTimeout> | null;
 
 	constructor() {
 		/**
@@ -127,7 +127,7 @@ class FocusTracker {
 	 * @param {HTMLElement} element Element which has been focused.
 	 */
 	private _focus( element: HTMLElement ): void {
-		clearTimeout( this._nextEventLoopTimeout );
+		clearTimeout( this._nextEventLoopTimeout! );
 
 		this.focusedElement = element;
 		this.isFocused = true;
@@ -141,7 +141,7 @@ class FocusTracker {
 	 * @fires blur
 	 */
 	private _blur(): void {
-		clearTimeout( this._nextEventLoopTimeout );
+		clearTimeout( this._nextEventLoopTimeout! );
 
 		this._nextEventLoopTimeout = setTimeout( () => {
 			this.focusedElement = null;

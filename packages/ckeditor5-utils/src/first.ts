@@ -7,6 +7,8 @@
  * @module utils/first
  */
 
+// TS MIGRATION TODO: the type in JSDoc is wrong or code is wrong.
+
 /**
  * Returns first item of the given `iterable`.
  *

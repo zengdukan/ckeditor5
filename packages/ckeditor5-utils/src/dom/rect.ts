@@ -333,6 +333,7 @@ export default class Rect {
 			scrollBarHeight = source.innerHeight - source.document.documentElement.clientHeight;
 			direction = source.getComputedStyle( source.document.documentElement ).direction;
 		} else {
+			// TS MIGRATION TODO: it should check if the source is really an Element
 			const borderWidths = getBorderWidths( source );
 
 			scrollBarWidth = source.offsetWidth - source.clientWidth - borderWidths.left - borderWidths.right;

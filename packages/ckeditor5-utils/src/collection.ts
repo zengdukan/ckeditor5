@@ -219,6 +219,7 @@ class Collection<T extends { [ id in I ]?: string }, I extends string = 'id'> im
 			throw new CKEditorError( 'collection-add-item-invalid-index', this );
 		}
 
+		// TS MIGRATION TODO: Iterable doesn't have length. Fix the code or documentation to match items type.
 		for ( let offset = 0; offset < items.length; offset++ ) {
 			const item = items[ offset ];
 			const itemId = this._getItemIdBeforeAdding( item );
@@ -526,6 +527,7 @@ class Collection<T extends { [ id in I ]?: string }, I extends string = 'id'> im
 	 * @protected
 	 * @param {Function} factory A function which produces collection items.
 	 */
+	// TS MIGRATION TODO: why it's @protected?
 	_setUpBindToBinding<S extends object>( factory: ( item: S ) => T | null ) {
 		const externalCollection = this._bindToCollection!;
 

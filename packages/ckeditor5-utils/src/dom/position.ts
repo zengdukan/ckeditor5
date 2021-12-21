@@ -163,6 +163,7 @@ function getConstrainedViewportRect( viewportOffsetConfig: ViewportOffsetConfig 
 //
 // @returns {Array} An array containing the name of the position and it's rect.
 function getBestPosition( positions: readonly PositioningFunction[], options: PositionOptions ): Position {
+	// TS MIGRATION TODO: document return type and make sure caller can handle nulls.
 	const { elementRect } = options;
 
 	// This is when element is fully visible.

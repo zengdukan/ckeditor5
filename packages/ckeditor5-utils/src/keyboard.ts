@@ -168,6 +168,7 @@ export function getLocalizedArrowKeyCodeDirection(
 	keyCode: number,
 	contentLanguageDirection: LanguageDirection
 ): LocalizedArrowKeyCodeDirection | undefined {
+	// TS MIGRATION TODO: document returning undefined or taking restricted list of key codes
 	const isLtrContent = contentLanguageDirection === 'ltr';
 
 	switch ( keyCode ) {
