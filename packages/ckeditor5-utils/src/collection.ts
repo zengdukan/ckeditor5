@@ -491,7 +491,7 @@ class Collection<T extends { [ id in I ]?: string }, I extends string = 'id'> im
 	 * @returns {Object}
 	 * @returns {module:utils/collection~CollectionBindToChain} The binding chain object.
 	 */
-	bindTo<S extends { [id in I2]: string }, I2 extends string>(
+	bindTo<S extends { [id in I2]?: string }, I2 extends string>(
 		externalCollection: Collection<S, I2>
 	): CollectionBindToChain<S, T> {
 		if ( this._bindToCollection ) {

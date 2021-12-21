@@ -26,7 +26,7 @@ export default class Locale {
 	readonly uiLanguageDirection: LanguageDirection;
 	readonly contentLanguage: string;
 	readonly contentLanguageDirection: LanguageDirection;
-	readonly t: ( message: string | Message, values?: number | string | ( number | string )[] ) => string
+	readonly t: ( message: string | Message, values?: number | string | ( number | string )[] ) => string;
 
 	/**
 	 * Creates a new instance of the locale class. Learn more about
