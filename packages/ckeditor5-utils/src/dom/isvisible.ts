@@ -20,6 +20,6 @@
  * @param {HTMLElement|null|undefined} element
  * @returns {Boolean}
  */
-export default function isVisible( element ) {
+export default function isVisible( element: HTMLElement | null | undefined ): boolean {
 	return !!( element && element.getClientRects && element.getClientRects().length );
 }
