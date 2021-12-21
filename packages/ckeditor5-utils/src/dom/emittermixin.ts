@@ -92,7 +92,7 @@ const DomEmitterMixin: Emitter = extend( {}, EmitterMixin, {
 	 * @param {Function} [callback] (Requires the `event`) The function to be removed from the call list for the given
 	 * `event`.
 	 */
-	stopListening( emitter: BaseEmitter | Node | Window, event: string, callback: Callback ) {
+	stopListening( emitter: BaseEmitter | Node | Window, event?: string, callback?: Callback ) {
 		// Check if the emitter is an instance of DOM Node. If so, forward the call to the corresponding ProxyEmitters.
 		if ( isNode( emitter ) || isWindow( emitter ) ) {
 			const proxyEmitters = this._getAllProxyEmitters( emitter );
