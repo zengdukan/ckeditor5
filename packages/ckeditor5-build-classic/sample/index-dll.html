@@ -34,11 +34,10 @@
 	const { SourceEditing } = window.CKEditor5.sourceEditing;
 
 	ClassicEditor.create(document.querySelector('#editor'), {
-		plugins: [
-			...ClassicEditor.builtinPlugins,
-			SourceEditing
+		extraPlugins: [
+			SourceEditing,
 		],
-		// toolbar: [ 'sourceEditing' ]
+        toolbar: [ 'sourceEditing', '|', ...ClassicEditor.defaultConfig.toolbar.items ]
 	})
 		.then(editor => {
 			window.editor = editor;
