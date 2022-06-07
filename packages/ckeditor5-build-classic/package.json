@@ -75,6 +75,7 @@
   "scripts": {
     "build": "webpack --mode production",
     "build:dll": "webpack --config=./webpack-dll.config.js --mode production",
+    "build:all-in": "webpack --config=./webpack-all-in.config.js --mode production",
     "preversion": "npm run build"
   }
 }
