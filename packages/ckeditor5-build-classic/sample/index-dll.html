@@ -27,23 +27,23 @@
 </div>
 
 <script src="../build/ckeditor-dll.js"></script>
+<script src="../build/translations-dll/pl.js"></script>
 <script src="../../../node_modules/@ckeditor/ckeditor5-source-editing/build/source-editing.js"></script>
 
 <script>
 	const { ClassicEditor } = window.CKEditor5.builds;
 	const { SourceEditing } = window.CKEditor5.sourceEditing;
 
-	ClassicEditor.create(document.querySelector('#editor'), {
-		extraPlugins: [
-			SourceEditing,
-		],
-        toolbar: [ 'sourceEditing', '|', ...ClassicEditor.defaultConfig.toolbar.items ]
+	ClassicEditor.create( document.querySelector( '#editor' ), {
+		extraPlugins: [ SourceEditing ],
+		toolbar: [ 'sourceEditing', '|', ...ClassicEditor.defaultConfig.toolbar.items ],
+		language: 'pl'
 	})
-		.then(editor => {
+		.then( editor => {
 			window.editor = editor;
 		})
-		.catch(error => {
-			console.error('There was a problem initializing the editor.', error);
+		.catch( error => {
+			console.error( 'There was a problem initializing the editor.', error );
 		});
 </script>
 
