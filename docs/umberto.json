@@ -2,9 +2,6 @@
 	"name": "CKEditor 5",
 	"slug": "ckeditor5",
 	"hooks": {
-		"beforeHexo": [
-			"../scripts/docs/build-content-styles.js"
-		]
 	},
 	"reportIssueWidget": {
 		"enabled": true,
@@ -399,7 +396,7 @@
 			"id": "api-reference",
 			"sourceDir": "api",
 			"slug": "api",
-			"type": "jsdoc"
+			"type": "typedoc"
 		}
 	]
 }
