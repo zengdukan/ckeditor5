@@ -8,6 +8,7 @@
  */
 
 import DomEventObserver from './domeventobserver';
+import type View from '../view';
 
 /**
  * Mouse events observer.
@@ -17,14 +18,14 @@ import DomEventObserver from './domeventobserver';
  *
  * @extends module:engine/view/observer/domeventobserver~DomEventObserver
  */
-export default class MouseObserver extends DomEventObserver {
-	constructor( view ) {
+export default class MouseObserver extends DomEventObserver<'mousedown' | 'mouseup' | 'mouseover' | 'mouseout'> {
+	constructor( view: View ) {
 		super( view );
 
 		this.domEventType = [ 'mousedown', 'mouseup', 'mouseover', 'mouseout' ];
 	}
 
-	onDomEvent( domEvent ) {
+	public onDomEvent( domEvent: MouseEvent ): void {
 		this.fire( domEvent.type, domEvent );
 	}
 }

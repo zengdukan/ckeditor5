@@ -7,8 +7,11 @@
  * @module engine/view/observer/observer
  */
 
-import DomEmitterMixin from '@ckeditor/ckeditor5-utils/src/dom/emittermixin';
+import DomEmitterMixin, { type Emitter as DomEmitter } from '@ckeditor/ckeditor5-utils/src/dom/emittermixin';
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
+
+import type Document from '../document';
+import type View from '../view';
 
 /**
  * Abstract base observer class. Observers are classes which listen to DOM events, do the preliminary
@@ -18,13 +21,17 @@ import mix from '@ckeditor/ckeditor5-utils/src/mix';
  *
  * @abstract
  */
-export default class Observer {
+abstract class Observer {
+	public readonly view: View;
+	public readonly document: Document;
+	public readonly isEnabled: false;
+
 	/**
 	 * Creates an instance of the observer.
 	 *
 	 * @param {module:engine/view/view~View} view
 	 */
-	constructor( view ) {
+	constructor( view: View ) {
 		/**
 		 * An instance of the view controller.
 		 *
@@ -60,8 +67,8 @@ export default class Observer {
 	 *
 	 * @see module:engine/view/observer/observer~Observer#disable
 	 */
-	enable() {
-		this.isEnabled = true;
+	public enable(): void {
+		( this as any ).isEnabled = true;
 	}
 
 	/**
@@ -70,14 +77,14 @@ export default class Observer {
 	 *
 	 * @see module:engine/view/observer/observer~Observer#enable
 	 */
-	disable() {
-		this.isEnabled = false;
+	public disable(): void {
+		( this as any ).isEnabled = false;
 	}
 
 	/**
 	 * Disables and destroys the observer, among others removes event listeners created by the observer.
 	 */
-	destroy() {
+	public destroy(): void {
 		this.disable();
 		this.stopListening();
 	}
@@ -94,16 +101,16 @@ export default class Observer {
 	 * potentially sometimes a document, too).
 	 * @returns {Boolean} Whether this event should be ignored by the observer.
 	 */
-	checkShouldIgnoreEventFromTarget( domTarget ) {
+	public checkShouldIgnoreEventFromTarget( domTarget: Node ): boolean {
 		if ( domTarget && domTarget.nodeType === 3 ) {
-			domTarget = domTarget.parentNode;
+			domTarget = domTarget.parentNode as any;
 		}
 
 		if ( !domTarget || domTarget.nodeType !== 1 ) {
 			return false;
 		}
 
-		return domTarget.matches( '[data-cke-ignore-events], [data-cke-ignore-events] *' );
+		return ( domTarget as any ).matches( '[data-cke-ignore-events], [data-cke-ignore-events] *' );
 	}
 
 	/**
@@ -113,6 +120,12 @@ export default class Observer {
 	 * @param {HTMLElement} domElement
 	 * @param {String} name The name of the root element.
 	 */
+
+	public abstract observe( domElement: HTMLElement, name: string ): void;
 }
 
 mix( Observer, DomEmitterMixin );
+
+interface Observer extends DomEmitter {}
+
+export default Observer;

@@ -8,6 +8,7 @@
  */
 
 import DomEventObserver from './domeventobserver';
+import type View from '../view';
 
 /**
  * {@link module:engine/view/document~Document#event:click Click} event observer.
@@ -18,14 +19,14 @@ import DomEventObserver from './domeventobserver';
  *
  * @extends module:engine/view/observer/domeventobserver~DomEventObserver
  */
-export default class ClickObserver extends DomEventObserver {
-	constructor( view ) {
+export default class ClickObserver extends DomEventObserver<'click'> {
+	constructor( view: View ) {
 		super( view );
 
 		this.domEventType = 'click';
 	}
 
-	onDomEvent( domEvent ) {
+	public onDomEvent( domEvent: MouseEvent ): void {
 		this.fire( domEvent.type, domEvent );
 	}
 }

@@ -9,18 +9,27 @@
 
 import { extend } from 'lodash-es';
 
+import type Document from '../document';
+import type Element from '../element';
+import type View from '../view';
+
 /**
  * Information about a DOM event in context of the {@link module:engine/view/document~Document}.
  * It wraps the native event, which usually should not be used as the wrapper contains
  * additional data (like key code for keyboard events).
  */
 export default class DomEventData {
+	public readonly view: View;
+	public readonly document: Document;
+	public readonly domEvent: Event;
+	public readonly domTarget: HTMLElement;
+
 	/**
 	 * @param {module:engine/view/view~View} view The instance of the view controller.
 	 * @param {Event} domEvent The DOM event.
 	 * @param {Object} [additionalData] Additional properties that the instance should contain.
 	 */
-	constructor( view, domEvent, additionalData ) {
+	constructor( view: View, domEvent: Event, additionalData: object ) {
 		/**
 		 * Instance of the view controller.
 		 *
@@ -51,7 +60,7 @@ export default class DomEventData {
 		 * @readonly
 		 * @member {HTMLElement} module:engine/view/observer/observer~Observer.DomEvent#target
 		 */
-		this.domTarget = domEvent.target;
+		this.domTarget = domEvent.target as any;
 
 		extend( this, additionalData );
 	}
@@ -62,21 +71,21 @@ export default class DomEventData {
 	 * @readonly
 	 * @type module:engine/view/element~Element
 	 */
-	get target() {
+	public get target(): Element {
 		return this.view.domConverter.mapDomToView( this.domTarget );
 	}
 
 	/**
 	 * Prevents the native's event default action.
 	 */
-	preventDefault() {
+	public preventDefault(): void {
 		this.domEvent.preventDefault();
 	}
 
 	/**
 	 * Stops native event propagation.
 	 */
-	stopPropagation() {
+	public stopPropagation(): void {
 		this.domEvent.stopPropagation();
 	}
 }

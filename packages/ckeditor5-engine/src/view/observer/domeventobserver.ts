@@ -9,6 +9,7 @@
 
 import Observer from './observer';
 import DomEventData from './domeventdata';
+import type View from '../view';
 
 /**
  * Base class for DOM event observers. This class handles
@@ -34,7 +35,14 @@ import DomEventData from './domeventdata';
  *
  * @extends module:engine/view/observer/observer~Observer
  */
-export default class DomEventObserver extends Observer {
+export default abstract class DomEventObserver<
+	EventType extends keyof HTMLElementEventMap,
+	AdditionalData = object
+> extends Observer {
+	public domEventType!: EventType | ( EventType )[];
+
+	public useCapture: boolean;
+
 	/**
 	 * Type of the DOM event the observer should listen to. Array of types can be defined
 	 * if the observer should listen to multiple DOM events.
@@ -52,10 +60,12 @@ export default class DomEventObserver extends Observer {
 	 * @method #onDomEvent
 	 */
 
+	public abstract onDomEvent( event: HTMLElementEventMap[ EventType ] ): void;
+
 	/**
 	 * @inheritDoc
 	 */
-	constructor( view ) {
+	constructor( view: View ) {
 		super( view );
 
 		/**
@@ -70,12 +80,12 @@ export default class DomEventObserver extends Observer {
 	/**
 	 * @inheritDoc
 	 */
-	observe( domElement ) {
+	public override observe( domElement: HTMLElement ): void {
 		const types = typeof this.domEventType == 'string' ? [ this.domEventType ] : this.domEventType;
 
 		types.forEach( type => {
 			this.listenTo( domElement, type, ( eventInfo, domEvent ) => {
-				if ( this.isEnabled && !this.checkShouldIgnoreEventFromTarget( domEvent.target ) ) {
+				if ( this.isEnabled && !this.checkShouldIgnoreEventFromTarget( domEvent.target as any ) ) {
 					this.onDomEvent( domEvent );
 				}
 			}, { useCapture: this.useCapture } );
@@ -91,7 +101,7 @@ export default class DomEventObserver extends Observer {
 	 * @param {Object} [additionalData] The additional data which should extend the
 	 * {@link module:engine/view/observer/domeventdata~DomEventData event data} object.
 	 */
-	fire( eventType, domEvent, additionalData ) {
+	public override fire( eventType: string, domEvent: Event, additionalData?: AdditionalData ): void {
 		if ( this.isEnabled ) {
 			this.document.fire( eventType, new DomEventData( this.view, domEvent, additionalData ) );
 		}

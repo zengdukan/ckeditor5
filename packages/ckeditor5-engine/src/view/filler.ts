@@ -3,8 +3,10 @@
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
-import { keyCodes } from '@ckeditor/ckeditor5-utils/src/keyboard';
+import { keyCodes, type KeystrokeInfo } from '@ckeditor/ckeditor5-utils/src/keyboard';
 import isText from '@ckeditor/ckeditor5-utils/src/dom/istext';
+import type View from './view';
+import type DomEventData from './observer/domeventdata';
 
 /**
  * Set of utilities related to handling block and inline fillers.
@@ -43,7 +45,7 @@ import isText from '@ckeditor/ckeditor5-utils/src/dom/istext';
  * @see module:engine/view/filler~BR_FILLER
  * @function
  */
-export const NBSP_FILLER = domDocument => domDocument.createTextNode( '\u00A0' );
+export const NBSP_FILLER = ( domDocument: Document ): Text => domDocument.createTextNode( '\u00A0' );
 
 /**
  * Marked non-breaking space filler creator. This function creates the `<span data-cke-filler="true">&nbsp;</span>` element.
@@ -53,9 +55,9 @@ export const NBSP_FILLER = domDocument => domDocument.createTextNode( '\u00A0' )
  * @see module:engine/view/filler~BR_FILLER
  * @function
  */
-export const MARKED_NBSP_FILLER = domDocument => {
+export const MARKED_NBSP_FILLER = ( domDocument: Document ): HTMLSpanElement => {
 	const span = domDocument.createElement( 'span' );
-	span.dataset.ckeFiller = true;
+	span.dataset.ckeFiller = 'true';
 	span.innerHTML = '\u00A0';
 
 	return span;
@@ -69,9 +71,9 @@ export const MARKED_NBSP_FILLER = domDocument => {
  * @see module:engine/view/filler~MARKED_NBSP_FILLER
  * @function
  */
-export const BR_FILLER = domDocument => {
+export const BR_FILLER = ( domDocument: Document ): HTMLBRElement => {
 	const fillerBr = domDocument.createElement( 'br' );
-	fillerBr.dataset.ckeFiller = true;
+	fillerBr.dataset.ckeFiller = 'true';
 
 	return fillerBr;
 };
@@ -99,7 +101,7 @@ export const INLINE_FILLER = '\u2060'.repeat( INLINE_FILLER_LENGTH );
  * @param {Node} domNode DOM node.
  * @returns {Boolean} True if the text node starts with the {@link module:engine/view/filler~INLINE_FILLER inline filler}.
  */
-export function startsWithFiller( domNode ) {
+export function startsWithFiller( domNode: Node ): boolean {
 	return isText( domNode ) && ( domNode.data.substr( 0, INLINE_FILLER_LENGTH ) === INLINE_FILLER );
 }
 
@@ -112,7 +114,7 @@ export function startsWithFiller( domNode ) {
  * @param {Text} domText DOM text node.
  * @returns {Boolean} True if the text node contains only the {@link module:engine/view/filler~INLINE_FILLER inline filler}.
  */
-export function isInlineFiller( domText ) {
+export function isInlineFiller( domText: Text ): boolean {
 	return domText.data.length == INLINE_FILLER_LENGTH && startsWithFiller( domText );
 }
 
@@ -126,7 +128,7 @@ export function isInlineFiller( domText ) {
  * @param {Text} domText DOM text node, possible with inline filler.
  * @returns {String} Data without filler.
  */
-export function getDataWithoutFiller( domText ) {
+export function getDataWithoutFiller( domText: Text ): string {
 	if ( startsWithFiller( domText ) ) {
 		return domText.data.slice( INLINE_FILLER_LENGTH );
 	} else {
@@ -140,14 +142,14 @@ export function getDataWithoutFiller( domText ) {
  *
  * @param {module:engine/view/view~View} view View controller instance we should inject quirks handling on.
  */
-export function injectQuirksHandling( view ) {
+export function injectQuirksHandling( view: View ): void {
 	view.document.on( 'arrowKey', jumpOverInlineFiller, { priority: 'low' } );
 }
 
 // Move cursor from the end of the inline filler to the beginning of it when, so the filler does not break navigation.
-function jumpOverInlineFiller( evt, data ) {
+function jumpOverInlineFiller( evt: unknown, data: DomEventData & KeystrokeInfo ) {
 	if ( data.keyCode == keyCodes.arrowleft ) {
-		const domSelection = data.domTarget.ownerDocument.defaultView.getSelection();
+		const domSelection = data.domTarget.ownerDocument.defaultView!.getSelection()!;
 
 		if ( domSelection.rangeCount == 1 && domSelection.getRangeAt( 0 ).collapsed ) {
 			const domParent = domSelection.getRangeAt( 0 ).startContainer;

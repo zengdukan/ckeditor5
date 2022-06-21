@@ -8,7 +8,8 @@
  */
 
 import DomEventObserver from './domeventobserver';
-import { getCode } from '@ckeditor/ckeditor5-utils/src/keyboard';
+import { getCode, type KeystrokeInfo } from '@ckeditor/ckeditor5-utils/src/keyboard';
+import type View from '../view';
 
 /**
  * Observer for events connected with pressing keyboard keys.
@@ -17,15 +18,15 @@ import { getCode } from '@ckeditor/ckeditor5-utils/src/keyboard';
  *
  * @extends module:engine/view/observer/domeventobserver~DomEventObserver
  */
-export default class KeyObserver extends DomEventObserver {
-	constructor( view ) {
+export default class KeyObserver extends DomEventObserver<'keydown' | 'keyup', KeystrokeInfo> {
+	constructor( view: View ) {
 		super( view );
 
 		this.domEventType = [ 'keydown', 'keyup' ];
 	}
 
-	onDomEvent( domEvt ) {
-		this.fire( domEvt.type, domEvt, {
+	public onDomEvent( domEvt: KeyboardEvent ): void {
+		const data = {
 			keyCode: domEvt.keyCode,
 
 			altKey: domEvt.altKey,
@@ -36,7 +37,9 @@ export default class KeyObserver extends DomEventObserver {
 			get keystroke() {
 				return getCode( this );
 			}
-		} );
+		};
+
+		this.fire( domEvt.type, domEvt, data );
 	}
 }
 
