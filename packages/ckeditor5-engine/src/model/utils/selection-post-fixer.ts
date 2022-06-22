@@ -107,6 +107,8 @@ function selectionPostFixer( writer: Writer, model: Model ) {
 	if ( wasFixed ) {
 		writer.setSelection( mergeIntersectingRanges( ranges ), { backward: selection.isBackward } );
 	}
+
+	return false;
 }
 
 // Tries fixing a range if it's incorrect.

@@ -185,13 +185,14 @@ export default class Matcher {
 // @param {module:engine/view/element~Element} element
 // @param {Object|String|RegExp|Function} pattern
 // @returns {Object|null} Returns object with match information or null if element is not matching.
-function isElementMatching( element: Element, pattern: MatcherPattern ): Match | null | false {
+function isElementMatching( element: Element, pattern: MatcherPattern ): Match | null {
 	// If pattern is provided as function - return result of that function;
 	if ( typeof pattern == 'function' ) {
 		return pattern( element );
 	}
 
 	const match: Match = {};
+
 	// Check element's name.
 	if ( pattern.name ) {
 		match.name = matchName( pattern.name, element.name );
@@ -215,7 +216,7 @@ function isElementMatching( element: Element, pattern: MatcherPattern ): Match |
 		match.classes = matchClasses( pattern.classes, element );
 
 		if ( !match.classes ) {
-			return false;
+			return null;
 		}
 	}
 
@@ -224,7 +225,7 @@ function isElementMatching( element: Element, pattern: MatcherPattern ): Match |
 		match.styles = matchStyles( pattern.styles, element );
 
 		if ( !match.styles ) {
-			return false;
+			return null;
 		}
 	}
 
@@ -299,7 +300,7 @@ function matchPatterns(
 	patterns: PropertyPatterns,
 	keys: Iterable<string>,
 	valueGetter: ( value: string ) => unknown
-): string[] | null {
+): string[] | undefined {
 	const normalizedPatterns = normalizePatterns( patterns );
 	const normalizedItems = Array.from( keys );
 	const match: string[] = [];
@@ -318,7 +319,7 @@ function matchPatterns(
 	// Return matches only if there are at least as many of them as there are patterns.
 	// The RegExp pattern can match more than one item.
 	if ( !normalizedPatterns.length || match.length < normalizedPatterns.length ) {
-		return null;
+		return undefined;
 	}
 
 	return match;
@@ -399,7 +400,7 @@ function normalizePatterns( patterns: PropertyPatterns ): [ true | string | RegE
 // @param {String|RegExp} patternKey A pattern representing a key we want to match.
 // @param {String} itemKey An actual item key (e.g. `'src'`, `'background-color'`, `'ck-widget'`) we're testing against pattern.
 // @returns {Boolean}
-function isKeyMatched( patternKey: true | string | RegExp, itemKey: string ) {
+function isKeyMatched( patternKey: true | string | RegExp, itemKey: string ): unknown {
 	return patternKey === true ||
 		patternKey === itemKey ||
 		patternKey instanceof RegExp && itemKey.match( patternKey );
@@ -413,7 +414,7 @@ function isValueMatched(
 	patternValue: true | string | RegExp,
 	itemKey: string,
 	valueGetter: ( value: string ) => unknown
-) {
+): boolean {
 	if ( patternValue === true ) {
 		return true;
 	}
@@ -436,7 +437,7 @@ function isValueMatched(
 function matchAttributes(
 	patterns: PropertyPatterns,
 	element: Element
-): string[] | null {
+): string[] | undefined {
 	const attributeKeys = new Set( element.getAttributeKeys() );
 
 	// `style` and `class` attribute keys are deprecated. Only allow them in object pattern
@@ -463,7 +464,7 @@ function matchAttributes(
 // @param {Array.<String|RegExp>} patterns Array of strings or regular expressions to match against element's classes.
 // @param {module:engine/view/element~Element} element Element which classes will be tested.
 // @returns {Array|null} Returns array with matched class names or `null` if no classes were matched.
-function matchClasses( patterns: ClassPatterns, element: Element ) {
+function matchClasses( patterns: ClassPatterns, element: Element ): string[] | undefined {
 	// We don't need `getter` here because patterns for classes are always normalized to `[ className, true ]`.
 	return matchPatterns( patterns, element.getClassNames(), /* istanbul ignore next */ () => {} );
 }
@@ -474,7 +475,7 @@ function matchClasses( patterns: ClassPatterns, element: Element ) {
 // used as style name. Value of each key can be a string or regular expression to match against style value.
 // @param {module:engine/view/element~Element} element Element which styles will be tested.
 // @returns {Array|null} Returns array with matched style names or `null` if no styles were matched.
-function matchStyles( patterns: PropertyPatterns, element: Element ) {
+function matchStyles( patterns: PropertyPatterns, element: Element ): string[] | undefined {
 	return matchPatterns( patterns, element.getStyleNames( true ), key => element.getStyle( key ) );
 }
 
@@ -732,19 +733,11 @@ export type MatcherPattern =
 		attributes?: PropertyPatterns;
 	};
 
-type PropertyPatterns = true | string | ObjectPattern | RegExp | ( string | RegExp | { key: string | RegExp; value: string | RegExp } )[];
-
-type ClassPatterns = true | string | { [ name: string ]: true } | RegExp | ( string | RegExp )[];
-
-interface ObjectPattern {
-	[ name: string ]: true | string | RegExp;
-}
-
 export interface Match {
 	name?: boolean;
-	attributes?: string[] | null;
-	classes?: string[] | null;
-	styles?: string[] | null;
+	attributes?: string[];
+	classes?: string[];
+	styles?: string[];
 }
 
 export interface MatchResult {
@@ -752,6 +745,20 @@ export interface MatchResult {
 	pattern: MatcherPattern;
 	match: Match;
 }
+
+export type PropertyPatterns =
+	true |
+	string |
+	RegExp |
+	Record<string, true | string | RegExp> |
+	( string | RegExp | { key: string | RegExp; value: string | RegExp } )[];
+
+export type ClassPatterns =
+	true |
+	string |
+	RegExp |
+	Record<string, true> |
+	( string | RegExp )[];
 
 /**
  * The key-value matcher pattern is missing key or value. Both must be present.

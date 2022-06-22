@@ -52,7 +52,7 @@ class Document {
 	public readonly roots: Collection<RootElement, 'rootName'>;
 	public readonly differ: Differ;
 
-	private readonly _postFixers: Set<( writer: Writer ) => unknown>;
+	private readonly _postFixers: Set<( writer: Writer ) => boolean>;
 	private _hasSelectionChangedFromTheLastChangeBlock: boolean;
 
 	/**
@@ -282,11 +282,13 @@ class Document {
 	 *					return true;
 	 *				}
 	 *			}
+	 *
+	 *			return false;
 	 *		} );
 	 *
 	 * @param {Function} postFixer
 	 */
-	public registerPostFixer( postFixer: ( writer: Writer ) => unknown ): void {
+	public registerPostFixer( postFixer: ( writer: Writer ) => boolean ): void {
 		this._postFixers.add( postFixer );
 	}
 
@@ -409,7 +411,7 @@ class Document {
 	 * @param {module:engine/model/writer~Writer} writer The writer on which post-fixer callbacks will be called.
 	 */
 	private _callPostFixers( writer: Writer ) {
-		let wasFixed: unknown = false;
+		let wasFixed = false;
 
 		do {
 			for ( const callback of this._postFixers ) {
