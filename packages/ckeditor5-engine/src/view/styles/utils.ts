@@ -7,7 +7,7 @@
  * @module engine/view/styles/utils
  */
 
-import type { BoxSides, PropertyDescriptor } from '../stylesmap';
+import type { BoxSides, PropertyDescriptor, StyleValue } from '../stylesmap';
 
 const HEX_COLOR_REGEXP = /^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 const RGB_COLOR_REGEXP = /^rgb\([ ]?([0-9]{1,3}[ %]?,[ ]?){2,3}[0-9]{1,3}[ %]?\)$/i;
@@ -193,8 +193,8 @@ export function getBoxSidesValues( value: string = '' ): BoxSides {
  * @returns {Function}
  */
 export function getBoxSidesValueReducer( styleShorthand: string ) {
-	return ( value: BoxSides ): PropertyDescriptor[] => {
-		const { top, right, bottom, left } = value;
+	return ( value: StyleValue ): PropertyDescriptor[] => {
+		const { top, right, bottom, left } = value as BoxSides;
 
 		const reduced: PropertyDescriptor[] = [];
 
@@ -215,7 +215,7 @@ export function getBoxSidesValueReducer( styleShorthand: string ) {
 				reduced.push( [ styleShorthand + '-left', left ] );
 			}
 		} else {
-			reduced.push( [ styleShorthand, getBoxSidesShorthandValue( value ) ] );
+			reduced.push( [ styleShorthand, getBoxSidesShorthandValue( value as BoxSides ) ] );
 		}
 
 		return reduced;

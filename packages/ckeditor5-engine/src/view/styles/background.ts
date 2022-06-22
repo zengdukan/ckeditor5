@@ -7,7 +7,12 @@
  * @module engine/view/styles/background
  */
 
+import type { StylesProcessor, PropertyDescriptor, StyleValue, Styles, Normalizer, Reducer } from '../stylesmap';
 import { getShorthandValues, isAttachment, isColor, isPosition, isRepeat, isURL } from './utils';
+
+let normalizeBackground: Normalizer;
+let normalizeBackgroundColor: Normalizer;
+let reduceBackground: Reducer;
 
 /**
  * Adds a background CSS styles processing rules.
@@ -31,31 +36,31 @@ import { getShorthandValues, isAttachment, isColor, isPosition, isRepeat, isURL 
  *
  * @param {module:engine/view/stylesmap~StylesProcessor} stylesProcessor
  */
-export function addBackgroundRules( stylesProcessor ) {
+export function addBackgroundRules( stylesProcessor: StylesProcessor ): void {
 	stylesProcessor.setNormalizer( 'background', normalizeBackground );
-	stylesProcessor.setNormalizer( 'background-color', value => ( { path: 'background.color', value } ) );
-	stylesProcessor.setReducer( 'background', value => {
-		const ret = [];
-
-		ret.push( [ 'background-color', value.color ] );
-
-		return ret;
-	} );
+	stylesProcessor.setNormalizer( 'background-color', normalizeBackgroundColor );
+	stylesProcessor.setReducer( 'background', reduceBackground );
 
 	stylesProcessor.setStyleRelation( 'background', [ 'background-color' ] );
 }
 
-function normalizeBackground( value ) {
-	const background = {};
+normalizeBackground = value => {
+	const background: StyleValue = {};
 
 	const parts = getShorthandValues( value );
 
 	for ( const part of parts ) {
 		if ( isRepeat( part ) ) {
-			background.repeat = background.repeat || [];
+			if ( !Array.isArray( background.repeat ) ) {
+				background.repeat = [];
+			}
+
 			background.repeat.push( part );
 		} else if ( isPosition( part ) ) {
-			background.position = background.position || [];
+			if ( !Array.isArray( background.position ) ) {
+				background.position = [];
+			}
+
 			background.position.push( part );
 		} else if ( isAttachment( part ) ) {
 			background.attachment = part;
@@ -70,4 +75,14 @@ function normalizeBackground( value ) {
 		path: 'background',
 		value: background
 	};
-}
+};
+
+normalizeBackgroundColor = value => ( { path: 'background.color', value } );
+
+reduceBackground = value => {
+	const ret: PropertyDescriptor[] = [];
+
+	ret.push( [ 'background-color', ( value as Styles ).color as string ] );
+
+	return ret;
+};

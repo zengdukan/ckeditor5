@@ -964,7 +964,7 @@ export interface Styles {
 /**
  * TODO docs
  */
-export type StyleValue = string | Styles | BoxSides;
+export type StyleValue = string | string[] | Styles | BoxSides;
 
 /**
  * TODO docs
@@ -974,7 +974,7 @@ export type Normalizer = ( name: string ) => { path: string; value: StyleValue }
 /**
  * TODO docs
  */
-export type Extractor = string | ( ( name: string, styles: Styles ) => StyleValue );
+export type Extractor = string | ( ( name: string, styles: Styles ) => StyleValue | undefined );
 
 /**
  * TODO docs
