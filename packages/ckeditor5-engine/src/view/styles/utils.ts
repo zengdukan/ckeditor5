@@ -7,6 +7,8 @@
  * @module engine/view/styles/utils
  */
 
+import type { BoxSides, PropertyDescriptor } from '../stylesmap';
+
 const HEX_COLOR_REGEXP = /^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 const RGB_COLOR_REGEXP = /^rgb\([ ]?([0-9]{1,3}[ %]?,[ ]?){2,3}[0-9]{1,3}[ %]?\)$/i;
 const RGBA_COLOR_REGEXP = /^rgba\([ ]?([0-9]{1,3}[ %]?,[ ]?){3}(1|[0-9]+%|[0]?\.?[0-9]+)\)$/i;
@@ -61,7 +63,7 @@ const COLOR_NAMES = new Set( [
  * @param {String} string
  * @returns {Boolean}
  */
-export function isColor( string ) {
+export function isColor( string: string ): boolean {
 	// As far as I was able to test checking some pre-conditions is faster than joining each test with ||.
 	if ( string.startsWith( '#' ) ) {
 		return HEX_COLOR_REGEXP.test( string );
@@ -87,7 +89,7 @@ const lineStyleValues = [ 'none', 'hidden', 'dotted', 'dashed', 'solid', 'double
  * @param {String} string
  * @returns {Boolean}
  */
-export function isLineStyle( string ) {
+export function isLineStyle( string: string ): boolean {
 	return lineStyleValues.includes( string );
 }
 
@@ -99,7 +101,7 @@ const lengthRegExp = /^([+-]?[0-9]*([.][0-9]+)?(px|cm|mm|in|pc|pt|ch|em|ex|rem|v
  * @param {String} string
  * @returns {Boolean}
  */
-export function isLength( string ) {
+export function isLength( string: string ): boolean {
 	return lengthRegExp.test( string );
 }
 
@@ -111,7 +113,7 @@ const PERCENTAGE_VALUE_REGEXP = /^[+-]?[0-9]*([.][0-9]+)?%$/;
  * @param {String} string
  * @returns {Boolean}
  */
-export function isPercentage( string ) {
+export function isPercentage( string: string ): boolean {
 	return PERCENTAGE_VALUE_REGEXP.test( string );
 }
 
@@ -123,7 +125,7 @@ const repeatValues = [ 'repeat-x', 'repeat-y', 'repeat', 'space', 'round', 'no-r
  * @param {String} string
  * @returns {Boolean}
  */
-export function isRepeat( string ) {
+export function isRepeat( string: string ): boolean {
 	return repeatValues.includes( string );
 }
 
@@ -135,7 +137,7 @@ const positionValues = [ 'center', 'top', 'bottom', 'left', 'right' ];
  * @param {String} string
  * @returns {Boolean}
  */
-export function isPosition( string ) {
+export function isPosition( string: string ): boolean {
 	return positionValues.includes( string );
 }
 
@@ -147,7 +149,7 @@ const attachmentValues = [ 'fixed', 'scroll', 'local' ];
  * @param {String} string
  * @returns {Boolean}
  */
-export function isAttachment( string ) {
+export function isAttachment( string: string ): boolean {
 	return attachmentValues.includes( string );
 }
 
@@ -159,11 +161,14 @@ const urlRegExp = /^url\(/;
  * @param {String} string
  * @returns {Boolean}
  */
-export function isURL( string ) {
+export function isURL( string: string ): boolean {
 	return urlRegExp.test( string );
 }
 
-export function getBoxSidesValues( value = '' ) {
+/**
+ * TODO: Docs
+ */
+export function getBoxSidesValues( value: string = '' ): BoxSides {
 	if ( value === '' ) {
 		return { top: undefined, right: undefined, bottom: undefined, left: undefined };
 	}
@@ -187,11 +192,11 @@ export function getBoxSidesValues( value = '' ) {
  * @param {String} styleShorthand
  * @returns {Function}
  */
-export function getBoxSidesValueReducer( styleShorthand ) {
-	return value => {
+export function getBoxSidesValueReducer( styleShorthand: string ) {
+	return ( value: BoxSides ): PropertyDescriptor[] => {
 		const { top, right, bottom, left } = value;
 
-		const reduced = [];
+		const reduced: PropertyDescriptor[] = [];
 
 		if ( ![ top, right, left, bottom ].every( value => !!value ) ) {
 			if ( top ) {
@@ -227,7 +232,7 @@ export function getBoxSidesValueReducer( styleShorthand ) {
  * @param {module:engine/view/stylesmap~BoxSides} styleShorthand
  * @returns {String}
  */
-export function getBoxSidesShorthandValue( { top, right, bottom, left } ) {
+export function getBoxSidesShorthandValue( { top, right, bottom, left }: BoxSides ): string {
 	const out = [];
 
 	if ( left !== right ) {
@@ -251,8 +256,8 @@ export function getBoxSidesShorthandValue( { top, right, bottom, left } ) {
  * @param {String} shorthand
  * @returns {Function}
  */
-export function getPositionShorthandNormalizer( shorthand ) {
-	return value => {
+export function getPositionShorthandNormalizer( shorthand: string ) {
+	return ( value: string ): { path: string; value: BoxSides } => {
 		return {
 			path: shorthand,
 			value: getBoxSidesValues( value )
@@ -269,7 +274,7 @@ export function getPositionShorthandNormalizer( shorthand ) {
  * @param {String} string
  * @returns {Array.<String>}
  */
-export function getShorthandValues( string ) {
+export function getShorthandValues( string: string ): string[] {
 	return string
 		.replace( /, /g, ',' ) // Exclude comma from spaces evaluation as values are separated by spaces.
 		.split( ' ' )

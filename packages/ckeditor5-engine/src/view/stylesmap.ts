@@ -15,12 +15,15 @@ import { get, isObject, merge, set, unset } from 'lodash-es';
  * The styles map is capable of normalizing style names so e.g. the following operations are possible:
  */
 export default class StylesMap {
+	private _styles: Record<string, string>;
+	private readonly _styleProcessor: StylesProcessor;
+
 	/**
 	 * Creates Styles instance.
 	 *
 	 * @param {module:engine/view/stylesmap~StylesProcessor} styleProcessor
 	 */
-	constructor( styleProcessor ) {
+	constructor( styleProcessor: StylesProcessor ) {
 		/**
 		 * Keeps an internal representation of styles map. Normalized styles are kept as object tree to allow unified modification and
 		 * value access model using lodash's get, set, unset, etc methods.
@@ -46,7 +49,7 @@ export default class StylesMap {
 	 *
 	 * @type {Boolean}
 	 */
-	get isEmpty() {
+	public get isEmpty(): boolean {
 		const entries = Object.entries( this._styles );
 		const from = Array.from( entries );
 
@@ -58,7 +61,7 @@ export default class StylesMap {
 	 *
 	 * @type {Number}
 	 */
-	get size() {
+	public get size(): number {
 		if ( this.isEmpty ) {
 			return 0;
 		}
@@ -73,7 +76,7 @@ export default class StylesMap {
 	 *
 	 * @param {String} inlineStyle
 	 */
-	setTo( inlineStyle ) {
+	public setTo( inlineStyle: string ): void {
 		this.clear();
 
 		const parsedStyles = Array.from( parseInlineStyles( inlineStyle ).entries() );
@@ -111,7 +114,7 @@ export default class StylesMap {
 	 * @param {String} name Style name.
 	 * @returns {Boolean}
 	 */
-	has( name ) {
+	public has( name: string ): boolean {
 		if ( this.isEmpty ) {
 			return false;
 		}
@@ -173,13 +176,15 @@ export default class StylesMap {
 	 * @param {String|Object} nameOrObject Style property name or object with multiple properties.
 	 * @param {String|Object} valueOrObject Value to set.
 	 */
-	set( nameOrObject, valueOrObject ) {
+	public set( nameOrObject: string, valueOrObject: StyleValue ): void;
+	public set( nameOrObject: Styles ): void;
+	public set( nameOrObject: string | Styles, valueOrObject?: StyleValue ): void {
 		if ( isObject( nameOrObject ) ) {
 			for ( const [ key, value ] of Object.entries( nameOrObject ) ) {
 				this._styleProcessor.toNormalizedForm( key, value, this._styles );
 			}
 		} else {
-			this._styleProcessor.toNormalizedForm( nameOrObject, valueOrObject, this._styles );
+			this._styleProcessor.toNormalizedForm( nameOrObject, valueOrObject!, this._styles );
 		}
 	}
 
@@ -207,7 +212,7 @@ export default class StylesMap {
 	 *
 	 * @param {String} name Style name.
 	 */
-	remove( name ) {
+	public remove( name: string ): void {
 		const path = toPath( name );
 
 		unset( this._styles, path );
@@ -241,7 +246,7 @@ export default class StylesMap {
 	 * @param {String} name Style name.
 	 * @returns {Object|String|undefined}
 	 */
-	getNormalized( name ) {
+	public getNormalized( name?: string ): StyleValue {
 		return this._styleProcessor.getNormalized( name, this._styles );
 	}
 
@@ -267,7 +272,7 @@ export default class StylesMap {
 	 *
 	 * @returns {String}
 	 */
-	toString() {
+	public toString(): string {
 		if ( this.isEmpty ) {
 			return '';
 		}
@@ -329,7 +334,7 @@ export default class StylesMap {
 	 * @param {String} propertyName
 	 * @returns {String|undefined}
 	 */
-	getAsString( propertyName ) {
+	public getAsString( propertyName: string ): string | undefined {
 		if ( this.isEmpty ) {
 			return;
 		}
@@ -363,7 +368,7 @@ export default class StylesMap {
 	 * @param {Boolean} [expand=false] Expand shorthand style properties and all return equivalent style representations.
 	 * @returns {Array.<String>}
 	 */
-	getStyleNames( expand = false ) {
+	public getStyleNames( expand = false ): string[] {
 		if ( this.isEmpty ) {
 			return [];
 		}
@@ -380,7 +385,7 @@ export default class StylesMap {
 	/**
 	 * Removes all styles.
 	 */
-	clear() {
+	public clear(): void {
 		this._styles = {};
 	}
 
@@ -390,8 +395,8 @@ export default class StylesMap {
 	 * @private
 	 * @returns {Array.<module:engine/view/stylesmap~PropertyDescriptor>}
 	 */
-	_getStylesEntries() {
-		const parsed = [];
+	private _getStylesEntries(): PropertyDescriptor[] {
+		const parsed: PropertyDescriptor[] = [];
 
 		const keys = Object.keys( this._styles );
 
@@ -408,7 +413,7 @@ export default class StylesMap {
 	 * @param {String} path
 	 * @private
 	 */
-	_cleanEmptyObjectsOnPath( path ) {
+	private _cleanEmptyObjectsOnPath( path: string ): void {
 		const pathParts = path.split( '.' );
 		const isChildPath = pathParts.length > 1;
 
@@ -436,6 +441,11 @@ export default class StylesMap {
  * Style processor is responsible for writing and reading a normalized styles object.
  */
 export class StylesProcessor {
+	private readonly _normalizers: Map<string, Normalizer>;
+	private readonly _extractors: Map<string, Extractor>;
+	private readonly _reducers: Map<string, Reducer>;
+	private readonly _consumables: Map<string, string[]>;
+
 	/**
 	 * Creates StylesProcessor instance.
 	 *
@@ -463,7 +473,7 @@ export class StylesProcessor {
 	 * @param {String} propertyValue Value of style property.
 	 * @param {Object} styles Object holding normalized styles.
 	 */
-	toNormalizedForm( name, propertyValue, styles ) {
+	public toNormalizedForm( name: string, propertyValue: StyleValue, styles: Styles ): void {
 		if ( isObject( propertyValue ) ) {
 			appendStyleValue( styles, toPath( name ), propertyValue );
 
@@ -471,7 +481,7 @@ export class StylesProcessor {
 		}
 
 		if ( this._normalizers.has( name ) ) {
-			const normalizer = this._normalizers.get( name );
+			const normalizer = this._normalizers.get( name )!;
 
 			const { path, value } = normalizer( propertyValue );
 
@@ -500,7 +510,7 @@ export class StylesProcessor {
 	 * @param {Object} styles Object holding normalized styles.
 	 * @returns {*}
 	 */
-	getNormalized( name, styles ) {
+	public getNormalized( name: string | undefined, styles: Styles ): StyleValue {
 		if ( !name ) {
 			return merge( {}, styles );
 		}
@@ -511,7 +521,7 @@ export class StylesProcessor {
 		}
 
 		if ( this._extractors.has( name ) ) {
-			const extractor = this._extractors.get( name );
+			const extractor = this._extractors.get( name )!;
 
 			if ( typeof extractor === 'string' ) {
 				return get( styles, extractor );
@@ -557,7 +567,7 @@ export class StylesProcessor {
 	 * @param {Object} styles Object holding normalized styles.
 	 * @returns {Array.<module:engine/view/stylesmap~PropertyDescriptor>}
 	 */
-	getReducedForm( name, styles ) {
+	public getReducedForm( name: string, styles: Styles ): PropertyDescriptor[] {
 		const normalizedValue = this.getNormalized( name, styles );
 
 		// Might be empty string.
@@ -566,12 +576,12 @@ export class StylesProcessor {
 		}
 
 		if ( this._reducers.has( name ) ) {
-			const reducer = this._reducers.get( name );
+			const reducer = this._reducers.get( name )!;
 
 			return reducer( normalizedValue );
 		}
 
-		return [ [ name, normalizedValue ] ];
+		return [ [ name, normalizedValue as string ] ];
 	}
 
 	/**
@@ -580,7 +590,7 @@ export class StylesProcessor {
 	 * @param {Object} styles Object holding normalized styles.
 	 * @returns {Array.<String>}
 	 */
-	getStyleNames( styles ) {
+	public getStyleNames( styles: Styles ): string[] {
 		// Find all extractable styles that have a value.
 		const expandedStyleNames = Array.from( this._consumables.keys() ).filter( name => {
 			const style = this.getNormalized( name, styles );
@@ -617,7 +627,7 @@ export class StylesProcessor {
 	 * @param {String} name
 	 * @returns {Array.<String>}
 	 */
-	getRelatedStyles( name ) {
+	public getRelatedStyles( name: string ): string[] {
 		return this._consumables.get( name ) || [];
 	}
 
@@ -672,7 +682,7 @@ export class StylesProcessor {
 	 * @param {String} name
 	 * @param {Function} callback
 	 */
-	setNormalizer( name, callback ) {
+	public setNormalizer( name: string, callback: Normalizer ): void {
 		this._normalizers.set( name, callback );
 	}
 
@@ -715,7 +725,7 @@ export class StylesProcessor {
 	 * @param {String} name
 	 * @param {Function|String} callbackOrPath Callback that return a requested value or path string for single values.
 	 */
-	setExtractor( name, callbackOrPath ) {
+	public setExtractor( name: string, callbackOrPath: Extractor ): void {
 		this._extractors.set( name, callbackOrPath );
 	}
 
@@ -752,7 +762,7 @@ export class StylesProcessor {
 	 * @param {String} name
 	 * @param {Function} callback
 	 */
-	setReducer( name, callback ) {
+	public setReducer( name: string, callback: Reducer ): void {
 		this._reducers.set( name, callback );
 	}
 
@@ -778,7 +788,7 @@ export class StylesProcessor {
 	 * @param {String} shorthandName
 	 * @param {Array.<String>} styleNames
 	 */
-	setStyleRelation( shorthandName, styleNames ) {
+	public setStyleRelation( shorthandName: string, styleNames: string[] ): void {
 		this._mapStyleNames( shorthandName, styleNames );
 
 		for ( const alsoName of styleNames ) {
@@ -793,12 +803,12 @@ export class StylesProcessor {
 	 * @param {Array.<String>} styleNames
 	 * @private
 	 */
-	_mapStyleNames( name, styleNames ) {
+	private _mapStyleNames( name: string, styleNames: string[] ) {
 		if ( !this._consumables.has( name ) ) {
 			this._consumables.set( name, [] );
 		}
 
-		this._consumables.get( name ).push( ...styleNames );
+		this._consumables.get( name )!.push( ...styleNames );
 	}
 }
 
@@ -806,7 +816,7 @@ export class StylesProcessor {
 //
 // @param {String} stylesString Styles to parse.
 // @returns {Map.<String, String>} stylesMap Map of parsed properties and values.
-function parseInlineStyles( stylesString ) {
+function parseInlineStyles( stylesString: string ): Map<string, string> {
 	// `null` if no quote was found in input string or last found quote was a closing quote. See below.
 	let quoteType = null;
 	let propertyNameStart = 0;
@@ -880,7 +890,7 @@ function parseInlineStyles( stylesString ) {
 }
 
 // Return lodash compatible path from style name.
-function toPath( name ) {
+function toPath( name: string ): string {
 	return name.replace( '-', '.' );
 }
 
@@ -889,7 +899,7 @@ function toPath( name ) {
 // @param {String} nameOrPath
 // @param {String|Object} valueOrObject
 // @private
-function appendStyleValue( stylesObject, nameOrPath, valueOrObject ) {
+function appendStyleValue( stylesObject: Styles, nameOrPath: string, valueOrObject: StyleValue ) {
 	let valueToSet = valueOrObject;
 
 	if ( isObject( valueOrObject ) ) {
@@ -910,6 +920,7 @@ function appendStyleValue( stylesObject, nameOrPath, valueOrObject ) {
  *
  * @typedef {Array.<String, String>} module:engine/view/stylesmap~PropertyDescriptor
  */
+export type PropertyDescriptor = [ string, string ];
 
 /**
  * An object describing values associated with the sides of a box, for instance margins, paddings,
@@ -936,3 +947,36 @@ function appendStyleValue( stylesObject, nameOrPath, valueOrObject ) {
  * @property {String} bottom Bottom side value.
  * @property {String} left Left side value.
  */
+export type BoxSides = {
+	top: undefined | string;
+	left: undefined | string;
+	right: undefined | string;
+	bottom: undefined | string;
+};
+
+/**
+ * TODO docs
+ */
+export interface Styles {
+	[ name: string ]: StyleValue;
+}
+
+/**
+ * TODO docs
+ */
+export type StyleValue = string | Styles | BoxSides;
+
+/**
+ * TODO docs
+ */
+export type Normalizer = ( name: string ) => { path: string; value: StyleValue };
+
+/**
+ * TODO docs
+ */
+export type Extractor = string | ( ( name: string, styles: Styles ) => StyleValue );
+
+/**
+ * TODO docs
+ */
+export type Reducer = ( value: StyleValue ) => PropertyDescriptor[];
