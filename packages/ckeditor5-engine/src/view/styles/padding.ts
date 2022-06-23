@@ -7,6 +7,7 @@
  * @module engine/view/styles/padding
  */
 
+import type { StylesProcessor } from '../stylesmap';
 import { getPositionShorthandNormalizer, getBoxSidesValueReducer } from './utils';
 
 /**
@@ -27,7 +28,7 @@ import { getPositionShorthandNormalizer, getBoxSidesValueReducer } from './utils
  *
  * @param {module:engine/view/stylesmap~StylesProcessor} stylesProcessor
  */
-export function addPaddingRules( stylesProcessor ) {
+export function addPaddingRules( stylesProcessor: StylesProcessor ): void {
 	stylesProcessor.setNormalizer( 'padding', getPositionShorthandNormalizer( 'padding' ) );
 	stylesProcessor.setNormalizer( 'padding-top', value => ( { path: 'padding.top', value } ) );
 	stylesProcessor.setNormalizer( 'padding-right', value => ( { path: 'padding.right', value } ) );

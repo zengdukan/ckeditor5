@@ -7,6 +7,7 @@
  * @module engine/view/styles/margin
  */
 
+import type { StylesProcessor } from '../stylesmap';
 import { getPositionShorthandNormalizer, getBoxSidesValueReducer } from './utils';
 
 /**
@@ -27,7 +28,7 @@ import { getPositionShorthandNormalizer, getBoxSidesValueReducer } from './utils
  *
  * @param {module:engine/view/stylesmap~StylesProcessor} stylesProcessor
  */
-export function addMarginRules( stylesProcessor ) {
+export function addMarginRules( stylesProcessor: StylesProcessor ): void {
 	stylesProcessor.setNormalizer( 'margin', getPositionShorthandNormalizer( 'margin' ) );
 
 	stylesProcessor.setNormalizer( 'margin-top', value => ( { path: 'margin.top', value } ) );
