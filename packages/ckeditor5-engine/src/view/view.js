@@ -15,7 +15,6 @@ import Position from './position';
 import Range from './range';
 import Selection from './selection';
 
-import MutationObserver from './observer/mutationobserver';
 import KeyObserver from './observer/keyobserver';
 import FakeSelectionObserver from './observer/fakeselectionobserver';
 import SelectionObserver from './observer/selectionobserver';
@@ -31,7 +30,6 @@ import { scrollViewportToShowTarget } from '@ckeditor/ckeditor5-utils/src/dom/sc
 import { injectUiElementHandling } from './uielement';
 import { injectQuirksHandling } from './filler';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
-import env from '@ckeditor/ckeditor5-utils/src/env';
 
 /**
  * Editor's view controller class. Its main responsibility is DOM - View management for editing purposes, to provide
@@ -49,12 +47,12 @@ import env from '@ckeditor/ckeditor5-utils/src/env';
  * on DOM and fire events on the {@link module:engine/view/document~Document Document}.
  * Note that the following observers are added by the class constructor and are always available:
  *
- * * {@link module:engine/view/observer/mutationobserver~MutationObserver},
  * * {@link module:engine/view/observer/selectionobserver~SelectionObserver},
  * * {@link module:engine/view/observer/focusobserver~FocusObserver},
  * * {@link module:engine/view/observer/keyobserver~KeyObserver},
  * * {@link module:engine/view/observer/fakeselectionobserver~FakeSelectionObserver}.
  * * {@link module:engine/view/observer/compositionobserver~CompositionObserver}.
+ * * {@link module:engine/view/observer/inputobserver~InputObserver}.
  * * {@link module:engine/view/observer/arrowkeysobserver~ArrowKeysObserver}.
  * * {@link module:engine/view/observer/tabobserver~TabObserver}.
  *
@@ -182,18 +180,15 @@ export default class View {
 		this._writer = new DowncastWriter( this.document );
 
 		// Add default observers.
-		this.addObserver( MutationObserver );
 		this.addObserver( SelectionObserver );
 		this.addObserver( FocusObserver );
 		this.addObserver( KeyObserver );
 		this.addObserver( FakeSelectionObserver );
 		this.addObserver( CompositionObserver );
 		this.addObserver( ArrowKeysObserver );
+		this.addObserver( InputObserver );
 		this.addObserver( TabObserver );
-
-		if ( env.isAndroid ) {
-			this.addObserver( InputObserver );
-		}
+		this.addObserver( InputObserver );
 
 		// Inject quirks handlers.
 		injectQuirksHandling( this );
@@ -691,7 +686,7 @@ export default class View {
 	}
 
 	/**
-	 * Renders all changes. In order to avoid triggering the observers (e.g. mutations) all observers are disabled
+	 * Renders all changes. In order to avoid triggering the observers (e.g. selection) all observers are disabled
 	 * before rendering and re-enabled after that.
 	 *
 	 * @private

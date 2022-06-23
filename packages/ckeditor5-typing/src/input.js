@@ -8,10 +8,8 @@
  */
 
 import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
-import InputCommand from './inputcommand';
-
-import injectUnsafeKeystrokesHandling from './utils/injectunsafekeystrokeshandling';
-import injectTypingMutationsHandling from './utils/injecttypingmutationshandling';
+import InsertTextCommand from './inserttextcommand';
+import InsertTextObserver from './inserttextobserver';
 
 /**
  * Handles text input coming from the keyboard or other input methods.
@@ -31,13 +29,38 @@ export default class Input extends Plugin {
 	 */
 	init() {
 		const editor = this.editor;
+		const view = editor.editing.view;
+		const viewDocument = view.document;
+
+		view.addObserver( InsertTextObserver );
 
 		// TODO The above default configuration value should be defined using editor.config.define() once it's fixed.
-		const inputCommand = new InputCommand( editor, editor.config.get( 'typing.undoStep' ) || 20 );
+		const insertTextCommand = new InsertTextCommand( editor, editor.config.get( 'typing.undoStep' ) || 20 );
 
-		editor.commands.add( 'input', inputCommand );
+		// Register `insertText` command and add `input` command as an alias for backward compatibility.
+		editor.commands.add( 'insertText', insertTextCommand );
+		editor.commands.add( 'input', insertTextCommand );
 
-		injectUnsafeKeystrokesHandling( editor );
-		injectTypingMutationsHandling( editor );
+		this.listenTo( viewDocument, 'insertText', ( evt, data ) => {
+			data.preventDefault();
+
+			const { text, selection: viewSelection, resultRange: viewResultRange } = data;
+
+			// If view selection was specified, translate it to model selection.
+			const modelRanges = Array.from( viewSelection.getRanges() ).map( viewRange => {
+				return editor.editing.mapper.toModelRange( viewRange );
+			} );
+
+			const insertTextCommandData = {
+				text,
+				selection: editor.model.createSelection( modelRanges )
+			};
+
+			if ( viewResultRange ) {
+				insertTextCommandData.resultRange = editor.editing.mapper.toModelRange( viewResultRange );
+			}
+
+			editor.execute( 'insertText', insertTextCommandData );
+		} );
 	}
 }

@@ -58,7 +58,7 @@ export const NBSP_FILLER = ( domDocument: Document ): Text => domDocument.create
 export const MARKED_NBSP_FILLER = ( domDocument: Document ): HTMLSpanElement => {
 	const span = domDocument.createElement( 'span' );
 	span.dataset.ckeFiller = 'true';
-	span.innerHTML = '\u00A0';
+	span.innerText = '\u00A0';
 
 	return span;
 };

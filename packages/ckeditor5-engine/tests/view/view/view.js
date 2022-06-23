@@ -7,7 +7,6 @@
 
 import View from '../../../src/view/view';
 import Observer from '../../../src/view/observer/observer';
-import MutationObserver from '../../../src/view/observer/mutationobserver';
 import KeyObserver from '../../../src/view/observer/keyobserver';
 import TabObserver from '../../../src/view/observer/tabobserver';
 import InputObserver from '../../../src/view/observer/inputobserver';
@@ -83,25 +82,15 @@ describe( 'view', () => {
 
 	it( 'should add default observers', () => {
 		expect( count( view._observers ) ).to.equal( DEFAULT_OBSERVERS_COUNT );
-		expect( view.getObserver( MutationObserver ) ).to.be.instanceof( MutationObserver );
 		expect( view.getObserver( SelectionObserver ) ).to.be.instanceof( SelectionObserver );
 		expect( view.getObserver( FocusObserver ) ).to.be.instanceof( FocusObserver );
 		expect( view.getObserver( KeyObserver ) ).to.be.instanceof( KeyObserver );
 		expect( view.getObserver( TabObserver ) ).to.be.instanceof( TabObserver );
 		expect( view.getObserver( FakeSelectionObserver ) ).to.be.instanceof( FakeSelectionObserver );
 		expect( view.getObserver( CompositionObserver ) ).to.be.instanceof( CompositionObserver );
+		expect( view.getObserver( InputObserver ) ).to.be.instanceof( InputObserver );
 		expect( view.getObserver( ArrowKeysObserver ) ).to.be.instanceof( ArrowKeysObserver );
-	} );
-
-	it( 'should add InputObserver on Android devices', () => {
-		const oldEnvIsAndroid = env.isAndroid;
-		env.isAndroid = true;
-
-		const newView = new View( new StylesProcessor() );
-		expect( newView.getObserver( InputObserver ) ).to.be.instanceof( InputObserver );
-
-		env.isAndroid = oldEnvIsAndroid;
-		newView.destroy();
+		expect( view.getObserver( InputObserver ) ).to.be.instanceof( InputObserver );
 	} );
 
 	describe( 'attachDomRoot()', () => {
