@@ -10,10 +10,6 @@
 import type { StylesProcessor, PropertyDescriptor, StyleValue, Styles, Normalizer, Reducer } from '../stylesmap';
 import { getShorthandValues, isAttachment, isColor, isPosition, isRepeat, isURL } from './utils';
 
-let normalizeBackground: Normalizer;
-let normalizeBackgroundColor: Normalizer;
-let reduceBackground: Reducer;
-
 /**
  * Adds a background CSS styles processing rules.
  *
@@ -37,52 +33,58 @@ let reduceBackground: Reducer;
  * @param {module:engine/view/stylesmap~StylesProcessor} stylesProcessor
  */
 export function addBackgroundRules( stylesProcessor: StylesProcessor ): void {
-	stylesProcessor.setNormalizer( 'background', normalizeBackground );
-	stylesProcessor.setNormalizer( 'background-color', normalizeBackgroundColor );
-	stylesProcessor.setReducer( 'background', reduceBackground );
+	stylesProcessor.setNormalizer( 'background', getBackgroundNormalizer() );
+	stylesProcessor.setNormalizer( 'background-color', getBackgroundColorNormalizer() );
+	stylesProcessor.setReducer( 'background', getBackgroundReducer() );
 
 	stylesProcessor.setStyleRelation( 'background', [ 'background-color' ] );
 }
 
-normalizeBackground = value => {
-	const background: StyleValue = {};
+function getBackgroundNormalizer(): Normalizer {
+	return value => {
+		const background: StyleValue = {};
 
-	const parts = getShorthandValues( value );
+		const parts = getShorthandValues( value );
 
-	for ( const part of parts ) {
-		if ( isRepeat( part ) ) {
-			if ( !Array.isArray( background.repeat ) ) {
-				background.repeat = [];
+		for ( const part of parts ) {
+			if ( isRepeat( part ) ) {
+				if ( !Array.isArray( background.repeat ) ) {
+					background.repeat = [];
+				}
+
+				background.repeat.push( part );
+			} else if ( isPosition( part ) ) {
+				if ( !Array.isArray( background.position ) ) {
+					background.position = [];
+				}
+
+				background.position.push( part );
+			} else if ( isAttachment( part ) ) {
+				background.attachment = part;
+			} else if ( isColor( part ) ) {
+				background.color = part;
+			} else if ( isURL( part ) ) {
+				background.image = part;
 			}
-
-			background.repeat.push( part );
-		} else if ( isPosition( part ) ) {
-			if ( !Array.isArray( background.position ) ) {
-				background.position = [];
-			}
-
-			background.position.push( part );
-		} else if ( isAttachment( part ) ) {
-			background.attachment = part;
-		} else if ( isColor( part ) ) {
-			background.color = part;
-		} else if ( isURL( part ) ) {
-			background.image = part;
 		}
-	}
 
-	return {
-		path: 'background',
-		value: background
+		return {
+			path: 'background',
+			value: background
+		};
 	};
-};
+}
 
-normalizeBackgroundColor = value => ( { path: 'background.color', value } );
+function getBackgroundColorNormalizer(): Normalizer {
+	return value => ( { path: 'background.color', value } );
+}
 
-reduceBackground = value => {
-	const ret: PropertyDescriptor[] = [];
+function getBackgroundReducer(): Reducer {
+	return value => {
+		const ret: PropertyDescriptor[] = [];
 
-	ret.push( [ 'background-color', ( value as Styles ).color as string ] );
+		ret.push( [ 'background-color', ( value as Styles ).color as string ] );
 
-	return ret;
-};
+		return ret;
+	};
+}

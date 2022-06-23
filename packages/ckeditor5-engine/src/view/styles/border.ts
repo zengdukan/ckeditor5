@@ -10,8 +10,6 @@
 import type { BoxSides, Extractor, Normalizer, Reducer, StylesProcessor, Styles, StyleValue, PropertyDescriptor } from '../stylesmap';
 import { getShorthandValues, getBoxSidesValueReducer, getBoxSidesValues, isLength, isLineStyle } from './utils';
 
-let borderNormalizer: Normalizer;
-
 /**
  * Adds a border CSS styles processing rules.
  *
@@ -45,7 +43,7 @@ let borderNormalizer: Normalizer;
  * @param {module:engine/view/stylesmap~StylesProcessor} stylesProcessor
  */
 export function addBorderRules( stylesProcessor: StylesProcessor ): void {
-	stylesProcessor.setNormalizer( 'border', borderNormalizer );
+	stylesProcessor.setNormalizer( 'border', getBorderNormalizer() );
 
 	// Border-position shorthands.
 	stylesProcessor.setNormalizer( 'border-top', getBorderPositionNormalizer( 'top' ) );
@@ -128,18 +126,20 @@ export function addBorderRules( stylesProcessor: StylesProcessor ): void {
 	stylesProcessor.setStyleRelation( 'border-left', [ 'border-left-color', 'border-left-style', 'border-left-width' ] );
 }
 
-borderNormalizer = value => {
-	const { color, style, width } = normalizeBorderShorthand( value );
+function getBorderNormalizer(): Normalizer {
+	return value => {
+		const { color, style, width } = normalizeBorderShorthand( value );
 
-	return {
-		path: 'border',
-		value: {
-			color: getBoxSidesValues( color ),
-			style: getBoxSidesValues( style ),
-			width: getBoxSidesValues( width )
-		}
+		return {
+			path: 'border',
+			value: {
+				color: getBoxSidesValues( color ),
+				style: getBoxSidesValues( style ),
+				width: getBoxSidesValues( width )
+			}
+		};
 	};
-};
+}
 
 function getBorderPositionNormalizer( side: string ): Normalizer {
 	return value => {
