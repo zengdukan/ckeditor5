@@ -8,6 +8,7 @@
  */
 
 import DomEventObserver from './domeventobserver';
+import type View from '../view';
 
 /**
  * {@link module:engine/view/document~Document#event:compositionstart Compositionstart},
@@ -18,8 +19,8 @@ import DomEventObserver from './domeventobserver';
  *
  * @extends module:engine/view/observer/domeventobserver~DomEventObserver
  */
-export default class CompositionObserver extends DomEventObserver {
-	constructor( view ) {
+export default class CompositionObserver extends DomEventObserver<'compositionstart' | 'compositionupdate' | 'compositionend'> {
+	constructor( view: View ) {
 		super( view );
 
 		this.domEventType = [ 'compositionstart', 'compositionupdate', 'compositionend' ];
@@ -34,7 +35,7 @@ export default class CompositionObserver extends DomEventObserver {
 		} );
 	}
 
-	onDomEvent( domEvent ) {
+	public onDomEvent( domEvent: CompositionEvent ): void {
 		this.fire( domEvent.type, domEvent );
 	}
 }

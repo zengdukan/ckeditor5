@@ -37,7 +37,7 @@ import type View from '../view';
  */
 export default abstract class DomEventObserver<
 	EventType extends keyof HTMLElementEventMap,
-	AdditionalData = object
+	AdditionalData extends object = object
 > extends Observer {
 	public domEventType!: EventType | ( EventType )[];
 

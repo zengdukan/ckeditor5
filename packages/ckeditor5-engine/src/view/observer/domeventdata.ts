@@ -29,7 +29,7 @@ export default class DomEventData {
 	 * @param {Event} domEvent The DOM event.
 	 * @param {Object} [additionalData] Additional properties that the instance should contain.
 	 */
-	constructor( view: View, domEvent: Event, additionalData: object ) {
+	constructor( view: View, domEvent: Event, additionalData?: object ) {
 		/**
 		 * Instance of the view controller.
 		 *

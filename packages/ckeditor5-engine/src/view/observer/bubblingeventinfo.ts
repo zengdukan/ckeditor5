@@ -8,6 +8,8 @@
  */
 
 import EventInfo from '@ckeditor/ckeditor5-utils/src/eventinfo';
+import type Node from '../node';
+import type Range from '../range';
 
 /**
  * The event object passed to bubbling event callbacks. It is used to provide information about the event as well as a tool to
@@ -16,12 +18,20 @@ import EventInfo from '@ckeditor/ckeditor5-utils/src/eventinfo';
  * @extends module:utils/eventinfo~EventInfo
  */
 export default class BubblingEventInfo extends EventInfo {
+	public readonly startRange: Range;
+
+	/** @internal */
+	public readonly _eventPhase: 'none' | 'capturing' | 'atTarget' | 'bubbling';
+
+	/** @internal */
+	public readonly _currentTarget: Node | null;
+
 	/**
 	 * @param {Object} source The emitter.
 	 * @param {String} name The event name.
 	 * @param {module:engine/view/range~Range} startRange The view range that the bubbling should start from.
 	 */
-	constructor( source, name, startRange ) {
+	constructor( source: object, name: string, startRange: Range ) {
 		super( source, name );
 
 		/**
@@ -55,7 +65,7 @@ export default class BubblingEventInfo extends EventInfo {
 	 * @readonly
 	 * @member {'none'|'capturing'|'atTarget'|'bubbling'}
 	 */
-	get eventPhase() {
+	public get eventPhase(): typeof this._eventPhase {
 		return this._eventPhase;
 	}
 
@@ -65,7 +75,7 @@ export default class BubblingEventInfo extends EventInfo {
 	 * @readonly
 	 * @member {module:engine/view/document~Document|module:engine/view/node~Node|null}
 	 */
-	get currentTarget() {
+	public get currentTarget(): typeof this._currentTarget {
 		return this._currentTarget;
 	}
 }

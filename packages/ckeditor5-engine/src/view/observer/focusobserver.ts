@@ -10,6 +10,7 @@
 /* globals setTimeout, clearTimeout */
 
 import DomEventObserver from './domeventobserver';
+import type View from '../view';
 
 /**
  * {@link module:engine/view/document~Document#event:focus Focus}
@@ -21,8 +22,10 @@ import DomEventObserver from './domeventobserver';
  *
  * @extends module:engine/view/observer/domeventobserver~DomEventObserver
  */
-export default class FocusObserver extends DomEventObserver {
-	constructor( view ) {
+export default class FocusObserver extends DomEventObserver<'focus' | 'blur'> {
+	private _renderTimeoutId!: ReturnType<typeof setTimeout>;
+
+	constructor( view: View ) {
 		super( view );
 
 		this.domEventType = [ 'focus', 'blur' ];
@@ -63,14 +66,14 @@ export default class FocusObserver extends DomEventObserver {
 		 */
 	}
 
-	onDomEvent( domEvent ) {
+	public onDomEvent( domEvent: FocusEvent ): void {
 		this.fire( domEvent.type, domEvent );
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	destroy() {
+	public override destroy(): void {
 		if ( this._renderTimeoutId ) {
 			clearTimeout( this._renderTimeoutId );
 		}
