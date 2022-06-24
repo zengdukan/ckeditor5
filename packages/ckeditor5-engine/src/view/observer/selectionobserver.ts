@@ -11,6 +11,9 @@
 
 import Observer from './observer';
 import { debounce } from 'lodash-es';
+import type View from '../view';
+import type DocumentSelection from '../documentselection';
+import type DomConverter from '../domconverter';
 
 /**
  * Selection observer class observes selection changes in the document. If a selection changes on the document this
@@ -25,7 +28,16 @@ import { debounce } from 'lodash-es';
  * @extends module:engine/view/observer/observer~Observer
  */
 export default class SelectionObserver extends Observer {
-	constructor( view ) {
+	public readonly selection: DocumentSelection;
+	public readonly domConverter: DomConverter;
+
+	private readonly _documents: WeakSet<object>;
+	private readonly _fireSelectionChangeDoneDebounced: ReturnType<typeof debounce>;
+	private readonly _clearInfiniteLoopInterval: ReturnType<typeof setInterval>;
+	private readonly _documentIsSelectingInactivityTimeoutDebounced: ReturnType<typeof debounce>;
+	private _loopbackCounter: number;
+
+	constructor( view: View ) {
 		super( view );
 
 		/**
@@ -98,7 +110,7 @@ export default class SelectionObserver extends Observer {
 	/**
 	 * @inheritDoc
 	 */
-	observe( domElement ) {
+	public override observe( domElement: HTMLElement ): void {
 		const domDocument = domElement.ownerDocument;
 
 		const startDocumentIsSelecting = () => {
@@ -142,7 +154,7 @@ export default class SelectionObserver extends Observer {
 	/**
 	 * @inheritDoc
 	 */
-	destroy() {
+	public override destroy(): void {
 		super.destroy();
 
 		clearInterval( this._clearInfiniteLoopInterval );
@@ -158,14 +170,14 @@ export default class SelectionObserver extends Observer {
 	 * @param {Event} domEvent DOM event.
 	 * @param {Document} domDocument DOM document.
 	 */
-	_handleSelectionChange( domEvent, domDocument ) {
+	private _handleSelectionChange( domEvent: Event, domDocument: Document ) {
 		if ( !this.isEnabled ) {
 			return;
 		}
 
-		const domSelection = domDocument.defaultView.getSelection();
+		const domSelection = domDocument.defaultView!.getSelection()!;
 
-		if ( this.checkShouldIgnoreEventFromTarget( domSelection.anchorNode ) ) {
+		if ( this.checkShouldIgnoreEventFromTarget( domSelection.anchorNode! ) ) {
 			return;
 		}
 
@@ -228,7 +240,7 @@ export default class SelectionObserver extends Observer {
 	 *
 	 * @protected
 	 */
-	_clearInfiniteLoop() {
+	private _clearInfiniteLoop(): void {
 		this._loopbackCounter = 0;
 	}
 }

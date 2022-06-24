@@ -3,6 +3,11 @@
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
+type NativeDataTransfer = globalThis.DataTransfer & {
+	// We're using this non-standard property https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/mozUserCancelled.
+	mozUserCancelled?: boolean;
+};
+
 /**
  * @module engine/view/datatransfer
  */
@@ -11,7 +16,10 @@
  * A facade over the native [`DataTransfer`](https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer) object.
  */
 export default class DataTransfer {
-	constructor( nativeDataTransfer ) {
+	public readonly files: ( DataTransferItem | File | null )[];
+	private readonly _native: NativeDataTransfer;
+
+	constructor( nativeDataTransfer: NativeDataTransfer ) {
 		/**
 		 * The array of files created from the native `DataTransfer#files` or `DataTransfer#items`.
 		 *
@@ -34,7 +42,7 @@ export default class DataTransfer {
 	 *
 	 * @returns {Array.<String>}
 	 */
-	get types() {
+	public get types(): NativeDataTransfer[ 'types' ] {
 		return this._native.types;
 	}
 
@@ -46,7 +54,7 @@ export default class DataTransfer {
 	 * @param {String} type The MIME type. E.g. `text/html` or `text/plain`.
 	 * @returns {String}
 	 */
-	getData( type ) {
+	public getData( type: string ): string {
 		return this._native.getData( type );
 	}
 
@@ -56,7 +64,7 @@ export default class DataTransfer {
 	 * @param {String} type The MIME type. E.g. `text/html` or `text/plain`.
 	 * @param {String} data
 	 */
-	setData( type, data ) {
+	public setData( type: string, data: string ): void {
 		this._native.setData( type, data );
 	}
 
@@ -65,11 +73,11 @@ export default class DataTransfer {
 	 *
 	 * @param {String} value
 	 */
-	set effectAllowed( value ) {
+	public set effectAllowed( value: NativeDataTransfer[ 'effectAllowed' ] ) {
 		this._native.effectAllowed = value;
 	}
 
-	get effectAllowed() {
+	public get effectAllowed(): NativeDataTransfer[ 'effectAllowed' ] {
 		return this._native.effectAllowed;
 	}
 
@@ -78,11 +86,11 @@ export default class DataTransfer {
 	 *
 	 * @param {String} value
 	 */
-	set dropEffect( value ) {
+	public set dropEffect( value: NativeDataTransfer[ 'dropEffect' ] ) {
 		this._native.dropEffect = value;
 	}
 
-	get dropEffect() {
+	public get dropEffect(): NativeDataTransfer[ 'dropEffect' ] {
 		return this._native.dropEffect;
 	}
 
@@ -91,12 +99,12 @@ export default class DataTransfer {
 	 *
 	 * @returns {Boolean}
 	 */
-	get isCanceled() {
+	public get isCanceled(): boolean {
 		return this._native.dropEffect == 'none' || !!this._native.mozUserCancelled;
 	}
 }
 
-function getFiles( nativeDataTransfer ) {
+function getFiles( nativeDataTransfer: NativeDataTransfer ): ( File | DataTransferItem | null )[] {
 	// DataTransfer.files and items are array-like and might not have an iterable interface.
 	const files = Array.from( nativeDataTransfer.files || [] );
 	const items = Array.from( nativeDataTransfer.items || [] );

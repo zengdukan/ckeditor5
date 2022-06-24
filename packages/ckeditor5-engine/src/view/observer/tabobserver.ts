@@ -9,6 +9,7 @@
 
 import Observer from './observer';
 import BubblingEventInfo from './bubblingeventinfo';
+import type View from '../view';
 
 import { keyCodes } from '@ckeditor/ckeditor5-utils/src/keyboard';
 
@@ -24,7 +25,7 @@ export default class TabObserver extends Observer {
 	/**
 	 * @inheritDoc
 	 */
-	constructor( view ) {
+	constructor( view: View ) {
 		super( view );
 
 		const doc = this.document;
@@ -51,7 +52,7 @@ export default class TabObserver extends Observer {
 	/**
 	 * @inheritDoc
 	 */
-	observe() {}
+	public override observe(): void {}
 }
 
 /**

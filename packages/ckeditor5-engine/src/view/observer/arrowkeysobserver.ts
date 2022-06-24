@@ -9,6 +9,7 @@
 
 import Observer from './observer';
 import BubblingEventInfo from './bubblingeventinfo';
+import type View from '../view';
 
 import { isArrowKeyCode } from '@ckeditor/ckeditor5-utils';
 
@@ -23,7 +24,7 @@ export default class ArrowKeysObserver extends Observer {
 	/**
 	 * @inheritDoc
 	 */
-	constructor( view ) {
+	constructor( view: View ) {
 		super( view );
 
 		this.document.on( 'keydown', ( event, data ) => {
@@ -42,7 +43,7 @@ export default class ArrowKeysObserver extends Observer {
 	/**
 	 * @inheritDoc
 	 */
-	observe() {}
+	public override observe(): void {}
 }
 
 /**

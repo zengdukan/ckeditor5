@@ -9,6 +9,7 @@
 
 import Observer from './observer';
 import ViewSelection from '../selection';
+import type View from '../view';
 import { keyCodes } from '@ckeditor/ckeditor5-utils/src/keyboard';
 import { debounce } from 'lodash-es';
 
@@ -22,12 +23,14 @@ import { debounce } from 'lodash-es';
  * @extends module:engine/view/observer/observer~Observer
  */
 export default class FakeSelectionObserver extends Observer {
+	private readonly _fireSelectionChangeDoneDebounced: ReturnType<typeof debounce>;
+
 	/**
 	 * Creates new FakeSelectionObserver instance.
 	 *
 	 * @param {module:engine/view/view~View} view
 	 */
-	constructor( view ) {
+	constructor( view: View ) {
 		super( view );
 
 		/**
@@ -43,7 +46,7 @@ export default class FakeSelectionObserver extends Observer {
 	/**
 	 * @inheritDoc
 	 */
-	observe() {
+	public override observe(): void {
 		const document = this.document;
 
 		document.on( 'arrowKey', ( eventInfo, data ) => {
@@ -67,7 +70,7 @@ export default class FakeSelectionObserver extends Observer {
 	/**
 	 * @inheritDoc
 	 */
-	destroy() {
+	public override destroy(): void {
 		super.destroy();
 
 		this._fireSelectionChangeDoneDebounced.cancel();
@@ -86,7 +89,7 @@ export default class FakeSelectionObserver extends Observer {
 	 * @fires module:engine/view/document~Document#event:selectionChange
 	 * @fires module:engine/view/document~Document#event:selectionChangeDone
 	 */
-	_handleSelectionMove( keyCode ) {
+	private _handleSelectionMove( keyCode: number ): void {
 		const selection = this.document.selection;
 		const newSelection = new ViewSelection( selection.getRanges(), { backward: selection.isBackward, fake: false } );
 
