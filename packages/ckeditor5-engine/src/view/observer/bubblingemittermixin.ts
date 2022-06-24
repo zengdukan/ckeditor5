@@ -10,10 +10,13 @@
 import EventInfo from '@ckeditor/ckeditor5-utils/src/eventinfo';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 
-import EmitterMixin from '@ckeditor/ckeditor5-utils/src/emittermixin';
+import EmitterMixin, { type Emitter, type CallbackOptions } from '@ckeditor/ckeditor5-utils/src/emittermixin';
 import toArray from '@ckeditor/ckeditor5-utils/src/toarray';
 
 import BubblingEventInfo from './bubblingeventinfo';
+import type Document from '../document';
+import type Node from '../node';
+import type Range from '../range';
 
 const contextsSymbol = Symbol( 'bubbling contexts' );
 
@@ -28,7 +31,7 @@ const BubblingEmitterMixin = {
 	/**
 	 * @inheritDoc
 	 */
-	fire( eventOrInfo, ...eventArgs ) {
+	fire( this: Document, eventOrInfo: string | EventInfo, ...eventArgs: unknown[] ): unknown {
 		try {
 			const eventInfo = eventOrInfo instanceof EventInfo ? eventOrInfo : new EventInfo( this, eventOrInfo );
 			const eventContexts = getBubblingContexts( this );
@@ -44,7 +47,7 @@ const BubblingEmitterMixin = {
 				return eventInfo.return;
 			}
 
-			const startRange = eventInfo.startRange || this.selection.getFirstRange();
+			const startRange = ( eventInfo as BubblingEventInfo ).startRange || this.selection.getFirstRange();
 			const selectedElement = startRange ? startRange.getContainedElement() : null;
 			const isCustomContext = selectedElement ? Boolean( getCustomContext( eventContexts, selectedElement ) ) : false;
 
@@ -92,7 +95,7 @@ const BubblingEmitterMixin = {
 			fireListenerFor( eventContexts, '$document', eventInfo, ...eventArgs );
 
 			return eventInfo.return;
-		} catch ( err ) {
+		} catch ( err: any ) {
 			// @if CK_DEBUG // throw err;
 			/* istanbul ignore next */
 			CKEditorError.rethrowUnexpectedError( err, this );
@@ -102,7 +105,12 @@ const BubblingEmitterMixin = {
 	/**
 	 * @inheritDoc
 	 */
-	_addEventListener( event, callback, options ) {
+	_addEventListener(
+		this: Document,
+		event: string,
+		callback: ( ev: EventInfo, ...args: any[] ) => void,
+		options: BubblingCallbackOptions
+	): void {
 		const contexts = toArray( options.context || '$document' );
 		const eventContexts = getBubblingContexts( this );
 
@@ -111,17 +119,17 @@ const BubblingEmitterMixin = {
 
 			if ( !emitter ) {
 				emitter = Object.create( EmitterMixin );
-				eventContexts.set( context, emitter );
+				eventContexts.set( context, emitter! );
 			}
 
-			this.listenTo( emitter, event, callback, options );
+			this.listenTo( emitter!, event, callback, options );
 		}
 	},
 
 	/**
 	 * @inheritDoc
 	 */
-	_removeEventListener( event, callback ) {
+	_removeEventListener( this: Document, event: string, callback: Function ): void {
 		const eventContexts = getBubblingContexts( this );
 
 		for ( const emitter of eventContexts.values() ) {
@@ -137,7 +145,7 @@ export default BubblingEmitterMixin;
 // @param {module:utils/eventinfo~EventInfo} eventInfo The event info object to update.
 // @param {'none'|'capturing'|'atTarget'|'bubbling'} eventPhase The current event phase.
 // @param {module:engine/view/document~Document|module:engine/view/node~Node} currentTarget The current bubbling target.
-function updateEventInfo( eventInfo, eventPhase, currentTarget ) {
+function updateEventInfo( eventInfo: EventInfo, eventPhase: BubblingEventInfo[ '_eventPhase' ], currentTarget: Document | Node ) {
 	if ( eventInfo instanceof BubblingEventInfo ) {
 		eventInfo._eventPhase = eventPhase;
 		eventInfo._currentTarget = currentTarget;
@@ -152,7 +160,12 @@ function updateEventInfo( eventInfo, eventPhase, currentTarget ) {
 // @param {module:utils/eventinfo~EventInfo} eventInfo The `EventInfo` object.
 // @param {...*} [eventArgs] Additional arguments to be passed to the callbacks.
 // @returns {Boolean} True if event stop was called.
-function fireListenerFor( eventContexts, context, eventInfo, ...eventArgs ) {
+function fireListenerFor(
+	eventContexts: BubblingEventContexts,
+	context: string | Node,
+	eventInfo: EventInfo,
+	...eventArgs: unknown[]
+) {
 	const emitter = typeof context == 'string' ? eventContexts.get( context ) : getCustomContext( eventContexts, context );
 
 	if ( !emitter ) {
@@ -170,7 +183,7 @@ function fireListenerFor( eventContexts, context, eventInfo, ...eventArgs ) {
 // @param {Map.<String|Function, module:utils/emittermixin~Emitter>} eventContexts
 // @param {module:engine/view/node~Node} node
 // @returns {module:utils/emittermixin~Emitter|null}
-function getCustomContext( eventContexts, node ) {
+function getCustomContext( eventContexts: BubblingEventContexts, node: Node ): Emitter | null {
 	for ( const [ context, emitter ] of eventContexts ) {
 		if ( typeof context == 'function' && context( node ) ) {
 			return emitter;
@@ -181,7 +194,7 @@ function getCustomContext( eventContexts, node ) {
 }
 
 // Returns bubbling contexts map for the source (emitter).
-function getBubblingContexts( source ) {
+function getBubblingContexts( source: Document & { [ contextsSymbol ]?: BubblingEventContexts } ) {
 	if ( !source[ contextsSymbol ] ) {
 		source[ contextsSymbol ] = new Map();
 	}
@@ -190,7 +203,7 @@ function getBubblingContexts( source ) {
 }
 
 // Returns the deeper parent element for the range.
-function getDeeperRangeParent( range ) {
+function getDeeperRangeParent( range: Range ) {
 	if ( !range ) {
 		return null;
 	}
@@ -305,3 +318,32 @@ function getDeeperRangeParent( range ) {
  * @interface BubblingEmitter
  * @extends module:utils/emittermixin~Emitter
  */
+
+type BubblingEventContexts = Map<string | BubblingEventContextFunction, Emitter>;
+
+export type BubblingEventContextFunction = ( node: Node ) => boolean;
+
+export type BubblingCallbackOptions = CallbackOptions & {
+	context?: string | string[] | BubblingEventContextFunction;
+};
+
+export interface BubblingEmitter extends Emitter {
+	on(
+		event: string,
+		callback: ( this: this, ev: EventInfo, ...args: any[] ) => void,
+		options?: BubblingCallbackOptions
+	): void;
+
+	once(
+		event: string,
+		callback: ( this: this, ev: EventInfo, ...args: any[] ) => void,
+		options?: BubblingCallbackOptions
+	): void;
+
+	listenTo(
+		emitter: Emitter,
+		event: string,
+		callback: ( this: this, ev: EventInfo, ...args: any[] ) => void,
+		options?: BubblingCallbackOptions
+	): void;
+}

@@ -8,6 +8,7 @@
  */
 
 import EventInfo from '@ckeditor/ckeditor5-utils/src/eventinfo';
+import type Document from '../document';
 import type Node from '../node';
 import type Range from '../range';
 
@@ -21,10 +22,10 @@ export default class BubblingEventInfo extends EventInfo {
 	public readonly startRange: Range;
 
 	/** @internal */
-	public readonly _eventPhase: 'none' | 'capturing' | 'atTarget' | 'bubbling';
+	public _eventPhase: 'none' | 'capturing' | 'atTarget' | 'bubbling';
 
 	/** @internal */
-	public readonly _currentTarget: Node | null;
+	public _currentTarget: Document | Node | null;
 
 	/**
 	 * @param {Object} source The emitter.
@@ -65,7 +66,7 @@ export default class BubblingEventInfo extends EventInfo {
 	 * @readonly
 	 * @member {'none'|'capturing'|'atTarget'|'bubbling'}
 	 */
-	public get eventPhase(): typeof this._eventPhase {
+	public get eventPhase(): 'none' | 'capturing' | 'atTarget' | 'bubbling' {
 		return this._eventPhase;
 	}
 
@@ -75,7 +76,7 @@ export default class BubblingEventInfo extends EventInfo {
 	 * @readonly
 	 * @member {module:engine/view/document~Document|module:engine/view/node~Node|null}
 	 */
-	public get currentTarget(): typeof this._currentTarget {
+	public get currentTarget(): Document | Node | null {
 		return this._currentTarget;
 	}
 }

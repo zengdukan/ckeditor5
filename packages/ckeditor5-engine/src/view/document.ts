@@ -10,8 +10,12 @@
 import DocumentSelection from './documentselection';
 import Collection from '@ckeditor/ckeditor5-utils/src/collection';
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
-import BubblingEmitterMixin from './observer/bubblingemittermixin';
-import ObservableMixin from '@ckeditor/ckeditor5-utils/src/observablemixin';
+import BubblingEmitterMixin, { type BubblingEmitter } from './observer/bubblingemittermixin';
+import ObservableMixin, { type Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
+
+import type { StylesProcessor } from './stylesmap';
+import type RootEditableElement from './rooteditableelement';
+import type DowncastWriter from './downcastwriter';
 
 // @if CK_DEBUG_ENGINE // const { logDocument } = require( '../dev-utils/utils' );
 
@@ -22,13 +26,24 @@ import ObservableMixin from '@ckeditor/ckeditor5-utils/src/observablemixin';
  * @mixes module:engine/view/observer/bubblingemittermixin~BubblingEmitterMixin
  * @mixes module:utils/observablemixin~ObservableMixin
  */
-export default class Document {
+class Document {
+	public readonly selection: DocumentSelection;
+	public readonly roots: Collection<RootEditableElement, 'rootName'>;
+	public readonly stylesProcessor: StylesProcessor;
+
+	declare public isReadOnly: boolean;
+	declare public isFocused: boolean;
+	declare public isSelecting: boolean;
+	declare public isComposing: boolean;
+
+	declare private _postFixers: Set<ViewDocumentPostFixer>;
+
 	/**
 	 * Creates a Document instance.
 	 *
 	 * @param {module:engine/view/stylesmap~StylesProcessor} stylesProcessor The styles processor instance.
 	 */
-	constructor( stylesProcessor ) {
+	constructor( stylesProcessor: StylesProcessor ) {
 		/**
 		 * Selection done on this document.
 		 *
@@ -121,7 +136,7 @@ export default class Document {
 	 * @returns {module:engine/view/rooteditableelement~RootEditableElement|null} The view root element with the specified name
 	 * or null when there is no root of given name.
 	 */
-	getRoot( name = 'main' ) {
+	public getRoot( name: string = 'main' ): RootEditableElement | null {
 		return this.roots.get( name );
 	}
 
@@ -173,14 +188,14 @@ export default class Document {
 	 *
 	 * @param {Function} postFixer
 	 */
-	registerPostFixer( postFixer ) {
+	public registerPostFixer( postFixer: ViewDocumentPostFixer ): void {
 		this._postFixers.add( postFixer );
 	}
 
 	/**
 	 * Destroys this instance. Makes sure that all observers are destroyed and listeners removed.
 	 */
-	destroy() {
+	public destroy(): void {
 		this.roots.map( root => root.destroy() );
 		this.stopListening();
 	}
@@ -191,7 +206,7 @@ export default class Document {
 	 * @protected
 	 * @param {module:engine/view/downcastwriter~DowncastWriter} writer
 	 */
-	_callPostFixers( writer ) {
+	private _callPostFixers( writer: DowncastWriter ): void {
 		let wasFixed = false;
 
 		do {
@@ -220,6 +235,14 @@ export default class Document {
 
 mix( Document, BubblingEmitterMixin );
 mix( Document, ObservableMixin );
+
+type ObservableBubblingEmitter = BubblingEmitter & Observable;
+
+type ViewDocumentPostFixer = ( writer: DowncastWriter ) => boolean;
+
+interface Document extends ObservableBubblingEmitter {}
+
+export default Document;
 
 /**
  * Enum representing type of the change.
