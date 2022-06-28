@@ -16,16 +16,17 @@ import isIterable from '@ckeditor/ckeditor5-utils/src/isiterable';
 import Matcher from './matcher';
 import { default as StylesMap, type StyleValue } from './stylesmap';
 
-import type Item from './item';
+import type AttributeElement from './attributeelement';
+import type ContainerElement from './containerelement';
 import type Document from './document';
 import type DocumentFragment from './documentfragment';
-import type RootEditableElement from './rooteditableelement';
-import type AttributeElement from './attributeelement';
 import type EditableElement from './editableelement';
-import type ContainerElement from './containerelement';
-import type RawElement from './rawelement';
-import type UIElement from './uielement';
 import type EmptyElement from './emptyelement';
+import type Item from './item';
+import type Position from './position';
+import type RawElement from './rawelement';
+import type RootEditableElement from './rooteditableelement';
+import type UIElement from './uielement';
 
 // @if CK_DEBUG_ENGINE // const { convertMapToTags } = require( '../dev-utils/utils' );
 
@@ -55,12 +56,12 @@ import type EmptyElement from './emptyelement';
  * @extends module:engine/view/node~Node
  */
 export default class Element extends Node {
-	public readonly name: string;
+	public name: string;
 	private readonly _attrs: Map<string, string>;
 	private readonly _children: Node[];
 	private readonly _classes: Set<string>;
 	private readonly _styles: StylesMap;
-	private readonly _customProperties: Map<string, unknown>;
+	private readonly _customProperties: Map<string | symbol, unknown>;
 	private readonly _unsafeAttributesToRender: string[];
 
 	/**
@@ -191,7 +192,9 @@ export default class Element extends Node {
 	}
 
 	public override is( type: 'node' | 'view:node' ):
-		this is Node | Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement;
+		this is
+			Node | Element | AttributeElement | ContainerElement | EditableElement |
+			EmptyElement | RawElement | RootEditableElement | UIElement;
 
 	public override is( type: 'element' | 'view:element' ): this is Element;
 	public override is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
@@ -203,10 +206,13 @@ export default class Element extends Node {
 	public override is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
 	public override is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
 	public override is( type: '$text' | 'view:$text' ): this is Text;
+	public override is( type: '$textProxy' | 'view:$textProxy' ): this is TextProxy;
+	public override is( type: 'position' | 'view:position' ): this is Position;
+	public override is( type: 'range' | 'view:range' ): this is Range;
 
 	public override is<N extends string>( type: 'element' | 'view:element', name: N ):
 		this is (
-			Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement
+			Element | AttributeElement | ContainerElement | EditableElement | EmptyElement | RawElement | RootEditableElement | UIElement
 		) & { name: N };
 	public override is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
 		this is ( AttributeElement ) & { name: N };
@@ -571,7 +577,7 @@ export default class Element extends Node {
 	 * @param {String|Symbol} key
 	 * @returns {*}
 	 */
-	public getCustomProperty( key: string ): unknown {
+	public getCustomProperty( key: string | symbol ): unknown {
 		return this._customProperties.get( key );
 	}
 
@@ -581,7 +587,7 @@ export default class Element extends Node {
 	 *
 	 * @returns {Iterable.<*>}
 	 */
-	public* getCustomProperties(): Iterable<[ string, unknown ]> {
+	public* getCustomProperties(): Iterable<[ string | symbol, unknown ]> {
 		yield* this._customProperties.entries();
 	}
 
@@ -896,7 +902,7 @@ export default class Element extends Node {
 	 * @param {String|Symbol} key
 	 * @param {*} value
 	 */
-	private _setCustomProperty( key: string, value: unknown ): void {
+	public _setCustomProperty( key: string | symbol, value: unknown ): void {
 		this._customProperties.set( key, value );
 	}
 

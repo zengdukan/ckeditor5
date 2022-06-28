@@ -10,16 +10,18 @@
 import ContainerElement from './containerelement';
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
 import { default as ObservableMixin, type Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
-import type Node from './node';
-import type Element from './element';
+
 import type AttributeElement from './attributeelement';
+import type DocumentFragment from './documentfragment';
+import type Element from './element';
+import type EmptyElement from './emptyelement';
+import type Node from './node';
+import type Position from './position';
 import type RawElement from './rawelement';
 import type RootEditableElement from './rooteditableelement';
-import type UIElement from './uielement';
-import type DocumentFragment from './documentfragment';
 import type Text from './text';
-import type Document from './document';
-import type EmptyElement from './emptyelement';
+import type TextProxy from './textproxy';
+import type UIElement from './uielement';
 
 /**
  * Editable element which can be a {@link module:engine/view/rooteditableelement~RootEditableElement root}
@@ -43,13 +45,10 @@ class EditableElement extends ContainerElement {
 	 * @see module:engine/view/downcastwriter~DowncastWriter#createEditableElement
 	 * @protected
 	 */
-	constructor(
-		document: Document,
-		name: string,
-		attrs?: Record<string, string> | Iterable<[ string, string ]>,
-		children?: Node | Iterable<Node>
-	) {
-		super( document, name, attrs, children );
+	constructor( ...args: ConstructorParameters<typeof Element> ) {
+		super( ...args );
+
+		const document = args[ 0 ];
 
 		/**
 		 * Whether the editable is in read-write or read-only mode.
@@ -86,7 +85,9 @@ class EditableElement extends ContainerElement {
 	}
 
 	public override is( type: 'node' | 'view:node' ):
-		this is Node | Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement;
+		this is
+			Node | Element | AttributeElement | ContainerElement | EditableElement |
+			EmptyElement | RawElement | RootEditableElement | UIElement;
 
 	public override is( type: 'element' | 'view:element' ): this is Element;
 	public override is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
@@ -98,10 +99,13 @@ class EditableElement extends ContainerElement {
 	public override is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
 	public override is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
 	public override is( type: '$text' | 'view:$text' ): this is Text;
+	public override is( type: '$textProxy' | 'view:$textProxy' ): this is TextProxy;
+	public override is( type: 'position' | 'view:position' ): this is Position;
+	public override is( type: 'range' | 'view:range' ): this is Range;
 
 	public override is<N extends string>( type: 'element' | 'view:element', name: N ):
 		this is (
-			Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement
+			Element | AttributeElement | ContainerElement | EditableElement | EmptyElement | RawElement | RootEditableElement | UIElement
 		) & { name: N };
 	public override is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
 		this is ( AttributeElement ) & { name: N };

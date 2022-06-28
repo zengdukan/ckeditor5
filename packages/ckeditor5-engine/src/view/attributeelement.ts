@@ -7,19 +7,20 @@
  * @module engine/view/attributeelement
  */
 
-import type Node from './node';
 import Element from './element';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 
-import type Document from './document';
 import type ContainerElement from './containerelement';
 import type DocumentFragment from './documentfragment';
 import type EditableElement from './editableelement';
+import type EmptyElement from './emptyelement';
+import type Node from './node';
+import type Position from './position';
 import type RawElement from './rawelement';
 import type RootEditableElement from './rooteditableelement';
-import type UIElement from './uielement';
 import type Text from './text';
-import type EmptyElement from './emptyelement';
+import type TextProxy from './textproxy';
+import type UIElement from './uielement';
 
 // Default attribute priority.
 const DEFAULT_PRIORITY = 10;
@@ -57,13 +58,8 @@ export default class AttributeElement extends Element {
 	 * @param {module:engine/view/node~Node|Iterable.<module:engine/view/node~Node>} [children]
 	 * A list of nodes to be inserted into created element.
 	 */
-	constructor(
-		document: Document,
-		name: string,
-		attrs?: Record<string, string> | Iterable<[ string, string ]>,
-		children?: Node | Iterable<Node>
-	) {
-		super( document, name, attrs, children );
+	constructor( ...args: ConstructorParameters<typeof Element> ) {
+		super( ...args );
 
 		/**
 		 * Returns block {@link module:engine/view/filler filler} offset or `null` if block filler is not needed.
@@ -152,7 +148,9 @@ export default class AttributeElement extends Element {
 	}
 
 	public override is( type: 'node' | 'view:node' ):
-		this is Node | Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement;
+		this is
+			Node | Element | AttributeElement | ContainerElement | EditableElement |
+			EmptyElement | RawElement | RootEditableElement | UIElement;
 
 	public override is( type: 'element' | 'view:element' ): this is Element;
 	public override is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
@@ -164,10 +162,13 @@ export default class AttributeElement extends Element {
 	public override is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
 	public override is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
 	public override is( type: '$text' | 'view:$text' ): this is Text;
+	public override is( type: '$textProxy' | 'view:$textProxy' ): this is TextProxy;
+	public override is( type: 'position' | 'view:position' ): this is Position;
+	public override is( type: 'range' | 'view:range' ): this is Range;
 
 	public override is<N extends string>( type: 'element' | 'view:element', name: N ):
 		this is (
-			Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement
+			Element | AttributeElement | ContainerElement | EditableElement | EmptyElement | RawElement | RootEditableElement | UIElement
 		) & { name: N };
 	public override is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
 		this is ( AttributeElement ) & { name: N };

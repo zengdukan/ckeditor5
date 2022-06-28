@@ -8,7 +8,21 @@
  */
 
 import Position from './position';
-import TreeWalker from './treewalker';
+
+import type AttributeElement from './attributeelement';
+import type ContainerElement from './containerelement';
+import type DocumentFragment from './documentfragment';
+import type EditableElement from './editableelement';
+import type Element from './element';
+import type EmptyElement from './emptyelement';
+import type Item from './item';
+import type Node from './node';
+import type RawElement from './rawelement';
+import type RootEditableElement from './rooteditableelement';
+import type Text from './text';
+import type TextProxy from './textproxy';
+import type UIElement from './uielement';
+import { default as TreeWalker, type TreeWalkerValue, type TreeWalkerOptions } from './treewalker';
 
 /**
  * Range in the view tree. A range is represented by its start and end {@link module:engine/view/position~Position positions}.
@@ -20,6 +34,9 @@ import TreeWalker from './treewalker';
  * * {@link module:engine/view/upcastwriter~UpcastWriter}
  */
 export default class Range {
+	public readonly start: Position;
+	public readonly end: Position;
+
 	/**
 	 * Creates a range spanning from `start` position to `end` position.
 	 *
@@ -28,7 +45,7 @@ export default class Range {
 	 * @param {module:engine/view/position~Position} start Start position.
 	 * @param {module:engine/view/position~Position} [end] End position. If not set, range will be collapsed at the `start` position.
 	 */
-	constructor( start, end = null ) {
+	constructor( start: Position, end: Position | null = null ) {
 		/**
 		 * Start position.
 		 *
@@ -59,7 +76,7 @@ export default class Range {
 	 *
 	 * @returns {Iterable.<module:engine/view/treewalker~TreeWalkerValue>}
 	 */
-	* [ Symbol.iterator ]() {
+	public* [ Symbol.iterator ](): IterableIterator<TreeWalkerValue> {
 		yield* new TreeWalker( { boundaries: this, ignoreElementEnd: true } );
 	}
 
@@ -68,7 +85,7 @@ export default class Range {
 	 *
 	 * @type {Boolean}
 	 */
-	get isCollapsed() {
+	public get isCollapsed(): boolean {
 		return this.start.isEqual( this.end );
 	}
 
@@ -78,7 +95,7 @@ export default class Range {
 	 *
 	 * @type {Boolean}
 	 */
-	get isFlat() {
+	public get isFlat(): boolean {
 		return this.start.parent === this.end.parent;
 	}
 
@@ -87,7 +104,7 @@ export default class Range {
 	 *
 	 * @type {module:engine/view/element~Element|module:engine/view/documentfragment~DocumentFragment}
 	 */
-	get root() {
+	public get root(): Node | DocumentFragment {
 		return this.start.root;
 	}
 
@@ -108,7 +125,7 @@ export default class Range {
 	 *
 	 * @returns {module:engine/view/range~Range} Enlarged range.
 	 */
-	getEnlarged() {
+	public getEnlarged(): Range {
 		let start = this.start.getLastMatchingPosition( enlargeTrimSkip, { direction: 'backward' } );
 		let end = this.end.getLastMatchingPosition( enlargeTrimSkip );
 
@@ -141,7 +158,7 @@ export default class Range {
 	 *
 	 * @returns {module:engine/view/range~Range} Shrink range.
 	 */
-	getTrimmed() {
+	public getTrimmed(): Range {
 		let start = this.start.getLastMatchingPosition( enlargeTrimSkip );
 
 		if ( start.isAfter( this.end ) || start.isEqual( this.end ) ) {
@@ -170,7 +187,7 @@ export default class Range {
 	 * @param {module:engine/view/range~Range} otherRange Range to compare with.
 	 * @returns {Boolean} `true` if ranges are equal, `false` otherwise
 	 */
-	isEqual( otherRange ) {
+	public isEqual( otherRange: Range ): boolean {
 		return this == otherRange || ( this.start.isEqual( otherRange.start ) && this.end.isEqual( otherRange.end ) );
 	}
 
@@ -181,7 +198,7 @@ export default class Range {
 	 * @returns {Boolean} `true` if given {@link module:engine/view/position~Position position} is contained in this range,
 	 * `false` otherwise.
 	 */
-	containsPosition( position ) {
+	public containsPosition( position: Position ): boolean {
 		return position.isAfter( this.start ) && position.isBefore( this.end );
 	}
 
@@ -195,7 +212,7 @@ export default class Range {
 	 * @returns {Boolean} `true` if given {@link module:engine/view/range~Range range} boundaries are contained by this range, `false`
 	 * otherwise.
 	 */
-	containsRange( otherRange, loose = false ) {
+	public containsRange( otherRange: Range, loose: boolean = false ): boolean {
 		if ( otherRange.isCollapsed ) {
 			loose = false;
 		}
@@ -237,8 +254,8 @@ export default class Range {
 	 * @param {module:engine/view/range~Range} otherRange Range to differentiate against.
 	 * @returns {Array.<module:engine/view/range~Range>} The difference between ranges.
 	 */
-	getDifference( otherRange ) {
-		const ranges = [];
+	public getDifference( otherRange: Range ): Range[] {
+		const ranges: Range[] = [];
 
 		if ( this.isIntersecting( otherRange ) ) {
 			// Ranges intersect.
@@ -283,7 +300,7 @@ export default class Range {
 	 * @param {module:engine/view/range~Range} otherRange Range to check for intersection.
 	 * @returns {module:engine/view/range~Range|null} A common part of given ranges or `null` if ranges have no common part.
 	 */
-	getIntersection( otherRange ) {
+	public getIntersection( otherRange: Range ): Range | null {
 		if ( this.isIntersecting( otherRange ) ) {
 			// Ranges intersect, so a common range will be returned.
 			// At most, it will be same as this range.
@@ -319,7 +336,7 @@ export default class Range {
 	 * @param {Boolean} [options.ignoreElementEnd=false]
 	 * @returns {module:engine/view/treewalker~TreeWalker}
 	 */
-	getWalker( options = {} ) {
+	public getWalker( options: TreeWalkerOptions = {} ): TreeWalker {
 		options.boundaries = this;
 
 		return new TreeWalker( options );
@@ -331,7 +348,7 @@ export default class Range {
 	 *
 	 * @returns {module:engine/view/node~Node|module:engine/view/documentfragment~DocumentFragment|null}
 	 */
-	getCommonAncestor() {
+	public getCommonAncestor(): Node | DocumentFragment | null {
 		return this.start.getCommonAncestor( this.end );
 	}
 
@@ -342,7 +359,7 @@ export default class Range {
 	 *
 	 * @returns {module:engine/view/element~Element|null}
 	 */
-	getContainedElement() {
+	public getContainedElement(): Element | null {
 		if ( this.isCollapsed ) {
 			return null;
 		}
@@ -379,7 +396,7 @@ export default class Range {
 	 *
 	 * @returns {module:engine/view/range~Range}
 	 */
-	clone() {
+	public clone(): Range {
 		return new Range( this.start, this.end );
 	}
 
@@ -397,7 +414,7 @@ export default class Range {
 	 * @param {Object} options Object with configuration options. See {@link module:engine/view/treewalker~TreeWalker}.
 	 * @returns {Iterable.<module:engine/view/item~Item>}
 	 */
-	* getItems( options = {} ) {
+	public* getItems( options: TreeWalkerOptions = {} ): IterableIterator<Item> {
 		options.boundaries = this;
 		options.ignoreElementEnd = true;
 
@@ -421,7 +438,7 @@ export default class Range {
 	 * @param {Object} options Object with configuration options. See {@link module:engine/view/treewalker~TreeWalker}.
 	 * @returns {Iterable.<module:engine/view/position~Position>}
 	 */
-	* getPositions( options = {} ) {
+	public* getPositions( options: TreeWalkerOptions = {} ): IterableIterator<Position> {
 		options.boundaries = this;
 
 		const treeWalker = new TreeWalker( options );
@@ -432,6 +449,44 @@ export default class Range {
 			yield value.nextPosition;
 		}
 	}
+
+	public is( type: 'node' | 'view:node' ):
+		this is
+			Node | Element | AttributeElement | ContainerElement | EditableElement |
+			EmptyElement | RawElement | RootEditableElement | UIElement;
+
+	public is( type: 'element' | 'view:element' ): this is Element;
+	public is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
+	public is( type: 'containerElement' | 'view:containerElement' ): this is ContainerElement;
+	public is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement;
+	public is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
+	public is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
+	public is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
+	public is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
+	public is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
+	public is( type: '$text' | 'view:$text' ): this is Text;
+	public is( type: '$textProxy' | 'view:$textProxy' ): this is TextProxy;
+	public is( type: 'position' | 'view:position' ): this is Position;
+	public is( type: 'range' | 'view:range' ): this is Range;
+
+	public is<N extends string>( type: 'element' | 'view:element', name: N ):
+		this is (
+			Element | AttributeElement | ContainerElement | EditableElement | EmptyElement | RawElement | RootEditableElement | UIElement
+		) & { name: N };
+	public is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
+		this is ( AttributeElement ) & { name: N };
+	public is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
+		this is ( ContainerElement ) & { name: N };
+	public is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
+		this is ( EditableElement ) & { name: N };
+	public is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
+		this is ( EmptyElement ) & { name: N };
+	public is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
+		this is ( RawElement ) & { name: N };
+	public is<N extends string>( type: 'rootElement' | 'view:rootElement', name: N ):
+		this is ( RootEditableElement ) & { name: N };
+	public is<N extends string>( type: 'uiElement' | 'view:uiElement', name: N ):
+		this is ( UIElement ) & { name: N };
 
 	/**
 	 * Checks whether this object is of the given type.
@@ -448,7 +503,7 @@ export default class Range {
 	 * @param {String} type
 	 * @returns {Boolean}
 	 */
-	is( type ) {
+	public is( type: string ): boolean {
 		return type === 'range' || type === 'view:range';
 	}
 
@@ -458,7 +513,7 @@ export default class Range {
 	 * @param {module:engine/view/range~Range} otherRange Range to compare with.
 	 * @returns {Boolean} True if ranges intersect.
 	 */
-	isIntersecting( otherRange ) {
+	public isIntersecting( otherRange: Range ): boolean {
 		return this.start.isBefore( otherRange.end ) && this.end.isAfter( otherRange.start );
 	}
 
@@ -474,7 +529,12 @@ export default class Range {
 	 * @param {Number} endOffset End position offset.
 	 * @returns {module:engine/view/range~Range} Created range.
 	 */
-	static _createFromParentsAndOffsets( startElement, startOffset, endElement, endOffset ) {
+	public static _createFromParentsAndOffsets(
+		startElement: Element,
+		startOffset: number,
+		endElement: Element,
+		endOffset: number
+	): Range {
 		return new this(
 			new Position( startElement, startOffset ),
 			new Position( endElement, endOffset )
@@ -490,7 +550,7 @@ export default class Range {
 	 * @param {Number} shift How long the range should be.
 	 * @returns {module:engine/view/range~Range}
 	 */
-	static _createFromPositionAndShift( position, shift ) {
+	public static _createFromPositionAndShift( position: Position, shift: number ): Range {
 		const start = position;
 		const end = position.getShiftedBy( shift );
 
@@ -505,7 +565,7 @@ export default class Range {
 	 * @param {module:engine/view/element~Element} element Element which is a parent for the range.
 	 * @returns {module:engine/view/range~Range}
 	 */
-	static _createIn( element ) {
+	public static _createIn( element: Element ): Range {
 		return this._createFromParentsAndOffsets( element, 0, element, element.childCount );
 	}
 
@@ -516,7 +576,7 @@ export default class Range {
 	 * @param {module:engine/view/item~Item} item
 	 * @returns {module:engine/view/range~Range}
 	 */
-	static _createOn( item ) {
+	public static _createOn( item: Item ): Range {
 		const size = item.is( '$textProxy' ) ? item.offsetSize : 1;
 
 		return this._createFromPositionAndShift( Position._createBefore( item ), size );
@@ -524,7 +584,7 @@ export default class Range {
 }
 
 // Function used by getEnlarged and getTrimmed methods.
-function enlargeTrimSkip( value ) {
+function enlargeTrimSkip( value: TreeWalkerValue ): boolean {
 	if ( value.item.is( 'attributeElement' ) || value.item.is( 'uiElement' ) ) {
 		return true;
 	}

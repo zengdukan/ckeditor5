@@ -9,6 +9,20 @@
 
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 
+import type AttributeElement from './attributeelement';
+import type ContainerElement from './containerelement';
+import type Document from './document';
+import type DocumentFragment from './documentfragment';
+import type EditableElement from './editableelement';
+import type Element from './element';
+import type EmptyElement from './emptyelement';
+import type Node from './node';
+import type Position from './position';
+import type RawElement from './rawelement';
+import type RootEditableElement from './rooteditableelement';
+import type Text from './text';
+import type UIElement from './uielement';
+
 /**
  * TextProxy is a wrapper for substring of {@link module:engine/view/text~Text}. Instance of this class is created by
  * {@link module:engine/view/treewalker~TreeWalker} when only a part of {@link module:engine/view/text~Text} needs to be returned.
@@ -30,6 +44,10 @@ import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
  * an instance of this class by your own.
  */
 export default class TextProxy {
+	public readonly textNode: Text;
+	public readonly data: string;
+	public readonly offsetInText: number;
+
 	/**
 	 * Creates a text proxy.
 	 *
@@ -40,7 +58,7 @@ export default class TextProxy {
 	 * @param {Number} length Text proxy length, that is how many text node's characters, starting from `offsetInText` it represents.
 	 * @constructor
 	 */
-	constructor( textNode, offsetInText, length ) {
+	constructor( textNode: Text, offsetInText: number, length: number ) {
 		/**
 		 * Reference to the {@link module:engine/view/text~Text} element which TextProxy is a substring.
 		 *
@@ -90,7 +108,7 @@ export default class TextProxy {
 	 * @readonly
 	 * @type {Number}
 	 */
-	get offsetSize() {
+	public get offsetSize(): number {
 		return this.data.length;
 	}
 
@@ -105,7 +123,7 @@ export default class TextProxy {
 	 * @readonly
 	 * @type {Boolean}
 	 */
-	get isPartial() {
+	public get isPartial(): boolean {
 		return this.data.length !== this.textNode.data.length;
 	}
 
@@ -115,7 +133,7 @@ export default class TextProxy {
 	 * @readonly
 	 * @type {module:engine/view/element~Element|module:engine/view/documentfragment~DocumentFragment|null}
 	 */
-	get parent() {
+	public get parent(): Element | DocumentFragment | null {
 		return this.textNode.parent;
 	}
 
@@ -125,7 +143,7 @@ export default class TextProxy {
 	 * @readonly
 	 * @type {module:engine/view/node~Node|module:engine/view/documentfragment~DocumentFragment}
 	 */
-	get root() {
+	public get root(): Node | DocumentFragment {
 		return this.textNode.root;
 	}
 
@@ -136,9 +154,47 @@ export default class TextProxy {
 	 * @readonly
 	 * @type {module:engine/view/document~Document|null}
 	 */
-	get document() {
+	public get document(): Document | null {
 		return this.textNode.document;
 	}
+
+	public is( type: 'node' | 'view:node' ):
+		this is
+			Node | Element | AttributeElement | ContainerElement | EditableElement |
+			EmptyElement | RawElement | RootEditableElement | UIElement;
+
+	public is( type: 'element' | 'view:element' ): this is Element;
+	public is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
+	public is( type: 'containerElement' | 'view:containerElement' ): this is ContainerElement;
+	public is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement;
+	public is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
+	public is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
+	public is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
+	public is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
+	public is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
+	public is( type: '$text' | 'view:$text' ): this is Text;
+	public is( type: '$textProxy' | 'view:$textProxy' ): this is TextProxy;
+	public is( type: 'position' | 'view:position' ): this is Position;
+	public is( type: 'range' | 'view:range' ): this is Range;
+
+	public is<N extends string>( type: 'element' | 'view:element', name: N ):
+		this is (
+			Element | AttributeElement | ContainerElement | EditableElement | EmptyElement | RawElement | RootEditableElement | UIElement
+		) & { name: N };
+	public is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
+		this is ( AttributeElement ) & { name: N };
+	public is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
+		this is ( ContainerElement ) & { name: N };
+	public is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
+		this is ( EditableElement ) & { name: N };
+	public is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
+		this is ( EmptyElement ) & { name: N };
+	public is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
+		this is ( RawElement ) & { name: N };
+	public is<N extends string>( type: 'rootElement' | 'view:rootElement', name: N ):
+		this is ( RootEditableElement ) & { name: N };
+	public is<N extends string>( type: 'uiElement' | 'view:uiElement', name: N ):
+		this is ( UIElement ) & { name: N };
 
 	/**
 	 * Checks whether this object is of the given type.
@@ -158,7 +214,7 @@ export default class TextProxy {
 	 * @param {String} type Type to check.
 	 * @returns {Boolean}
 	 */
-	is( type ) {
+	public is( type: string ): boolean {
 		return type === '$textProxy' || type === 'view:$textProxy' ||
 			// This are legacy values kept for backward compatibility.
 			type === 'textProxy' || type === 'view:textProxy';
@@ -173,9 +229,12 @@ export default class TextProxy {
 	 * root element, otherwise root element will be the first item in the array.
 	 * @returns {Array} Array with ancestors.
 	 */
-	getAncestors( options = { includeSelf: false, parentFirst: false } ) {
-		const ancestors = [];
-		let parent = options.includeSelf ? this.textNode : this.parent;
+	public getAncestors( options: {
+		includeSelf?: boolean;
+		parentFirst?: boolean;
+	} = { includeSelf: false, parentFirst: false } ): ( Text | Element | DocumentFragment )[] {
+		const ancestors: ( Text | Element | DocumentFragment )[] = [];
+		let parent: Text | Element | DocumentFragment | null = options.includeSelf ? this.textNode : this.parent;
 
 		while ( parent !== null ) {
 			ancestors[ options.parentFirst ? 'push' : 'unshift' ]( parent );

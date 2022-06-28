@@ -9,8 +9,13 @@
 
 import '../../theme/placeholder.css';
 
+import type Document from './document';
+import type DowncastWriter from './downcastwriter';
+import type Element from './element';
+import type View from './view';
+
 // Each document stores information about its placeholder elements and check functions.
-const documentPlaceholders = new WeakMap();
+const documentPlaceholders: WeakMap<Document, Map<Element, PlaceholderConfig>> = new WeakMap();
 
 /**
  * A helper that enables a placeholder on the provided view element (also updates its visibility).
@@ -31,7 +36,13 @@ const documentPlaceholders = new WeakMap();
  * editable root elements.
  * @param {Boolean} [options.keepOnFocus=false] If set `true`, the placeholder stay visible when the host element is focused.
  */
-export function enablePlaceholder( options ) {
+export function enablePlaceholder( options: {
+	view: View;
+	element: Element;
+	text: string;
+	isDirectHost?: boolean;
+	keepOnFocus?: boolean;
+} ): void {
 	const { view, element, text, isDirectHost = true, keepOnFocus = false } = options;
 	const doc = view.document;
 
@@ -45,7 +56,7 @@ export function enablePlaceholder( options ) {
 	}
 
 	// Store information about the element placeholder under its document.
-	documentPlaceholders.get( doc ).set( element, {
+	documentPlaceholders.get( doc )!.set( element, {
 		text,
 		isDirectHost,
 		keepOnFocus,
@@ -64,7 +75,7 @@ export function enablePlaceholder( options ) {
  * @param {module:engine/view/view~View} view
  * @param {module:engine/view/element~Element} element
  */
-export function disablePlaceholder( view, element ) {
+export function disablePlaceholder( view: View, element: Element ): void {
 	const doc = element.document;
 
 	view.change( writer => {
@@ -72,11 +83,11 @@ export function disablePlaceholder( view, element ) {
 			return;
 		}
 
-		const placeholders = documentPlaceholders.get( doc );
-		const config = placeholders.get( element );
+		const placeholders = documentPlaceholders.get( doc )!;
+		const config = placeholders.get( element )!;
 
 		writer.removeAttribute( 'data-placeholder', config.hostElement );
-		hidePlaceholder( writer, config.hostElement );
+		hidePlaceholder( writer, config.hostElement! );
 
 		placeholders.delete( element );
 	} );
@@ -100,7 +111,7 @@ export function disablePlaceholder( view, element ) {
  * @param {module:engine/view/element~Element} element
  * @returns {Boolean} `true`, if any changes were made to the `element`.
  */
-export function showPlaceholder( writer, element ) {
+export function showPlaceholder( writer: DowncastWriter, element: Element ): boolean {
 	if ( !element.hasClass( 'ck-placeholder' ) ) {
 		writer.addClass( 'ck-placeholder', element );
 
@@ -123,7 +134,7 @@ export function showPlaceholder( writer, element ) {
  * @param {module:engine/view/element~Element} element
  * @returns {Boolean} `true`, if any changes were made to the `element`.
  */
-export function hidePlaceholder( writer, element ) {
+export function hidePlaceholder( writer: DowncastWriter, element: Element ): boolean {
 	if ( element.hasClass( 'ck-placeholder' ) ) {
 		writer.removeClass( 'ck-placeholder', element );
 
@@ -147,7 +158,7 @@ export function hidePlaceholder( writer, element ) {
  * @param {Boolean} keepOnFocus Focusing the element will keep the placeholder visible.
  * @returns {Boolean}
  */
-export function needsPlaceholder( element, keepOnFocus ) {
+export function needsPlaceholder( element: Element, keepOnFocus: boolean ): boolean {
 	if ( !element.isAttached() ) {
 		return false;
 	}
@@ -185,9 +196,9 @@ export function needsPlaceholder( element, keepOnFocus ) {
 // @param { module:engine/view/document~Document} doc
 // @param {module:engine/view/downcastwriter~DowncastWriter} writer
 // @returns {Boolean} True if any changes were made to the view document.
-function updateDocumentPlaceholders( doc, writer ) {
-	const placeholders = documentPlaceholders.get( doc );
-	const directHostElements = [];
+function updateDocumentPlaceholders( doc: Document, writer: DowncastWriter ): boolean {
+	const placeholders = documentPlaceholders.get( doc )!;
+	const directHostElements: Element[] = [];
 	let wasViewModified = false;
 
 	// First set placeholders on the direct hosts.
@@ -240,13 +251,13 @@ function updateDocumentPlaceholders( doc, writer ) {
 // @param {String} config.text
 // @param {Boolean} config.isDirectHost
 // @returns {Boolean} True if any changes were made to the view document.
-function updatePlaceholder( writer, element, config ) {
+function updatePlaceholder( writer: DowncastWriter, element: Element, config: PlaceholderConfig ) {
 	const { text, isDirectHost, hostElement } = config;
 
 	let wasViewModified = false;
 
 	// This may be necessary when updating the placeholder text to something else.
-	if ( hostElement.getAttribute( 'data-placeholder' ) !== text ) {
+	if ( hostElement!.getAttribute( 'data-placeholder' ) !== text ) {
 		writer.setAttribute( 'data-placeholder', text, hostElement );
 		wasViewModified = true;
 	}
@@ -254,11 +265,11 @@ function updatePlaceholder( writer, element, config ) {
 	// If the host element is not a direct host then placeholder is needed only when there is only one element.
 	const isOnlyChild = isDirectHost || element.childCount == 1;
 
-	if ( isOnlyChild && needsPlaceholder( hostElement, config.keepOnFocus ) ) {
-		if ( showPlaceholder( writer, hostElement ) ) {
+	if ( isOnlyChild && needsPlaceholder( hostElement!, config.keepOnFocus ) ) {
+		if ( showPlaceholder( writer, hostElement! ) ) {
 			wasViewModified = true;
 		}
-	} else if ( hidePlaceholder( writer, hostElement ) ) {
+	} else if ( hidePlaceholder( writer, hostElement! ) ) {
 		wasViewModified = true;
 	}
 
@@ -272,9 +283,9 @@ function updatePlaceholder( writer, element, config ) {
 // @private
 // @param {module:engine/view/element~Element} parent
 // @returns {module:engine/view/element~Element|null}
-function getChildPlaceholderHostSubstitute( parent ) {
+function getChildPlaceholderHostSubstitute( parent: Element ): Element | null {
 	if ( parent.childCount ) {
-		const firstChild = parent.getChild( 0 );
+		const firstChild = parent.getChild( 0 )!;
 
 		if ( firstChild.is( 'element' ) && !firstChild.is( 'uiElement' ) && !firstChild.is( 'attributeElement' ) ) {
 			return firstChild;
@@ -282,4 +293,14 @@ function getChildPlaceholderHostSubstitute( parent ) {
 	}
 
 	return null;
+}
+
+/**
+ * TODO
+ */
+interface PlaceholderConfig {
+	text: string;
+	isDirectHost: boolean;
+	keepOnFocus: boolean;
+	hostElement: Element | null;
 }

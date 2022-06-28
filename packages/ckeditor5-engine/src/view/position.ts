@@ -7,14 +7,26 @@
  * @module engine/view/position
  */
 
-import TreeWalker from './treewalker';
-
 import compareArrays from '@ckeditor/ckeditor5-utils/src/comparearrays';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 import EditableElement from './editableelement';
 
 // To check if component is loaded more than once.
 import '@ckeditor/ckeditor5-utils/src/version';
+
+import type AttributeElement from './attributeelement';
+import type ContainerElement from './containerelement';
+import type DocumentFragment from './documentfragment';
+import type Element from './element';
+import type EmptyElement from './emptyelement';
+import type Item from './item';
+import type Node from './node';
+import type RawElement from './rawelement';
+import type RootEditableElement from './rooteditableelement';
+import type Text from './text';
+import type TextProxy from './textproxy';
+import type UIElement from './uielement';
+import { default as TreeWalker, type TreeWalkerValue, type TreeWalkerOptions } from './treewalker';
 
 /**
  * Position in the view tree. Position is represented by its parent node and an offset in this parent.
@@ -26,13 +38,16 @@ import '@ckeditor/ckeditor5-utils/src/version';
  * * {@link module:engine/view/upcastwriter~UpcastWriter}
  */
 export default class Position {
+	public parent: Node | DocumentFragment;
+	public offset: number;
+
 	/**
 	 * Creates a position.
 	 *
 	 * @param {module:engine/view/node~Node|module:engine/view/documentfragment~DocumentFragment} parent Position parent.
 	 * @param {Number} offset Position offset.
 	 */
-	constructor( parent, offset ) {
+	constructor( parent: Node | DocumentFragment, offset: number ) {
 		/**
 		 * Position parent.
 		 *
@@ -58,12 +73,12 @@ export default class Position {
 	 * @readonly
 	 * @type {module:engine/view/node~Node|null}
 	 */
-	get nodeAfter() {
+	public get nodeAfter(): Node | null {
 		if ( this.parent.is( '$text' ) ) {
 			return null;
 		}
 
-		return this.parent.getChild( this.offset ) || null;
+		return ( this.parent as Element ).getChild( this.offset ) || null;
 	}
 
 	/**
@@ -73,12 +88,12 @@ export default class Position {
 	 * @readonly
 	 * @type {module:engine/view/node~Node|null}
 	 */
-	get nodeBefore() {
+	public get nodeBefore(): Node | null {
 		if ( this.parent.is( '$text' ) ) {
 			return null;
 		}
 
-		return this.parent.getChild( this.offset - 1 ) || null;
+		return ( this.parent as Element ).getChild( this.offset - 1 ) || null;
 	}
 
 	/**
@@ -87,7 +102,7 @@ export default class Position {
 	 * @readonly
 	 * @type {Boolean}
 	 */
-	get isAtStart() {
+	public get isAtStart(): boolean {
 		return this.offset === 0;
 	}
 
@@ -97,8 +112,8 @@ export default class Position {
 	 * @readonly
 	 * @type {Boolean}
 	 */
-	get isAtEnd() {
-		const endOffset = this.parent.is( '$text' ) ? this.parent.data.length : this.parent.childCount;
+	public get isAtEnd(): boolean {
+		const endOffset = this.parent.is( '$text' ) ? this.parent.data.length : ( this.parent as any ).childCount;
 
 		return this.offset === endOffset;
 	}
@@ -109,7 +124,7 @@ export default class Position {
 	 * @readonly
 	 * @type {module:engine/view/node~Node|module:engine/view/documentfragment~DocumentFragment}
 	 */
-	get root() {
+	public get root(): Node | DocumentFragment {
 		return this.parent.root;
 	}
 
@@ -119,7 +134,7 @@ export default class Position {
 	 *
 	 * @type {module:engine/view/editableelement~EditableElement|null}
 	 */
-	get editableElement() {
+	public get editableElement(): EditableElement | null {
 		let editable = this.parent;
 
 		while ( !( editable instanceof EditableElement ) ) {
@@ -139,7 +154,7 @@ export default class Position {
 	 * @param {Number} shift How position offset should get changed. Accepts negative values.
 	 * @returns {module:engine/view/position~Position} Shifted position.
 	 */
-	getShiftedBy( shift ) {
+	public getShiftedBy( shift: number ): Position {
 		const shifted = Position._createAt( this );
 
 		const offset = shifted.offset + shift;
@@ -158,13 +173,13 @@ export default class Position {
 	 * 		getLastMatchingPosition( value => value.type == 'text', { direction: 'backward' } ); // <p>foo[]</p> -> <p>{}foo</p>
 	 * 		getLastMatchingPosition( value => false ); // Do not move the position.
 	 *
-	 * @param {Function} skip Callback function. Gets {@link module:engine/view/treewalker~TreeWalkerValue} and should
+	 * @param {Function} skip Callback function. Gets {@link module:engine/view/treewalker~type TreeWalkerValue} and should
 	 * return `true` if the value should be skipped or `false` if not.
 	 * @param {Object} options Object with configuration options. See {@link module:engine/view/treewalker~TreeWalker}.
 	 *
 	 * @returns {module:engine/view/position~Position} The position after the last item which matches the `skip` callback test.
 	 */
-	getLastMatchingPosition( skip, options = {} ) {
+	public getLastMatchingPosition( skip: ( value: TreeWalkerValue ) => boolean, options: TreeWalkerOptions = {} ): Position {
 		options.startPosition = this;
 
 		const treeWalker = new TreeWalker( options );
@@ -178,7 +193,7 @@ export default class Position {
 	 *
 	 * @returns {Array} Array with ancestors.
 	 */
-	getAncestors() {
+	public getAncestors(): ( Node | DocumentFragment )[] {
 		if ( this.parent.is( 'documentFragment' ) ) {
 			return [ this.parent ];
 		} else {
@@ -193,7 +208,7 @@ export default class Position {
 	 * @param {module:engine/view/position~Position} position
 	 * @returns {module:engine/view/node~Node|module:engine/view/documentfragment~DocumentFragment|null}
 	 */
-	getCommonAncestor( position ) {
+	public getCommonAncestor( position: Position ): Node | DocumentFragment | null {
 		const ancestorsA = this.getAncestors();
 		const ancestorsB = position.getAncestors();
 
@@ -205,6 +220,44 @@ export default class Position {
 
 		return i === 0 ? null : ancestorsA[ i - 1 ];
 	}
+
+	public is( type: 'node' | 'view:node' ):
+		this is
+			Node | Element | AttributeElement | ContainerElement | EditableElement |
+			EmptyElement | RawElement | RootEditableElement | UIElement;
+
+	public is( type: 'element' | 'view:element' ): this is Element;
+	public is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
+	public is( type: 'containerElement' | 'view:containerElement' ): this is ContainerElement;
+	public is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement;
+	public is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
+	public is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
+	public is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
+	public is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
+	public is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
+	public is( type: '$text' | 'view:$text' ): this is Text;
+	public is( type: '$textProxy' | 'view:$textProxy' ): this is TextProxy;
+	public is( type: 'position' | 'view:position' ): this is Position;
+	public is( type: 'range' | 'view:range' ): this is Range;
+
+	public is<N extends string>( type: 'element' | 'view:element', name: N ):
+		this is (
+			Element | AttributeElement | ContainerElement | EditableElement | EmptyElement | RawElement | RootEditableElement | UIElement
+		) & { name: N };
+	public is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
+		this is ( AttributeElement ) & { name: N };
+	public is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
+		this is ( ContainerElement ) & { name: N };
+	public is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
+		this is ( EditableElement ) & { name: N };
+	public is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
+		this is ( EmptyElement ) & { name: N };
+	public is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
+		this is ( RawElement ) & { name: N };
+	public is<N extends string>( type: 'rootElement' | 'view:rootElement', name: N ):
+		this is ( RootEditableElement ) & { name: N };
+	public is<N extends string>( type: 'uiElement' | 'view:uiElement', name: N ):
+		this is ( UIElement ) & { name: N };
 
 	/**
 	 * Checks whether this object is of the given type.
@@ -221,7 +274,7 @@ export default class Position {
 	 * @param {String} type
 	 * @returns {Boolean}
 	 */
-	is( type ) {
+	public is( type: string ): boolean {
 		return type === 'position' || type === 'view:position';
 	}
 
@@ -231,7 +284,7 @@ export default class Position {
 	 * @param {module:engine/view/position~Position} otherPosition Position to compare with.
 	 * @returns {Boolean} True if positions are same.
 	 */
-	isEqual( otherPosition ) {
+	public isEqual( otherPosition: Position ): boolean {
 		return ( this.parent == otherPosition.parent && this.offset == otherPosition.offset );
 	}
 
@@ -245,7 +298,7 @@ export default class Position {
 	 * @param {module:engine/view/position~Position} otherPosition Position to compare with.
 	 * @returns {Boolean} Returns `true` if this position is before given position.
 	 */
-	isBefore( otherPosition ) {
+	public isBefore( otherPosition: Position ): boolean {
 		return this.compareWith( otherPosition ) == 'before';
 	}
 
@@ -259,7 +312,7 @@ export default class Position {
 	 * @param {module:engine/view/position~Position} otherPosition Position to compare with.
 	 * @returns {Boolean} Returns `true` if this position is after given position.
 	 */
-	isAfter( otherPosition ) {
+	public isAfter( otherPosition: Position ): boolean {
 		return this.compareWith( otherPosition ) == 'after';
 	}
 
@@ -270,7 +323,7 @@ export default class Position {
 	 * @param {module:engine/view/position~Position} otherPosition Position to compare with.
 	 * @returns {module:engine/view/position~PositionRelation}
 	 */
-	compareWith( otherPosition ) {
+	public compareWith( otherPosition: Position ): PositionRelation {
 		if ( this.root !== otherPosition.root ) {
 			return 'different';
 		}
@@ -298,7 +351,7 @@ export default class Position {
 				return 'after';
 
 			default:
-				return thisPath[ result ] < otherPath[ result ] ? 'before' : 'after';
+				return thisPath[ result as number ] < otherPath[ result as number ] ? 'before' : 'after';
 		}
 	}
 
@@ -311,13 +364,13 @@ export default class Position {
 	 * @param {Boolean} [options.shallow=false]
 	 * @param {Boolean} [options.ignoreElementEnd=false]
 	 */
-	getWalker( options = {} ) {
+	public getWalker( options: TreeWalkerOptions = {} ): TreeWalker {
 		options.startPosition = this;
 
 		return new TreeWalker( options );
 	}
 
-	clone() {
+	public clone(): Position {
 		return new Position( this.parent, this.offset );
 	}
 
@@ -339,14 +392,14 @@ export default class Position {
 	 * @param {Number|'end'|'before'|'after'} [offset] Offset or one of the flags. Used only when
 	 * first parameter is a {@link module:engine/view/item~Item view item}.
 	 */
-	static _createAt( itemOrPosition, offset ) {
+	public static _createAt( itemOrPosition: Item | Position, offset?: number | 'before' | 'after' | 'end' ): Position {
 		if ( itemOrPosition instanceof Position ) {
 			return new this( itemOrPosition.parent, itemOrPosition.offset );
 		} else {
 			const node = itemOrPosition;
 
 			if ( offset == 'end' ) {
-				offset = node.is( '$text' ) ? node.data.length : node.childCount;
+				offset = node.is( '$text' ) ? node.data.length : ( node as any ).childCount;
 			} else if ( offset == 'before' ) {
 				return this._createBefore( node );
 			} else if ( offset == 'after' ) {
@@ -361,7 +414,7 @@ export default class Position {
 				throw new CKEditorError( 'view-createpositionat-offset-required', node );
 			}
 
-			return new Position( node, offset );
+			return new Position( node as any, offset as number );
 		}
 	}
 
@@ -372,7 +425,7 @@ export default class Position {
 	 * @param {module:engine/view/item~Item} item View item after which the position should be located.
 	 * @returns {module:engine/view/position~Position}
 	 */
-	static _createAfter( item ) {
+	public static _createAfter( item: Item ): Position {
 		// TextProxy is not a instance of Node so we need do handle it in specific way.
 		if ( item.is( '$textProxy' ) ) {
 			return new Position( item.textNode, item.offsetInText + item.data.length );
@@ -388,7 +441,7 @@ export default class Position {
 			throw new CKEditorError( 'view-position-after-root', item, { root: item } );
 		}
 
-		return new Position( item.parent, item.index + 1 );
+		return new Position( item.parent, ( item.index as number ) + 1 );
 	}
 
 	/**
@@ -398,7 +451,7 @@ export default class Position {
 	 * @param {module:engine/view/item~Item} item View item before which the position should be located.
 	 * @returns {module:engine/view/position~Position}
 	 */
-	static _createBefore( item ) {
+	public static _createBefore( item: Item ): Position {
 		// TextProxy is not a instance of Node so we need do handle it in specific way.
 		if ( item.is( '$textProxy' ) ) {
 			return new Position( item.textNode, item.offsetInText );
@@ -414,7 +467,7 @@ export default class Position {
 			throw new CKEditorError( 'view-position-before-root', item, { root: item } );
 		}
 
-		return new Position( item.parent, item.index );
+		return new Position( item.parent, item.index as number );
 	}
 }
 
@@ -424,3 +477,4 @@ export default class Position {
  *
  * @typedef {String} module:engine/view/position~PositionRelation
  */
+export type PositionRelation = 'before' | 'after' | 'same' | 'different';

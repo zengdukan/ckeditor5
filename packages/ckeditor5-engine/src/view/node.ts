@@ -13,20 +13,22 @@ import mix from '@ckeditor/ckeditor5-utils/src/mix';
 import compareArrays from '@ckeditor/ckeditor5-utils/src/comparearrays';
 import { clone } from 'lodash-es';
 
-import type Element from './element';
-import type { default as Document, ChangeType } from './document';
-import type DocumentFragment from './documentfragment';
-import type RootEditableElement from './rooteditableelement';
-import type Text from './text';
-import type AttributeElement from './attributeelement';
-import type ContainerElement from './containerelement';
-import type EditableElement from './editableelement';
-import type RawElement from './rawelement';
-import type UIElement from './uielement';
-
 // To check if component is loaded more than once.
 import '@ckeditor/ckeditor5-utils/src/version';
+
+import type { default as Document, ChangeType } from './document';
+import type AttributeElement from './attributeelement';
+import type ContainerElement from './containerelement';
+import type DocumentFragment from './documentfragment';
+import type EditableElement from './editableelement';
+import type Element from './element';
 import type EmptyElement from './emptyelement';
+import type Position from './position';
+import type RawElement from './rawelement';
+import type RootEditableElement from './rooteditableelement';
+import type Text from './text';
+import type TextProxy from './textproxy';
+import type UIElement from './uielement';
 
 /**
  * Abstract view node class.
@@ -313,7 +315,9 @@ abstract class Node {
 	}
 
 	public is( type: 'node' | 'view:node' ):
-		this is Node | Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement;
+		this is
+			Node | Element | AttributeElement | ContainerElement | EditableElement |
+			EmptyElement | RawElement | RootEditableElement | UIElement;
 
 	public is( type: 'element' | 'view:element' ): this is Element;
 	public is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
@@ -325,10 +329,13 @@ abstract class Node {
 	public is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
 	public is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
 	public is( type: '$text' | 'view:$text' ): this is Text;
+	public is( type: '$textProxy' | 'view:$textProxy' ): this is TextProxy;
+	public is( type: 'position' | 'view:position' ): this is Position;
+	public is( type: 'range' | 'view:range' ): this is Range;
 
 	public is<N extends string>( type: 'element' | 'view:element', name: N ):
 		this is (
-			Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement
+			Element | AttributeElement | ContainerElement | EditableElement | EmptyElement | RawElement | RootEditableElement | UIElement
 		) & { name: N };
 	public is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
 		this is ( AttributeElement ) & { name: N };
