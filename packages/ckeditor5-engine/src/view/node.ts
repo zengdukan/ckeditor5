@@ -8,13 +8,25 @@
  */
 
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
-import EmitterMixin from '@ckeditor/ckeditor5-utils/src/emittermixin';
+import EmitterMixin, { type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
 import compareArrays from '@ckeditor/ckeditor5-utils/src/comparearrays';
 import { clone } from 'lodash-es';
 
+import type Element from './element';
+import type { default as Document, ChangeType } from './document';
+import type DocumentFragment from './documentfragment';
+import type RootEditableElement from './rooteditableelement';
+import type Text from './text';
+import type AttributeElement from './attributeelement';
+import type ContainerElement from './containerelement';
+import type EditableElement from './editableelement';
+import type RawElement from './rawelement';
+import type UIElement from './uielement';
+
 // To check if component is loaded more than once.
 import '@ckeditor/ckeditor5-utils/src/version';
+import type EmptyElement from './emptyelement';
 
 /**
  * Abstract view node class.
@@ -25,14 +37,17 @@ import '@ckeditor/ckeditor5-utils/src/version';
  *
  * @abstract
  */
-export default class Node {
+abstract class Node {
+	public document: Document;
+	public parent: Element | DocumentFragment | null;
+
 	/**
 	 * Creates a tree view node.
 	 *
 	 * @protected
 	 * @param {module:engine/view/document~Document} document The document instance to which this node belongs.
 	 */
-	constructor( document ) {
+	constructor( document: Document ) {
 		/**
 		 * The document instance to which this node belongs.
 		 *
@@ -59,7 +74,7 @@ export default class Node {
 	 * @readonly
 	 * @type {Number|null}
 	 */
-	get index() {
+	public get index(): number | null | never {
 		let pos;
 
 		if ( !this.parent ) {
@@ -85,10 +100,10 @@ export default class Node {
 	 * @readonly
 	 * @type {module:engine/view/node~Node|null}
 	 */
-	get nextSibling() {
+	public get nextSibling(): Node | null {
 		const index = this.index;
 
-		return ( index !== null && this.parent.getChild( index + 1 ) ) || null;
+		return ( index !== null && this.parent!.getChild( index + 1 ) ) || null;
 	}
 
 	/**
@@ -97,10 +112,10 @@ export default class Node {
 	 * @readonly
 	 * @type {module:engine/view/node~Node|null}
 	 */
-	get previousSibling() {
+	public get previousSibling(): Node | null {
 		const index = this.index;
 
-		return ( index !== null && this.parent.getChild( index - 1 ) ) || null;
+		return ( index !== null && this.parent!.getChild( index - 1 ) ) || null;
 	}
 
 	/**
@@ -109,8 +124,9 @@ export default class Node {
 	 * @readonly
 	 * @type {module:engine/view/node~Node|module:engine/view/documentfragment~DocumentFragment}
 	 */
-	get root() {
-		let root = this; // eslint-disable-line consistent-this
+	public get root(): Node | DocumentFragment {
+		// eslint-disable-next-line @typescript-eslint/no-this-alias, consistent-this
+		let root: Node | DocumentFragment = this;
 
 		while ( root.parent ) {
 			root = root.parent;
@@ -124,7 +140,7 @@ export default class Node {
 	 *
 	 * @returns {Boolean}
 	 */
-	isAttached() {
+	public isAttached(): boolean {
 		return this.root.is( 'rootElement' );
 	}
 
@@ -143,12 +159,13 @@ export default class Node {
 	 *
 	 * @returns {Array.<Number>} The path.
 	 */
-	getPath() {
+	public getPath(): number[] {
 		const path = [];
-		let node = this; // eslint-disable-line consistent-this
+		// eslint-disable-next-line @typescript-eslint/no-this-alias, consistent-this
+		let node: Node | DocumentFragment = this;
 
 		while ( node.parent ) {
-			path.unshift( node.index );
+			path.unshift( node.index! );
 			node = node.parent;
 		}
 
@@ -164,8 +181,8 @@ export default class Node {
 	 * otherwise root element will be the first item in the array.
 	 * @returns {Array} Array with ancestors.
 	 */
-	getAncestors( options = { includeSelf: false, parentFirst: false } ) {
-		const ancestors = [];
+	public getAncestors( options: { includeSelf?: boolean; parentFirst?: boolean } = {} ): ( Node | DocumentFragment )[] {
+		const ancestors: ( Node | DocumentFragment )[] = [];
 		let parent = options.includeSelf ? this : this.parent;
 
 		while ( parent ) {
@@ -186,7 +203,7 @@ export default class Node {
 	 * Which means that if e.g. node A is inside B, then their common ancestor will be B.
 	 * @returns {module:engine/view/element~Element|module:engine/view/documentfragment~DocumentFragment|null}
 	 */
-	getCommonAncestor( node, options = {} ) {
+	public getCommonAncestor( node: Node, options: { includeSelf?: boolean } = {} ): Element | DocumentFragment | null {
 		const ancestorsA = this.getAncestors( options );
 		const ancestorsB = node.getAncestors( options );
 
@@ -196,7 +213,7 @@ export default class Node {
 			i++;
 		}
 
-		return i === 0 ? null : ancestorsA[ i - 1 ];
+		return i === 0 ? null : ancestorsA[ i - 1 ] as ( Element | DocumentFragment );
 	}
 
 	/**
@@ -206,7 +223,7 @@ export default class Node {
 	 * @param {module:engine/view/node~Node} node Node to compare with.
 	 * @returns {Boolean}
 	 */
-	isBefore( node ) {
+	public isBefore( node: Node ): boolean {
 		// Given node is not before this node if they are same.
 		if ( this == node ) {
 			return false;
@@ -230,7 +247,7 @@ export default class Node {
 				return false;
 
 			default:
-				return thisPath[ result ] < nodePath[ result ];
+				return thisPath[ result as number ] < nodePath[ result as number ];
 		}
 	}
 
@@ -241,7 +258,7 @@ export default class Node {
 	 * @param {module:engine/view/node~Node} node Node to compare with.
 	 * @returns {Boolean}
 	 */
-	isAfter( node ) {
+	public isAfter( node: Node ): boolean {
 		// Given node is not before this node if they are same.
 		if ( this == node ) {
 			return false;
@@ -259,19 +276,21 @@ export default class Node {
 	/**
 	 * Removes node from parent.
 	 *
+	 * @internal
 	 * @protected
 	 */
-	_remove() {
-		this.parent._removeChildren( this.index );
+	public _remove(): void {
+		this.parent!._removeChildren( this.index! );
 	}
 
 	/**
+	 * @internal
 	 * @protected
 	 * @param {module:engine/view/document~ChangeType} type Type of the change.
 	 * @param {module:engine/view/node~Node} node Changed node.
 	 * @fires change
 	 */
-	_fireChange( type, node ) {
+	public _fireChange( type: ChangeType, node: Node ): void {
 		this.fire( 'change:' + type, node );
 
 		if ( this.parent ) {
@@ -284,14 +303,47 @@ export default class Node {
 	 *
 	 * @returns {Object} Clone of this object with the parent property removed.
 	 */
-	toJSON() {
-		const json = clone( this );
+	public toJSON(): unknown {
+		const json: any = clone( this );
 
 		// Due to circular references we need to remove parent reference.
 		delete json.parent;
 
 		return json;
 	}
+
+	public is( type: 'node' | 'view:node' ):
+		this is Node | Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement;
+
+	public is( type: 'element' | 'view:element' ): this is Element;
+	public is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
+	public is( type: 'containerElement' | 'view:containerElement' ): this is ContainerElement;
+	public is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement;
+	public is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
+	public is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
+	public is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
+	public is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
+	public is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
+	public is( type: '$text' | 'view:$text' ): this is Text;
+
+	public is<N extends string>( type: 'element' | 'view:element', name: N ):
+		this is (
+			Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement
+		) & { name: N };
+	public is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
+		this is ( AttributeElement ) & { name: N };
+	public is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
+		this is ( ContainerElement ) & { name: N };
+	public is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
+		this is ( EditableElement ) & { name: N };
+	public is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
+		this is ( EmptyElement ) & { name: N };
+	public is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
+		this is ( RawElement ) & { name: N };
+	public is<N extends string>( type: 'rootElement' | 'view:rootElement', name: N ):
+		this is ( RootEditableElement ) & { name: N };
+	public is<N extends string>( type: 'uiElement' | 'view:uiElement', name: N ):
+		this is ( UIElement ) & { name: N };
 
 	/**
 	 * Checks whether this object is of the given type.
@@ -337,7 +389,7 @@ export default class Node {
 	 * @param {String} type Type to check.
 	 * @returns {Boolean}
 	 */
-	is( type ) {
+	public is( type: string ): boolean {
 		return type === 'node' || type === 'view:node';
 	}
 
@@ -389,3 +441,7 @@ export default class Node {
  */
 
 mix( Node, EmitterMixin );
+
+interface Node extends Emitter {}
+
+export default Node;

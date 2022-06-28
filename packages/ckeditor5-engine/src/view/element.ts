@@ -14,7 +14,18 @@ import toMap from '@ckeditor/ckeditor5-utils/src/tomap';
 import toArray from '@ckeditor/ckeditor5-utils/src/toarray';
 import isIterable from '@ckeditor/ckeditor5-utils/src/isiterable';
 import Matcher from './matcher';
-import StylesMap from './stylesmap';
+import { default as StylesMap, type StyleValue } from './stylesmap';
+
+import type Item from './item';
+import type Document from './document';
+import type DocumentFragment from './documentfragment';
+import type RootEditableElement from './rooteditableelement';
+import type AttributeElement from './attributeelement';
+import type EditableElement from './editableelement';
+import type ContainerElement from './containerelement';
+import type RawElement from './rawelement';
+import type UIElement from './uielement';
+import type EmptyElement from './emptyelement';
 
 // @if CK_DEBUG_ENGINE // const { convertMapToTags } = require( '../dev-utils/utils' );
 
@@ -44,6 +55,14 @@ import StylesMap from './stylesmap';
  * @extends module:engine/view/node~Node
  */
 export default class Element extends Node {
+	public readonly name: string;
+	private readonly _attrs: Map<string, string>;
+	private readonly _children: Node[];
+	private readonly _classes: Set<string>;
+	private readonly _styles: StylesMap;
+	private readonly _customProperties: Map<string, unknown>;
+	private readonly _unsafeAttributesToRender: string[];
+
 	/**
 	 * Creates a view element.
 	 *
@@ -60,7 +79,12 @@ export default class Element extends Node {
 	 * @param {module:engine/view/node~Node|Iterable.<module:engine/view/node~Node>} [children]
 	 * A list of nodes to be inserted into created element.
 	 */
-	constructor( document, name, attrs, children ) {
+	constructor(
+		document: Document,
+		name: string,
+		attrs?: Record<string, string> | Iterable<[ string, string ]>,
+		children?: Node | Iterable<Node>
+	) {
 		super( document );
 
 		/**
@@ -102,7 +126,7 @@ export default class Element extends Node {
 		if ( this._attrs.has( 'class' ) ) {
 			// Remove class attribute and handle it by class set.
 			const classString = this._attrs.get( 'class' );
-			parseClasses( this._classes, classString );
+			parseClasses( this._classes, classString! );
 			this._attrs.delete( 'class' );
 		}
 
@@ -116,7 +140,7 @@ export default class Element extends Node {
 
 		if ( this._attrs.has( 'style' ) ) {
 			// Remove style attribute and handle it by styles map.
-			this._styles.setTo( this._attrs.get( 'style' ) );
+			this._styles.setTo( this._attrs.get( 'style' )! );
 
 			this._attrs.delete( 'style' );
 		}
@@ -152,7 +176,7 @@ export default class Element extends Node {
 	 * @readonly
 	 * @type {Number}
 	 */
-	get childCount() {
+	public get childCount(): number {
 		return this._children.length;
 	}
 
@@ -162,9 +186,42 @@ export default class Element extends Node {
 	 * @readonly
 	 * @type {Boolean}
 	 */
-	get isEmpty() {
+	public get isEmpty(): boolean {
 		return this._children.length === 0;
 	}
+
+	public override is( type: 'node' | 'view:node' ):
+		this is Node | Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement;
+
+	public override is( type: 'element' | 'view:element' ): this is Element;
+	public override is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
+	public override is( type: 'containerElement' | 'view:containerElement' ): this is ContainerElement;
+	public override is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement;
+	public override is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
+	public override is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
+	public override is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
+	public override is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
+	public override is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
+	public override is( type: '$text' | 'view:$text' ): this is Text;
+
+	public override is<N extends string>( type: 'element' | 'view:element', name: N ):
+		this is (
+			Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement
+		) & { name: N };
+	public override is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
+		this is ( AttributeElement ) & { name: N };
+	public override is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
+		this is ( ContainerElement ) & { name: N };
+	public override is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
+		this is ( EditableElement ) & { name: N };
+	public override is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
+		this is ( EmptyElement ) & { name: N };
+	public override is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
+		this is ( RawElement ) & { name: N };
+	public override is<N extends string>( type: 'rootElement' | 'view:rootElement', name: N ):
+		this is ( RootEditableElement ) & { name: N };
+	public override is<N extends string>( type: 'uiElement' | 'view:uiElement', name: N ):
+		this is ( UIElement ) & { name: N };
 
 	/**
 	 * Checks whether this object is of the given.
@@ -189,7 +246,7 @@ export default class Element extends Node {
 	 * @param {String} [name] Element name.
 	 * @returns {Boolean}
 	 */
-	is( type, name = null ) {
+	public override is( type: string, name?: string ): boolean {
 		if ( !name ) {
 			return type === 'element' || type === 'view:element' ||
 				// From super.is(). This is highly utilised method and cannot call super. See ckeditor/ckeditor5#6529.
@@ -205,7 +262,7 @@ export default class Element extends Node {
 	 * @param {Number} index Index of child.
 	 * @returns {module:engine/view/node~Node} Child node.
 	 */
-	getChild( index ) {
+	public getChild( index: number ): Node | null {
 		return this._children[ index ];
 	}
 
@@ -215,7 +272,7 @@ export default class Element extends Node {
 	 * @param {module:engine/view/node~Node} node Child node.
 	 * @returns {Number} Index of the child node.
 	 */
-	getChildIndex( node ) {
+	public getChildIndex( node: Node ): number | null {
 		return this._children.indexOf( node );
 	}
 
@@ -224,7 +281,7 @@ export default class Element extends Node {
 	 *
 	 * @returns {Iterable.<module:engine/view/node~Node>} Child nodes iterator.
 	 */
-	getChildren() {
+	public getChildren(): IterableIterator<Node> {
 		return this._children[ Symbol.iterator ]();
 	}
 
@@ -233,7 +290,7 @@ export default class Element extends Node {
 	 *
 	 * @returns {Iterable.<String>} Keys for attributes.
 	 */
-	* getAttributeKeys() {
+	public* getAttributeKeys(): Iterable<string> {
 		if ( this._classes.size > 0 ) {
 			yield 'class';
 		}
@@ -253,15 +310,15 @@ export default class Element extends Node {
 	 *
 	 * @returns {Iterable.<*>}
 	 */
-	* getAttributes() {
+	public* getAttributes(): Iterable<[ string, string ]> {
 		yield* this._attrs.entries();
 
 		if ( this._classes.size > 0 ) {
-			yield [ 'class', this.getAttribute( 'class' ) ];
+			yield [ 'class', this.getAttribute( 'class' )! ];
 		}
 
 		if ( !this._styles.isEmpty ) {
-			yield [ 'style', this.getAttribute( 'style' ) ];
+			yield [ 'style', this.getAttribute( 'style' )! ];
 		}
 	}
 
@@ -271,7 +328,7 @@ export default class Element extends Node {
 	 * @param {String} key Attribute key.
 	 * @returns {String|undefined} Attribute value.
 	 */
-	getAttribute( key ) {
+	public getAttribute( key: string ): string | undefined {
 		if ( key == 'class' ) {
 			if ( this._classes.size > 0 ) {
 				return [ ...this._classes ].join( ' ' );
@@ -295,7 +352,7 @@ export default class Element extends Node {
 	 * @param {String} key Attribute key.
 	 * @returns {Boolean} `true` if attribute with the specified key exists in the element, false otherwise.
 	 */
-	hasAttribute( key ) {
+	public hasAttribute( key: string ): boolean {
 		if ( key == 'class' ) {
 			return this._classes.size > 0;
 		}
@@ -315,7 +372,7 @@ export default class Element extends Node {
 	 * @param {module:engine/view/element~Element} otherElement
 	 * @returns {Boolean}
 	 */
-	isSimilar( otherElement ) {
+	public isSimilar( otherElement: Element ): boolean {
 		if ( !( otherElement instanceof Element ) ) {
 			return false;
 		}
@@ -372,7 +429,7 @@ export default class Element extends Node {
 	 *
 	 * @param {...String} className
 	 */
-	hasClass( ...className ) {
+	public hasClass( ...className: string[] ): boolean {
 		for ( const name of className ) {
 			if ( !this._classes.has( name ) ) {
 				return false;
@@ -387,7 +444,7 @@ export default class Element extends Node {
 	 *
 	 * @returns {Iterable.<String>}
 	 */
-	getClassNames() {
+	public getClassNames(): Iterable<string> {
 		return this._classes.keys();
 	}
 
@@ -417,7 +474,7 @@ export default class Element extends Node {
 	 * @param {String} property
 	 * @returns {String|undefined}
 	 */
-	getStyle( property ) {
+	public getStyle( property: string ): string | undefined {
 		return this._styles.getAsString( property );
 	}
 
@@ -451,7 +508,7 @@ export default class Element extends Node {
 	 * @param {String} property Name of CSS property
 	 * @returns {Object|String|undefined}
 	 */
-	getNormalizedStyle( property ) {
+	public getNormalizedStyle( property: string ): StyleValue {
 		return this._styles.getNormalized( property );
 	}
 
@@ -461,7 +518,7 @@ export default class Element extends Node {
 	 * @param {Boolean} [expand=false] Expand shorthand style properties and return all equivalent style representations.
 	 * @returns {Iterable.<String>}
 	 */
-	getStyleNames( expand = false ) {
+	public getStyleNames( expand?: boolean ): Iterable<string> {
 		return this._styles.getStyleNames( expand );
 	}
 
@@ -474,7 +531,7 @@ export default class Element extends Node {
 	 *
 	 * @param {...String} property
 	 */
-	hasStyle( ...property ) {
+	public hasStyle( ...property: string[] ): boolean {
 		for ( const name of property ) {
 			if ( !this._styles.has( name ) ) {
 				return false;
@@ -493,11 +550,11 @@ export default class Element extends Node {
 	 * See {@link module:engine/view/matcher~Matcher}.
 	 * @returns {module:engine/view/element~Element|null} Found element or `null` if no matching ancestor was found.
 	 */
-	findAncestor( ...patterns ) {
+	public findAncestor( ...patterns: ( object | string | RegExp | Function )[] ): Element | null {
 		const matcher = new Matcher( ...patterns );
 		let parent = this.parent;
 
-		while ( parent ) {
+		while ( parent && !parent.is( 'documentFragment' ) ) {
 			if ( matcher.match( parent ) ) {
 				return parent;
 			}
@@ -514,7 +571,7 @@ export default class Element extends Node {
 	 * @param {String|Symbol} key
 	 * @returns {*}
 	 */
-	getCustomProperty( key ) {
+	public getCustomProperty( key: string ): unknown {
 		return this._customProperties.get( key );
 	}
 
@@ -524,7 +581,7 @@ export default class Element extends Node {
 	 *
 	 * @returns {Iterable.<*>}
 	 */
-	* getCustomProperties() {
+	public* getCustomProperties(): Iterable<[ string, unknown ]> {
 		yield* this._customProperties.entries();
 	}
 
@@ -551,7 +608,7 @@ export default class Element extends Node {
 	 *
 	 * @returns {String}
 	 */
-	getIdentity() {
+	public getIdentity(): string {
 		const classes = Array.from( this._classes ).sort().join( ',' );
 		const styles = this._styles.toString();
 		const attributes = Array.from( this._attrs ).map( i => `${ i[ 0 ] }="${ i[ 1 ] }"` ).sort().join( ' ' );
@@ -571,7 +628,7 @@ export default class Element extends Node {
 	 * @param {String} attributeName The name of the attribute to be checked.
 	 * @returns {Boolean}
 	 */
-	shouldRenderUnsafeAttribute( attributeName ) {
+	public shouldRenderUnsafeAttribute( attributeName: string ): boolean {
 		return this._unsafeAttributesToRender.includes( attributeName );
 	}
 
@@ -583,17 +640,17 @@ export default class Element extends Node {
 	 * element will be cloned without any children.
 	 * @returns {module:engine/view/element~Element} Clone of this element.
 	 */
-	_clone( deep = false ) {
+	public _clone( deep = false ): Element {
 		const childrenClone = [];
 
 		if ( deep ) {
 			for ( const child of this.getChildren() ) {
-				childrenClone.push( child._clone( deep ) );
+				childrenClone.push( ( child as Element )._clone( deep ) );
 			}
 		}
 
 		// ContainerElement and AttributeElement should be also cloned properly.
-		const cloned = new this.constructor( this.document, this.name, this._attrs, childrenClone );
+		const cloned = new ( this.constructor as any )( this.document, this.name, this._attrs, childrenClone );
 
 		// Classes and styles are cloned separately - this solution is faster than adding them back to attributes and
 		// parse once again in constructor.
@@ -606,7 +663,7 @@ export default class Element extends Node {
 		// Clone filler offset method.
 		// We can't define this method in a prototype because it's behavior which
 		// is changed by e.g. toWidget() function from ckeditor5-widget. Perhaps this should be one of custom props.
-		cloned.getFillerOffset = this.getFillerOffset;
+		cloned.getFillerOffset = ( this as any ).getFillerOffset;
 
 		// Clone unsafe attributes list.
 		cloned._unsafeAttributesToRender = this._unsafeAttributesToRender;
@@ -624,7 +681,7 @@ export default class Element extends Node {
 	 * @fires module:engine/view/node~Node#change
 	 * @returns {Number} Number of appended nodes.
 	 */
-	_appendChild( items ) {
+	private _appendChild( items: Item | Iterable<Item> ): number {
 		return this._insertChild( this.childCount, items );
 	}
 
@@ -632,6 +689,7 @@ export default class Element extends Node {
 	 * Inserts a child node or a list of child nodes on the given index and sets the parent of these nodes to
 	 * this element.
 	 *
+	 * @internal
 	 * @see module:engine/view/downcastwriter~DowncastWriter#insert
 	 * @protected
 	 * @param {Number} index Position where nodes should be inserted.
@@ -639,7 +697,7 @@ export default class Element extends Node {
 	 * @fires module:engine/view/node~Node#change
 	 * @returns {Number} Number of inserted nodes.
 	 */
-	_insertChild( index, items ) {
+	public _insertChild( index: number, items: Item | Iterable<Item> ): number {
 		this._fireChange( 'children', this );
 		let count = 0;
 
@@ -672,7 +730,7 @@ export default class Element extends Node {
 	 * @fires module:engine/view/node~Node#change
 	 * @returns {Array.<module:engine/view/node~Node>} The array of removed nodes.
 	 */
-	_removeChildren( index, howMany = 1 ) {
+	public _removeChildren( index: number, howMany: number = 1 ): Node[] {
 		this._fireChange( 'children', this );
 
 		for ( let i = index; i < index + howMany; i++ ) {
@@ -691,7 +749,7 @@ export default class Element extends Node {
 	 * @param {String} value Attribute value.
 	 * @fires module:engine/view/node~Node#change
 	 */
-	_setAttribute( key, value ) {
+	private _setAttribute( key: string, value: string ): void {
 		value = String( value );
 
 		this._fireChange( 'attributes', this );
@@ -714,7 +772,7 @@ export default class Element extends Node {
 	 * @returns {Boolean} Returns true if an attribute existed and has been removed.
 	 * @fires module:engine/view/node~Node#change
 	 */
-	_removeAttribute( key ) {
+	private _removeAttribute( key: string ): boolean {
 		this._fireChange( 'attributes', this );
 
 		// Remove class attribute.
@@ -754,7 +812,7 @@ export default class Element extends Node {
 	 * @param {Array.<String>|String} className
 	 * @fires module:engine/view/node~Node#change
 	 */
-	_addClass( className ) {
+	private _addClass( className: string | string[] ): void {
 		this._fireChange( 'attributes', this );
 
 		for ( const name of toArray( className ) ) {
@@ -773,7 +831,7 @@ export default class Element extends Node {
 	 * @param {Array.<String>|String} className
 	 * @fires module:engine/view/node~Node#change
 	 */
-	_removeClass( className ) {
+	private _removeClass( className: string | string[] ): void {
 		this._fireChange( 'attributes', this );
 
 		for ( const name of toArray( className ) ) {
@@ -800,10 +858,10 @@ export default class Element extends Node {
 	 * @param {String} [value] Value to set. This parameter is ignored if object is provided as the first parameter.
 	 * @fires module:engine/view/node~Node#change
 	 */
-	_setStyle( property, value ) {
+	private _setStyle( ...args: Parameters<StylesMap[ 'set' ]> ): void {
 		this._fireChange( 'attributes', this );
 
-		this._styles.set( property, value );
+		this._styles.set( ...args );
 	}
 
 	/**
@@ -821,7 +879,7 @@ export default class Element extends Node {
 	 * @param {Array.<String>|String} property
 	 * @fires module:engine/view/node~Node#change
 	 */
-	_removeStyle( property ) {
+	private _removeStyle( property: string ): void {
 		this._fireChange( 'attributes', this );
 
 		for ( const name of toArray( property ) ) {
@@ -838,7 +896,7 @@ export default class Element extends Node {
 	 * @param {String|Symbol} key
 	 * @param {*} value
 	 */
-	_setCustomProperty( key, value ) {
+	private _setCustomProperty( key: string, value: unknown ): void {
 		this._customProperties.set( key, value );
 	}
 
@@ -850,7 +908,7 @@ export default class Element extends Node {
 	 * @param {String|Symbol} key
 	 * @returns {Boolean} Returns true if property was removed.
 	 */
-	_removeCustomProperty( key ) {
+	private _removeCustomProperty( key: string ): boolean {
 		return this._customProperties.delete( key );
 	}
 
@@ -894,18 +952,18 @@ export default class Element extends Node {
 //
 // @param {Object|Iterable} attrs Attributes to parse.
 // @returns {Map} Parsed attributes.
-function parseAttributes( attrs ) {
-	attrs = toMap( attrs );
+function parseAttributes( attrs: Record<string, string> | Iterable<[ string, string ]> | undefined ) {
+	const attrsMap = toMap( attrs );
 
-	for ( const [ key, value ] of attrs ) {
+	for ( const [ key, value ] of attrsMap ) {
 		if ( value === null ) {
-			attrs.delete( key );
+			attrsMap.delete( key );
 		} else if ( typeof value != 'string' ) {
-			attrs.set( key, String( value ) );
+			attrsMap.set( key, String( value ) );
 		}
 	}
 
-	return attrs;
+	return attrsMap;
 }
 
 // Parses class attribute and puts all classes into classes set.
@@ -913,7 +971,7 @@ function parseAttributes( attrs ) {
 //
 // @param {Set.<String>} classesSet Set to insert parsed classes.
 // @param {String} classesString String with classes to parse.
-function parseClasses( classesSet, classesString ) {
+function parseClasses( classesSet: Set<string>, classesString: string ) {
 	const classArray = classesString.split( /\s+/ );
 	classesSet.clear();
 	classArray.forEach( name => classesSet.add( name ) );
@@ -923,7 +981,7 @@ function parseClasses( classesSet, classesString ) {
 //
 // @param {String|module:engine/view/item~Item|Iterable.<String|module:engine/view/item~Item>}
 // @returns {Iterable.<module:engine/view/node~Node>}
-function normalize( document, nodes ) {
+function normalize( document: Document, nodes: string | Item | Iterable<string | Item> ): Node[] {
 	// Separate condition because string is iterable.
 	if ( typeof nodes == 'string' ) {
 		return [ new Text( document, nodes ) ];

@@ -7,8 +7,19 @@
  * @module engine/view/attributeelement
  */
 
+import type Node from './node';
 import Element from './element';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
+
+import type Document from './document';
+import type ContainerElement from './containerelement';
+import type DocumentFragment from './documentfragment';
+import type EditableElement from './editableelement';
+import type RawElement from './rawelement';
+import type RootEditableElement from './rooteditableelement';
+import type UIElement from './uielement';
+import type Text from './text';
+import type EmptyElement from './emptyelement';
 
 // Default attribute priority.
 const DEFAULT_PRIORITY = 10;
@@ -27,6 +38,13 @@ const DEFAULT_PRIORITY = 10;
  * @extends module:engine/view/element~Element
  */
 export default class AttributeElement extends Element {
+	public static DEFAULT_PRIORITY: number;
+
+	public readonly getFillerOffset: () => number | null;
+	private readonly _priority: number;
+	private readonly _id: string | number | null;
+	private readonly _clonesGroup: Set<AttributeElement> | null;
+
 	/**
 	 * Creates an attribute element.
 	 *
@@ -39,7 +57,12 @@ export default class AttributeElement extends Element {
 	 * @param {module:engine/view/node~Node|Iterable.<module:engine/view/node~Node>} [children]
 	 * A list of nodes to be inserted into created element.
 	 */
-	constructor( document, name, attrs, children ) {
+	constructor(
+		document: Document,
+		name: string,
+		attrs?: Record<string, string> | Iterable<[ string, string ]>,
+		children?: Node | Iterable<Node>
+	) {
 		super( document, name, attrs, children );
 
 		/**
@@ -85,7 +108,7 @@ export default class AttributeElement extends Element {
 	 * @readonly
 	 * @type {Number}
 	 */
-	get priority() {
+	public get priority(): number {
 		return this._priority;
 	}
 
@@ -96,7 +119,7 @@ export default class AttributeElement extends Element {
 	 * @readonly
 	 * @type {String|Number}
 	 */
-	get id() {
+	public get id(): string | number | null {
 		return this._id;
 	}
 
@@ -112,7 +135,7 @@ export default class AttributeElement extends Element {
 	 * @returns {Set.<module:engine/view/attributeelement~AttributeElement>} Set containing all the attribute elements
 	 * with the same `id` that were added and not removed from the view tree.
 	 */
-	getElementsWithSameId() {
+	public getElementsWithSameId(): Set<AttributeElement> | never {
 		if ( this.id === null ) {
 			/**
 			 * Cannot get elements with the same id for an attribute element without id.
@@ -127,6 +150,39 @@ export default class AttributeElement extends Element {
 
 		return new Set( this._clonesGroup );
 	}
+
+	public override is( type: 'node' | 'view:node' ):
+		this is Node | Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement;
+
+	public override is( type: 'element' | 'view:element' ): this is Element;
+	public override is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
+	public override is( type: 'containerElement' | 'view:containerElement' ): this is ContainerElement;
+	public override is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement;
+	public override is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
+	public override is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
+	public override is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
+	public override is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
+	public override is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
+	public override is( type: '$text' | 'view:$text' ): this is Text;
+
+	public override is<N extends string>( type: 'element' | 'view:element', name: N ):
+		this is (
+			Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement
+		) & { name: N };
+	public override is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
+		this is ( AttributeElement ) & { name: N };
+	public override is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
+		this is ( ContainerElement ) & { name: N };
+	public override is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
+		this is ( EditableElement ) & { name: N };
+	public override is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
+		this is ( EmptyElement ) & { name: N };
+	public override is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
+		this is ( RawElement ) & { name: N };
+	public override is<N extends string>( type: 'rootElement' | 'view:rootElement', name: N ):
+		this is ( RootEditableElement ) & { name: N };
+	public override is<N extends string>( type: 'uiElement' | 'view:uiElement', name: N ):
+		this is ( UIElement ) & { name: N };
 
 	/**
 	 * Checks whether this object is of the given.
@@ -154,7 +210,7 @@ export default class AttributeElement extends Element {
 	 * @param {String} [name] Element name.
 	 * @returns {Boolean}
 	 */
-	is( type, name = null ) {
+	public override is( type: string, name?: string ): boolean {
 		if ( !name ) {
 			return type === 'attributeElement' || type === 'view:attributeElement' ||
 				// From super.is(). This is highly utilised method and cannot call super. See ckeditor/ckeditor5#6529.
@@ -190,13 +246,13 @@ export default class AttributeElement extends Element {
 	 * @param {module:engine/view/element~Element} otherElement
 	 * @returns {Boolean}
 	 */
-	isSimilar( otherElement ) {
+	public override isSimilar( otherElement: Element ): boolean {
 		// If any element has an `id` set, just compare the ids.
-		if ( this.id !== null || otherElement.id !== null ) {
-			return this.id === otherElement.id;
+		if ( this.id !== null || ( otherElement as any ).id !== null ) {
+			return this.id === ( otherElement as any ).id;
 		}
 
-		return super.isSimilar( otherElement ) && this.priority == otherElement.priority;
+		return super.isSimilar( otherElement ) && this.priority == ( otherElement as any ).priority;
 	}
 
 	/**
@@ -207,14 +263,14 @@ export default class AttributeElement extends Element {
 	 * element will be cloned without any children.
 	 * @returns {module:engine/view/attributeelement~AttributeElement} Clone of this element.
 	 */
-	_clone( deep ) {
+	public override _clone( deep: boolean = false ): Element {
 		const cloned = super._clone( deep );
 
 		// Clone priority too.
-		cloned._priority = this._priority;
+		( cloned as any )._priority = this._priority;
 
 		// And id too.
-		cloned._id = this._id;
+		( cloned as any )._id = this._id;
 
 		return cloned;
 	}
@@ -230,7 +286,7 @@ AttributeElement.DEFAULT_PRIORITY = DEFAULT_PRIORITY;
 // Returns block {@link module:engine/view/filler~Filler filler} offset or `null` if block filler is not needed.
 //
 // @returns {Number|null} Block filler offset or `null` if block filler is not needed.
-function getFillerOffset() {
+function getFillerOffset( this: AttributeElement ): number | null {
 	// <b>foo</b> does not need filler.
 	if ( nonUiChildrenCount( this ) ) {
 		return null;
@@ -259,6 +315,6 @@ function getFillerOffset() {
 //
 // @param {module:engine/view/element~Element} element
 // @returns {Number}
-function nonUiChildrenCount( element ) {
+function nonUiChildrenCount( element: Element | DocumentFragment ): number {
 	return Array.from( element.getChildren() ).filter( element => !element.is( 'uiElement' ) ).length;
 }

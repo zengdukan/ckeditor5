@@ -7,7 +7,17 @@
  * @module engine/view/containerelement
  */
 
+import type Document from './document';
+import type AttributeElement from './attributeelement';
+import type EditableElement from './editableelement';
 import Element from './element';
+import type RawElement from './rawelement';
+import type RootEditableElement from './rooteditableelement';
+import type UIElement from './uielement';
+import type Node from './node';
+import type DocumentFragment from './documentfragment';
+import type Text from './text';
+import type EmptyElement from './emptyelement';
 
 /**
  * Containers are elements which define document structure. They define boundaries for
@@ -31,6 +41,8 @@ import Element from './element';
  * @extends module:engine/view/element~Element
  */
 export default class ContainerElement extends Element {
+	public readonly getFillerOffset: () => number | null;
+
 	/**
 	 * Creates a container element.
 	 *
@@ -43,7 +55,12 @@ export default class ContainerElement extends Element {
 	 * @param {module:engine/view/node~Node|Iterable.<module:engine/view/node~Node>} [children]
 	 * A list of nodes to be inserted into created element.
 	 */
-	constructor( document, name, attrs, children ) {
+	constructor(
+		document: Document,
+		name: string,
+		attrs?: Record<string, string> | Iterable<[ string, string ]>,
+		children?: Node | Iterable<Node>
+	) {
 		super( document, name, attrs, children );
 
 		/**
@@ -54,6 +71,39 @@ export default class ContainerElement extends Element {
 		 */
 		this.getFillerOffset = getFillerOffset;
 	}
+
+	public override is( type: 'node' | 'view:node' ):
+		this is Node | Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement;
+
+	public override is( type: 'element' | 'view:element' ): this is Element;
+	public override is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
+	public override is( type: 'containerElement' | 'view:containerElement' ): this is ContainerElement;
+	public override is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement;
+	public override is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
+	public override is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
+	public override is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
+	public override is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
+	public override is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
+	public override is( type: '$text' | 'view:$text' ): this is Text;
+
+	public override is<N extends string>( type: 'element' | 'view:element', name: N ):
+		this is (
+			Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement
+		) & { name: N };
+	public override is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
+		this is ( AttributeElement ) & { name: N };
+	public override is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
+		this is ( ContainerElement ) & { name: N };
+	public override is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
+		this is ( EditableElement ) & { name: N };
+	public override is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
+		this is ( EmptyElement ) & { name: N };
+	public override is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
+		this is ( RawElement ) & { name: N };
+	public override is<N extends string>( type: 'rootElement' | 'view:rootElement', name: N ):
+		this is ( RootEditableElement ) & { name: N };
+	public override is<N extends string>( type: 'uiElement' | 'view:uiElement', name: N ):
+		this is ( UIElement ) & { name: N };
 
 	/**
 	 * Checks whether this object is of the given.
@@ -81,7 +131,7 @@ export default class ContainerElement extends Element {
 	 * @param {String} [name] Element name.
 	 * @returns {Boolean}
 	 */
-	is( type, name = null ) {
+	public override is( type: string, name?: string ): boolean {
 		if ( !name ) {
 			return type === 'containerElement' || type === 'view:containerElement' ||
 				// From super.is(). This is highly utilised method and cannot call super. See ckeditor/ckeditor5#6529.
@@ -102,7 +152,7 @@ export default class ContainerElement extends Element {
  *
  * @returns {Number|null} Block filler offset or `null` if block filler is not needed.
  */
-export function getFillerOffset() {
+function getFillerOffset( this: ContainerElement ): number | null {
 	const children = [ ...this.getChildren() ];
 	const lastChild = children[ this.childCount - 1 ];
 

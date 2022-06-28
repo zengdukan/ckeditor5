@@ -9,7 +9,16 @@
 
 import Element from './element';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
-import Node from './node';
+import type Node from './node';
+import type Document from './document';
+import type DocumentFragment from './documentfragment';
+import type Text from './text';
+import type AttributeElement from './attributeelement';
+import type ContainerElement from './containerelement';
+import type EditableElement from './editableelement';
+import type RootEditableElement from './rooteditableelement';
+import type UIElement from './uielement';
+import type EmptyElement from './emptyelement';
 
 /**
  * The raw element class.
@@ -30,6 +39,8 @@ import Node from './node';
  * @extends module:engine/view/element~Element
  */
 export default class RawElement extends Element {
+	public readonly getFillerOffset: () => null;
+
 	/**
 	 * Creates a new instance of a raw element.
 	 *
@@ -44,7 +55,12 @@ export default class RawElement extends Element {
 	 * @param {module:engine/view/node~Node|Iterable.<module:engine/view/node~Node>} [children]
 	 * A list of nodes to be inserted into the created element.
 	 */
-	constructor( document, name, attrs, children ) {
+	constructor(
+		document: Document,
+		name: string,
+		attrs?: Record<string, string> | Iterable<[ string, string ]>,
+		children?: Node | Iterable<Node>
+	) {
 		super( document, name, attrs, children );
 
 		/**
@@ -55,6 +71,39 @@ export default class RawElement extends Element {
 		 */
 		this.getFillerOffset = getFillerOffset;
 	}
+
+	public override is( type: 'node' | 'view:node' ):
+		this is Node | Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement;
+
+	public override is( type: 'element' | 'view:element' ): this is Element;
+	public override is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
+	public override is( type: 'containerElement' | 'view:containerElement' ): this is ContainerElement;
+	public override is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement;
+	public override is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
+	public override is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
+	public override is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
+	public override is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
+	public override is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
+	public override is( type: '$text' | 'view:$text' ): this is Text;
+
+	public override is<N extends string>( type: 'element' | 'view:element', name: N ):
+		this is (
+			Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement
+		) & { name: N };
+	public override is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
+		this is ( AttributeElement ) & { name: N };
+	public override is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
+		this is ( ContainerElement ) & { name: N };
+	public override is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
+		this is ( EditableElement ) & { name: N };
+	public override is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
+		this is ( EmptyElement ) & { name: N };
+	public override is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
+		this is ( RawElement ) & { name: N };
+	public override is<N extends string>( type: 'rootElement' | 'view:rootElement', name: N ):
+		this is ( RootEditableElement ) & { name: N };
+	public override is<N extends string>( type: 'uiElement' | 'view:uiElement', name: N ):
+		this is ( UIElement ) & { name: N };
 
 	/**
 	 * Checks whether this object is of the given type or name.
@@ -83,7 +132,7 @@ export default class RawElement extends Element {
 	 * @param {String} [name] The element name.
 	 * @returns {Boolean}
 	 */
-	is( type, name = null ) {
+	public override is( type: string, name?: string ): boolean {
 		if ( !name ) {
 			return type === 'rawElement' || type === 'view:rawElement' ||
 				// From super.is(). This is highly utilised method and cannot call super. See ckeditor/ckeditor5#6529.
@@ -105,18 +154,16 @@ export default class RawElement extends Element {
 	 *
 	 * @protected
 	 */
-	_insertChild( index, nodes ) {
-		if ( nodes && ( nodes instanceof Node || Array.from( nodes ).length > 0 ) ) {
-			/**
-			 * Cannot add children to a {@link module:engine/view/rawelement~RawElement} instance.
-			 *
-			 * @error view-rawelement-cannot-add
-			 */
-			throw new CKEditorError(
-				'view-rawelement-cannot-add',
-				[ this, nodes ]
-			);
-		}
+	public override _insertChild( index: number, items: any ): never {
+		/**
+		 * Cannot add children to a {@link module:engine/view/rawelement~RawElement} instance.
+		 *
+		 * @error view-rawelement-cannot-add
+		 */
+		throw new CKEditorError(
+			'view-rawelement-cannot-add',
+			[ this, items ]
+		);
 	}
 
 	/**

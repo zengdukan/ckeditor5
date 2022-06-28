@@ -9,7 +9,17 @@
 
 import ContainerElement from './containerelement';
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
-import ObservableMixin from '@ckeditor/ckeditor5-utils/src/observablemixin';
+import { default as ObservableMixin, type Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
+import type Node from './node';
+import type Element from './element';
+import type AttributeElement from './attributeelement';
+import type RawElement from './rawelement';
+import type RootEditableElement from './rooteditableelement';
+import type UIElement from './uielement';
+import type DocumentFragment from './documentfragment';
+import type Text from './text';
+import type Document from './document';
+import type EmptyElement from './emptyelement';
 
 /**
  * Editable element which can be a {@link module:engine/view/rooteditableelement~RootEditableElement root}
@@ -23,14 +33,22 @@ import ObservableMixin from '@ckeditor/ckeditor5-utils/src/observablemixin';
  * @extends module:engine/view/containerelement~ContainerElement
  * @mixes module:utils/observablemixin~ObservableMixin
  */
-export default class EditableElement extends ContainerElement {
+class EditableElement extends ContainerElement {
+	public isReadOnly!: boolean;
+	public isFocused!: boolean;
+
 	/**
 	 * Creates an editable element.
 	 *
 	 * @see module:engine/view/downcastwriter~DowncastWriter#createEditableElement
 	 * @protected
 	 */
-	constructor( document, name, attrs, children ) {
+	constructor(
+		document: Document,
+		name: string,
+		attrs?: Record<string, string> | Iterable<[ string, string ]>,
+		children?: Node | Iterable<Node>
+	) {
 		super( document, name, attrs, children );
 
 		/**
@@ -67,6 +85,39 @@ export default class EditableElement extends ContainerElement {
 		} );
 	}
 
+	public override is( type: 'node' | 'view:node' ):
+		this is Node | Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement;
+
+	public override is( type: 'element' | 'view:element' ): this is Element;
+	public override is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
+	public override is( type: 'containerElement' | 'view:containerElement' ): this is ContainerElement;
+	public override is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement;
+	public override is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
+	public override is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
+	public override is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
+	public override is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
+	public override is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
+	public override is( type: '$text' | 'view:$text' ): this is Text;
+
+	public override is<N extends string>( type: 'element' | 'view:element', name: N ):
+		this is (
+			Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement
+		) & { name: N };
+	public override is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
+		this is ( AttributeElement ) & { name: N };
+	public override is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
+		this is ( ContainerElement ) & { name: N };
+	public override is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
+		this is ( EditableElement ) & { name: N };
+	public override is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
+		this is ( EmptyElement ) & { name: N };
+	public override is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
+		this is ( RawElement ) & { name: N };
+	public override is<N extends string>( type: 'rootElement' | 'view:rootElement', name: N ):
+		this is ( RootEditableElement ) & { name: N };
+	public override is<N extends string>( type: 'uiElement' | 'view:uiElement', name: N ):
+		this is ( UIElement ) & { name: N };
+
 	/**
 	 * Checks whether this object is of the given.
 	 *
@@ -93,7 +144,7 @@ export default class EditableElement extends ContainerElement {
 	 * @param {String} [name] Element name.
 	 * @returns {Boolean}
 	 */
-	is( type, name = null ) {
+	public override is( type: string, name?: string ): boolean {
 		if ( !name ) {
 			return type === 'editableElement' || type === 'view:editableElement' ||
 				// From super.is(). This is highly utilised method and cannot call super. See ckeditor/ckeditor5#6529.
@@ -110,9 +161,13 @@ export default class EditableElement extends ContainerElement {
 		}
 	}
 
-	destroy() {
+	public destroy(): void {
 		this.stopListening();
 	}
 }
 
 mix( EditableElement, ObservableMixin );
+
+interface EditableElement extends Observable {}
+
+export default EditableElement;

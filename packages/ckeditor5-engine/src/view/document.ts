@@ -255,3 +255,4 @@ export default Document;
  *
  * @typedef {String} module:engine/view/document~ChangeType
  */
+export type ChangeType = 'children' | 'attributes' | 'text';

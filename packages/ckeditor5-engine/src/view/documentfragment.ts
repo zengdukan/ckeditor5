@@ -11,7 +11,19 @@ import Text from './text';
 import TextProxy from './textproxy';
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
 import isIterable from '@ckeditor/ckeditor5-utils/src/isiterable';
-import EmitterMixin from '@ckeditor/ckeditor5-utils/src/emittermixin';
+import EmitterMixin, { type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
+
+import type { default as Document, ChangeType } from './document';
+import type Node from './node';
+import type Item from './item';
+import type Element from './element';
+import type RootEditableElement from './rooteditableelement';
+import type AttributeElement from './attributeelement';
+import type ContainerElement from './containerelement';
+import type EditableElement from './editableelement';
+import type RawElement from './rawelement';
+import type UIElement from './uielement';
+import type EmptyElement from './emptyelement';
 
 /**
  * Document fragment.
@@ -20,7 +32,10 @@ import EmitterMixin from '@ckeditor/ckeditor5-utils/src/emittermixin';
  * {@link module:engine/view/upcastwriter~UpcastWriter#createDocumentFragment `UpcastWriter#createDocumentFragment()`}
  * method.
  */
-export default class DocumentFragment {
+class DocumentFragment {
+	public readonly document: Document;
+	private readonly _children: Node[];
+
 	/**
 	 * Creates new DocumentFragment instance.
 	 *
@@ -29,7 +44,7 @@ export default class DocumentFragment {
 	 * @param {module:engine/view/node~Node|Iterable.<module:engine/view/node~Node>} [children]
 	 * A list of nodes to be inserted into the created document fragment.
 	 */
-	constructor( document, children ) {
+	constructor( document: Document, children: Node | Iterable<Node> ) {
 		/**
 		 * The document to which this document fragment belongs.
 		 *
@@ -42,7 +57,7 @@ export default class DocumentFragment {
 		 * Array of child nodes.
 		 *
 		 * @protected
-		 * @member {Array.<module:engine/view/element~Element>} module:engine/view/documentfragment~DocumentFragment#_children
+		 * @member {Array.<module:engine/view/node~Node>} module:engine/view/documentfragment~DocumentFragment#_children
 		 */
 		this._children = [];
 
@@ -58,7 +73,7 @@ export default class DocumentFragment {
 	 *
 	 * @returns {Iterable.<module:engine/view/node~Node>}
 	 */
-	[ Symbol.iterator ]() {
+	public [ Symbol.iterator ](): IterableIterator<Node> {
 		return this._children[ Symbol.iterator ]();
 	}
 
@@ -68,7 +83,7 @@ export default class DocumentFragment {
 	 * @readonly
 	 * @type {Number}
 	 */
-	get childCount() {
+	public get childCount(): number {
 		return this._children.length;
 	}
 
@@ -78,7 +93,7 @@ export default class DocumentFragment {
 	 * @readonly
 	 * @type {Boolean}
 	 */
-	get isEmpty() {
+	public get isEmpty(): boolean {
 		return this.childCount === 0;
 	}
 
@@ -88,7 +103,7 @@ export default class DocumentFragment {
 	 * @readonly
 	 * @type {module:engine/model/documentfragment~DocumentFragment}
 	 */
-	get root() {
+	public get root(): this {
 		return this;
 	}
 
@@ -98,9 +113,42 @@ export default class DocumentFragment {
 	 * @readonly
 	 * @type {null}
 	 */
-	get parent() {
+	public get parent(): null {
 		return null;
 	}
+
+	public is( type: 'node' | 'view:node' ):
+		this is Node | Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement;
+
+	public is( type: 'element' | 'view:element' ): this is Element;
+	public is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
+	public is( type: 'containerElement' | 'view:containerElement' ): this is ContainerElement;
+	public is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement;
+	public is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
+	public is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
+	public is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
+	public is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
+	public is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
+	public is( type: '$text' | 'view:$text' ): this is Text;
+
+	public is<N extends string>( type: 'element' | 'view:element', name: N ):
+		this is (
+			Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement
+		) & { name: N };
+	public is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
+		this is ( AttributeElement ) & { name: N };
+	public is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
+		this is ( ContainerElement ) & { name: N };
+	public is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
+		this is ( EditableElement ) & { name: N };
+	public is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
+		this is ( EmptyElement ) & { name: N };
+	public is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
+		this is ( RawElement ) & { name: N };
+	public is<N extends string>( type: 'rootElement' | 'view:rootElement', name: N ):
+		this is ( RootEditableElement ) & { name: N };
+	public is<N extends string>( type: 'uiElement' | 'view:uiElement', name: N ):
+		this is ( UIElement ) & { name: N };
 
 	/**
 	 * Checks whether this object is of the given type.
@@ -117,7 +165,7 @@ export default class DocumentFragment {
 	 * @param {String} type
 	 * @returns {Boolean}
 	 */
-	is( type ) {
+	public is( type: string ): boolean {
 		return type === 'documentFragment' || type === 'view:documentFragment';
 	}
 
@@ -128,7 +176,7 @@ export default class DocumentFragment {
 	 * @param {module:engine/view/item~Item|Iterable.<module:engine/view/item~Item>} items Items to be inserted.
 	 * @returns {Number} Number of appended nodes.
 	 */
-	_appendChild( items ) {
+	private _appendChild( items: Item | Iterable<Item> ): number {
 		return this._insertChild( this.childCount, items );
 	}
 
@@ -138,7 +186,7 @@ export default class DocumentFragment {
 	 * @param {Number} index Index of child.
 	 * @returns {module:engine/view/node~Node} Child node.
 	 */
-	getChild( index ) {
+	public getChild( index: number ): Node {
 		return this._children[ index ];
 	}
 
@@ -148,7 +196,7 @@ export default class DocumentFragment {
 	 * @param {module:engine/view/node~Node} node Child node.
 	 * @returns {Number} Index of the child node.
 	 */
-	getChildIndex( node ) {
+	public getChildIndex( node: Node ): number {
 		return this._children.indexOf( node );
 	}
 
@@ -157,7 +205,7 @@ export default class DocumentFragment {
 	 *
 	 * @returns {Iterable.<module:engine/view/node~Node>} Child nodes iterator.
 	 */
-	getChildren() {
+	public getChildren(): IterableIterator<Node> {
 		return this._children[ Symbol.iterator ]();
 	}
 
@@ -169,7 +217,7 @@ export default class DocumentFragment {
 	 * @param {module:engine/view/item~Item|Iterable.<module:engine/view/item~Item>} items Items to be inserted.
 	 * @returns {Number} Number of inserted nodes.
 	 */
-	_insertChild( index, items ) {
+	private _insertChild( index: number, items: Item | Iterable<Item> ) {
 		this._fireChange( 'children', this );
 		let count = 0;
 
@@ -194,11 +242,12 @@ export default class DocumentFragment {
 	/**
 	 * Removes number of child nodes starting at the given index and set the parent of these nodes to `null`.
 	 *
+	 * @internal
 	 * @param {Number} index Number of the first node to remove.
 	 * @param {Number} [howMany=1] Number of nodes to remove.
 	 * @returns {Array.<module:engine/view/node~Node>} The array of removed nodes.
 	 */
-	_removeChildren( index, howMany = 1 ) {
+	public _removeChildren( index: number, howMany: number = 1 ): Node[] {
 		this._fireChange( 'children', this );
 
 		for ( let i = index; i < index + howMany; i++ ) {
@@ -216,7 +265,7 @@ export default class DocumentFragment {
 	 * @param {module:engine/view/node~Node} node Changed node.
 	 * @fires module:engine/view/node~Node#change
 	 */
-	_fireChange( type, node ) {
+	public _fireChange( type: ChangeType, node: Node | DocumentFragment ): void {
 		this.fire( 'change:' + type, node );
 	}
 
@@ -243,11 +292,15 @@ export default class DocumentFragment {
 
 mix( DocumentFragment, EmitterMixin );
 
+interface DocumentFragment extends Emitter {}
+
+export default DocumentFragment;
+
 // Converts strings to Text and non-iterables to arrays.
 //
 // @param {String|module:engine/view/item~Item|Iterable.<String|module:engine/view/item~Item>}
 // @returns {Iterable.<module:engine/view/node~Node>}
-function normalize( document, nodes ) {
+function normalize( document: Document, nodes: Item | Iterable<Item> ): Node[] {
 	// Separate condition because string is iterable.
 	if ( typeof nodes == 'string' ) {
 		return [ new Text( document, nodes ) ];

@@ -9,8 +9,23 @@
 
 import Element from './element';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
-import Node from './node';
+import type Node from './node';
 import { keyCodes } from '@ckeditor/ckeditor5-utils/src/keyboard';
+import type Document from './document';
+import type DocumentFragment from './documentfragment';
+import type Text from './text';
+import type AttributeElement from './attributeelement';
+import type ContainerElement from './containerelement';
+import type EditableElement from './editableelement';
+import type RootEditableElement from './rooteditableelement';
+import type View from './view';
+import type DomConverter from './domconverter';
+import type BubblingEventInfo from './observer/bubblingeventinfo';
+import type RawElement from './rawelement';
+import type EmptyElement from './emptyelement';
+
+type DomDocument = globalThis.Document;
+type DomElement = globalThis.Element;
 
 /**
  * UI element class. It should be used to represent editing UI which needs to be injected into the editing view
@@ -33,6 +48,8 @@ import { keyCodes } from '@ckeditor/ckeditor5-utils/src/keyboard';
  * @extends module:engine/view/element~Element
  */
 export default class UIElement extends Element {
+	public readonly getFillerOffset: () => null;
+
 	/**
 	 * Creates new instance of UIElement.
 	 *
@@ -47,7 +64,12 @@ export default class UIElement extends Element {
 	 * @param {module:engine/view/node~Node|Iterable.<module:engine/view/node~Node>} [children]
 	 * A list of nodes to be inserted into created element.
 	 */
-	constructor( document, name, attributes, children ) {
+	constructor(
+		document: Document,
+		name: string,
+		attributes?: Record<string, string> | Iterable<[ string, string ]>,
+		children?: Node | Iterable<Node>
+	) {
 		super( document, name, attributes, children );
 
 		/**
@@ -58,6 +80,39 @@ export default class UIElement extends Element {
 		 */
 		this.getFillerOffset = getFillerOffset;
 	}
+
+	public override is( type: 'node' | 'view:node' ):
+		this is Node | Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement;
+
+	public override is( type: 'element' | 'view:element' ): this is Element;
+	public override is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
+	public override is( type: 'containerElement' | 'view:containerElement' ): this is ContainerElement;
+	public override is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement;
+	public override is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
+	public override is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
+	public override is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
+	public override is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
+	public override is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
+	public override is( type: '$text' | 'view:$text' ): this is Text;
+
+	public override is<N extends string>( type: 'element' | 'view:element', name: N ):
+		this is (
+			Element | AttributeElement | ContainerElement | EditableElement | RawElement | RootEditableElement | UIElement
+		) & { name: N };
+	public override is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
+		this is ( AttributeElement ) & { name: N };
+	public override is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
+		this is ( ContainerElement ) & { name: N };
+	public override is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
+		this is ( EditableElement ) & { name: N };
+	public override is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
+		this is ( EmptyElement ) & { name: N };
+	public override is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
+		this is ( RawElement ) & { name: N };
+	public override is<N extends string>( type: 'rootElement' | 'view:rootElement', name: N ):
+		this is ( RootEditableElement ) & { name: N };
+	public override is<N extends string>( type: 'uiElement' | 'view:uiElement', name: N ):
+		this is ( UIElement ) & { name: N };
 
 	/**
 	 * Checks whether this object is of the given.
@@ -85,7 +140,7 @@ export default class UIElement extends Element {
 	 * @param {String} [name] Element name.
 	 * @returns {Boolean}
 	 */
-	is( type, name = null ) {
+	public override is( type: string, name?: string ): boolean {
 		if ( !name ) {
 			return type === 'uiElement' || type === 'view:uiElement' ||
 				// From super.is(). This is highly utilised method and cannot call super. See ckeditor/ckeditor5#6529.
@@ -106,15 +161,13 @@ export default class UIElement extends Element {
 	 *
 	 * @protected
 	 */
-	_insertChild( index, nodes ) {
-		if ( nodes && ( nodes instanceof Node || Array.from( nodes ).length > 0 ) ) {
-			/**
-			 * Cannot add children to {@link module:engine/view/uielement~UIElement}.
-			 *
-			 * @error view-uielement-cannot-add
-			 */
-			throw new CKEditorError( 'view-uielement-cannot-add', this );
-		}
+	public override _insertChild( index: number, items: any ): never {
+		/**
+		 * Cannot add children to {@link module:engine/view/uielement~UIElement}.
+		 *
+		 * @error view-uielement-cannot-add
+		 */
+		throw new CKEditorError( 'view-uielement-cannot-add', [ this, items ] );
 	}
 
 	/**
@@ -139,7 +192,7 @@ export default class UIElement extends Element {
 	 * @param {module:engine/view/domconverter~DomConverter} domConverter Instance of the DomConverter used to optimize the output.
 	 * @returns {HTMLElement}
 	 */
-	render( domDocument ) {
+	public render( domDocument: DomDocument ): DomElement {
 		// Provide basic, default output.
 		return this.toDomElement( domDocument );
 	}
@@ -151,11 +204,11 @@ export default class UIElement extends Element {
 	 * @param {Document} domDocument
 	 * @returns {HTMLElement}
 	 */
-	toDomElement( domDocument ) {
+	public toDomElement( domDocument: DomDocument ): DomElement {
 		const domElement = domDocument.createElement( this.name );
 
 		for ( const key of this.getAttributeKeys() ) {
-			domElement.setAttribute( key, this.getAttribute( key ) );
+			domElement.setAttribute( key, this.getAttribute( key )! );
 		}
 
 		return domElement;
@@ -171,8 +224,9 @@ export default class UIElement extends Element {
  *
  * @param {module:engine/view/view~View} view View controller to which the quirks handling will be injected.
  */
-export function injectUiElementHandling( view ) {
-	view.document.on( 'arrowKey', ( evt, data ) => jumpOverUiElement( evt, data, view.domConverter ), { priority: 'low' } );
+export function injectUiElementHandling( view: View ): void {
+	view.document.on( 'arrowKey', ( evt: BubblingEventInfo, data: any ) =>
+		jumpOverUiElement( evt, data, view.domConverter ), { priority: 'low' } );
 }
 
 // Returns `null` because block filler is not needed for UIElements.
@@ -185,7 +239,7 @@ function getFillerOffset() {
 // Selection cannot be placed in a `UIElement`. Whenever it is placed there, it is moved before it. This
 // causes a situation when it is impossible to jump over `UIElement` using right arrow key, because the selection
 // ends up in ui element (in DOM) and is moved back to the left. This handler fixes this situation.
-function jumpOverUiElement( evt, data, domConverter ) {
+function jumpOverUiElement( evt: BubblingEventInfo, data: any, domConverter: DomConverter ) {
 	if ( data.keyCode == keyCodes.arrowright ) {
 		const domSelection = data.domTarget.ownerDocument.defaultView.getSelection();
 		const domSelectionCollapsed = domSelection.rangeCount == 1 && domSelection.getRangeAt( 0 ).collapsed;
