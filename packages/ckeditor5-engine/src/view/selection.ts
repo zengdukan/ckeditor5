@@ -11,11 +11,24 @@ import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 import Range from './range';
 import Position from './position';
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
-import EmitterMixin from '@ckeditor/ckeditor5-utils/src/emittermixin';
+import { default as EmitterMixin, type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
 import Node from './node';
 import count from '@ckeditor/ckeditor5-utils/src/count';
 import isIterable from '@ckeditor/ckeditor5-utils/src/isiterable';
 import DocumentSelection from './documentselection';
+
+import type AttributeElement from './attributeelement';
+import type ContainerElement from './containerelement';
+import type DocumentFragment from './documentfragment';
+import type EditableElement from './editableelement';
+import type Element from './element';
+import type EmptyElement from './emptyelement';
+import type Item from './item';
+import type RawElement from './rawelement';
+import type RootEditableElement from './rooteditableelement';
+import type Text from './text';
+import type TextProxy from './textproxy';
+import type UIElement from './uielement';
 
 /**
  * Class representing an arbirtary selection in the view.
@@ -29,7 +42,13 @@ import DocumentSelection from './documentselection';
  * A selection can consist of {@link module:engine/view/range~Range ranges} that can be set by using
  * the {@link module:engine/view/selection~Selection#setTo `Selection#setTo()`} method.
  */
-export default class Selection {
+class Selection {
+	/* @internal */
+	public _ranges: Range[];
+	private _lastRangeBackward: boolean;
+	private _isFake: boolean;
+	private _fakeSelectionLabel: string;
+
 	/**
 	 * Creates new selection instance.
 	 *
@@ -94,7 +113,15 @@ export default class Selection {
 	 * @param {Boolean} [options.fake] Sets this selection instance to be marked as `fake`.
 	 * @param {String} [options.label] Label for the fake selection.
 	 */
-	constructor( selectable = null, placeOrOffset, options ) {
+	constructor(
+		selectable?: Selectable,
+		placeOrOffset?: number | 'before' | 'end' | 'after' | 'on' | 'in',
+		options?: {
+			backward?: boolean;
+			fake?: boolean;
+			label?: string;
+		}
+	) {
 		/**
 		 * Stores all ranges that are selected.
 		 *
@@ -136,7 +163,7 @@ export default class Selection {
 	 * @see #setTo
 	 * @type {Boolean}
 	 */
-	get isFake() {
+	public get isFake(): boolean {
 		return this._isFake;
 	}
 
@@ -146,7 +173,7 @@ export default class Selection {
 	 * @see #setTo
 	 * @type {String}
 	 */
-	get fakeSelectionLabel() {
+	public get fakeSelectionLabel(): string {
 		return this._fakeSelectionLabel;
 	}
 
@@ -159,7 +186,7 @@ export default class Selection {
 	 * @see #focus
 	 * @type {module:engine/view/position~Position}
 	 */
-	get anchor() {
+	public get anchor(): Position | null {
 		if ( !this._ranges.length ) {
 			return null;
 		}
@@ -175,7 +202,7 @@ export default class Selection {
 	 * @see #anchor
 	 * @type {module:engine/view/position~Position}
 	 */
-	get focus() {
+	public get focus(): Position | null {
 		if ( !this._ranges.length ) {
 			return null;
 		}
@@ -191,7 +218,7 @@ export default class Selection {
 	 *
 	 * @type {Boolean}
 	 */
-	get isCollapsed() {
+	public get isCollapsed(): boolean {
 		return this.rangeCount === 1 && this._ranges[ 0 ].isCollapsed;
 	}
 
@@ -200,7 +227,7 @@ export default class Selection {
 	 *
 	 * @type {Number}
 	 */
-	get rangeCount() {
+	public get rangeCount(): number {
 		return this._ranges.length;
 	}
 
@@ -209,7 +236,7 @@ export default class Selection {
 	 *
 	 * @type {Boolean}
 	 */
-	get isBackward() {
+	public get isBackward(): boolean {
 		return !this.isCollapsed && this._lastRangeBackward;
 	}
 
@@ -219,7 +246,7 @@ export default class Selection {
 	 *
 	 * @type {module:engine/view/editableelement~EditableElement|null}
 	 */
-	get editableElement() {
+	public get editableElement(): Position[ 'editableElement' ] {
 		if ( this.anchor ) {
 			return this.anchor.editableElement;
 		}
@@ -232,7 +259,7 @@ export default class Selection {
 	 *
 	 * @returns {Iterable.<module:engine/view/range~Range>}
 	 */
-	* getRanges() {
+	public* getRanges(): IterableIterator<Range> {
 		for ( const range of this._ranges ) {
 			yield range.clone();
 		}
@@ -246,7 +273,7 @@ export default class Selection {
 	 *
 	 * @returns {module:engine/view/range~Range|null}
 	 */
-	getFirstRange() {
+	public getFirstRange(): Range | null {
 		let first = null;
 
 		for ( const range of this._ranges ) {
@@ -265,7 +292,7 @@ export default class Selection {
 	 *
 	 * @returns {module:engine/view/range~Range|null}
 	 */
-	getLastRange() {
+	public getLastRange(): Range | null {
 		let last = null;
 
 		for ( const range of this._ranges ) {
@@ -284,7 +311,7 @@ export default class Selection {
 	 *
 	 * @returns {module:engine/view/position~Position|null}
 	 */
-	getFirstPosition() {
+	public getFirstPosition(): Position | null {
 		const firstRange = this.getFirstRange();
 
 		return firstRange ? firstRange.start.clone() : null;
@@ -297,7 +324,7 @@ export default class Selection {
 	 *
 	 * @returns {module:engine/view/position~Position|null}
 	 */
-	getLastPosition() {
+	public getLastPosition(): Position | null {
 		const lastRange = this.getLastRange();
 
 		return lastRange ? lastRange.end.clone() : null;
@@ -311,7 +338,7 @@ export default class Selection {
 	 * Selection to compare with.
 	 * @returns {Boolean} `true` if selections are equal, `false` otherwise.
 	 */
-	isEqual( otherSelection ) {
+	public isEqual( otherSelection: Selection | DocumentSelection ): boolean {
 		if ( this.isFake != otherSelection.isFake ) {
 			return false;
 		}
@@ -326,7 +353,7 @@ export default class Selection {
 			return true;
 		}
 
-		if ( !this.anchor.isEqual( otherSelection.anchor ) || !this.focus.isEqual( otherSelection.focus ) ) {
+		if ( !this.anchor!.isEqual( otherSelection.anchor! ) || !this.focus!.isEqual( otherSelection.focus! ) ) {
 			return false;
 		}
 
@@ -357,7 +384,7 @@ export default class Selection {
 	 * Selection to compare with.
 	 * @returns {Boolean} `true` if selections are similar, `false` otherwise.
 	 */
-	isSimilar( otherSelection ) {
+	public isSimilar( otherSelection: Selection | DocumentSelection ): boolean {
 		if ( this.isBackward != otherSelection.isBackward ) {
 			return false;
 		}
@@ -407,12 +434,12 @@ export default class Selection {
 	 *
 	 * @returns {module:engine/view/element~Element|null}
 	 */
-	getSelectedElement() {
+	public getSelectedElement(): Element | null {
 		if ( this.rangeCount !== 1 ) {
 			return null;
 		}
 
-		return this.getFirstRange().getContainedElement();
+		return this.getFirstRange()!.getContainedElement();
 	}
 
 	/**
@@ -476,19 +503,35 @@ export default class Selection {
 	 * @param {Boolean} [options.fake] Sets this selection instance to be marked as `fake`.
 	 * @param {String} [options.label] Label for the fake selection.
 	 */
-	setTo( selectable, placeOrOffset, options ) {
+	public setTo(
+		...args: [
+			selectable?: Selectable,
+			placeOrOffset?: number | 'before' | 'end' | 'after' | 'on' | 'in',
+			options?: ConstructorParameters<typeof Selection>[ 2 ]
+		] | [
+			selectable?: Selectable,
+			options?: ConstructorParameters<typeof Selection>[ 2 ]
+		]
+	): void {
+		let [ selectable, placeOrOffset, options ] = args;
+
+		if ( typeof placeOrOffset == 'object' ) {
+			options = placeOrOffset;
+			placeOrOffset = undefined;
+		}
+
 		if ( selectable === null ) {
 			this._setRanges( [] );
-			this._setFakeOptions( placeOrOffset );
+			this._setFakeOptions( options );
 		} else if ( selectable instanceof Selection || selectable instanceof DocumentSelection ) {
 			this._setRanges( selectable.getRanges(), selectable.isBackward );
 			this._setFakeOptions( { fake: selectable.isFake, label: selectable.fakeSelectionLabel } );
 		} else if ( selectable instanceof Range ) {
-			this._setRanges( [ selectable ], placeOrOffset && placeOrOffset.backward );
-			this._setFakeOptions( placeOrOffset );
+			this._setRanges( [ selectable ], options && options.backward );
+			this._setFakeOptions( options );
 		} else if ( selectable instanceof Position ) {
 			this._setRanges( [ new Range( selectable ) ] );
-			this._setFakeOptions( placeOrOffset );
+			this._setFakeOptions( options );
 		} else if ( selectable instanceof Node ) {
 			const backward = !!options && !!options.backward;
 			let range;
@@ -501,7 +544,7 @@ export default class Selection {
 				 */
 				throw new CKEditorError( 'view-selection-setto-required-second-parameter', this );
 			} else if ( placeOrOffset == 'in' ) {
-				range = Range._createIn( selectable );
+				range = Range._createIn( selectable as Element );
 			} else if ( placeOrOffset == 'on' ) {
 				range = Range._createOn( selectable );
 			} else {
@@ -513,8 +556,8 @@ export default class Selection {
 		} else if ( isIterable( selectable ) ) {
 			// We assume that the selectable is an iterable of ranges.
 			// Array.from() is used to prevent setting ranges to the old iterable
-			this._setRanges( selectable, placeOrOffset && placeOrOffset.backward );
-			this._setFakeOptions( placeOrOffset );
+			this._setRanges( selectable, options && options.backward );
+			this._setFakeOptions( options );
 		} else {
 			/**
 			 * Cannot set selection to given place.
@@ -538,7 +581,7 @@ export default class Selection {
 	 * @param {Number|'end'|'before'|'after'} [offset] Offset or one of the flags. Used only when
 	 * first parameter is a {@link module:engine/view/item~Item view item}.
 	 */
-	setFocus( itemOrPosition, offset ) {
+	public setFocus( itemOrPosition: Item | Position, offset: number | 'before' | 'end' | 'after' ): void {
 		if ( this.anchor === null ) {
 			/**
 			 * Cannot set selection focus if there are no ranges in selection.
@@ -550,7 +593,7 @@ export default class Selection {
 
 		const newFocus = Position._createAt( itemOrPosition, offset );
 
-		if ( newFocus.compareWith( this.focus ) == 'same' ) {
+		if ( newFocus.compareWith( this.focus! ) == 'same' ) {
 			return;
 		}
 
@@ -567,6 +610,46 @@ export default class Selection {
 		this.fire( 'change' );
 	}
 
+	public is( type: 'node' | 'view:node' ):
+		this is
+			Node | Element | AttributeElement | ContainerElement | EditableElement |
+			EmptyElement | RawElement | RootEditableElement | UIElement;
+
+	public is( type: 'element' | 'view:element' ): this is Element;
+	public is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
+	public is( type: 'containerElement' | 'view:containerElement' ): this is ContainerElement;
+	public is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement;
+	public is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
+	public is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
+	public is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
+	public is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
+	public is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
+	public is( type: '$text' | 'view:$text' ): this is Text;
+	public is( type: '$textProxy' | 'view:$textProxy' ): this is TextProxy;
+	public is( type: 'position' | 'view:position' ): this is Position;
+	public is( type: 'range' | 'view:range' ): this is Range;
+	public is( type: 'selection' | 'view:selection' ): this is Selection;
+	public is( type: 'documentSelection' | 'view:documentSelection' ): this is DocumentSelection;
+
+	public is<N extends string>( type: 'element' | 'view:element', name: N ):
+		this is (
+			Element | AttributeElement | ContainerElement | EditableElement | EmptyElement | RawElement | RootEditableElement | UIElement
+		) & { name: N };
+	public is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
+		this is ( AttributeElement ) & { name: N };
+	public is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
+		this is ( ContainerElement ) & { name: N };
+	public is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
+		this is ( EditableElement ) & { name: N };
+	public is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
+		this is ( EmptyElement ) & { name: N };
+	public is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
+		this is ( RawElement ) & { name: N };
+	public is<N extends string>( type: 'rootElement' | 'view:rootElement', name: N ):
+		this is ( RootEditableElement ) & { name: N };
+	public is<N extends string>( type: 'uiElement' | 'view:uiElement', name: N ):
+		this is ( UIElement ) & { name: N };
+
 	/**
 	 * Checks whether this object is of the given type.
 	 *
@@ -582,7 +665,7 @@ export default class Selection {
 	 * @param {String} type
 	 * @returns {Boolean}
 	 */
-	is( type ) {
+	public is( type: string ): boolean {
 		return type === 'selection' || type === 'view:selection';
 	}
 
@@ -596,7 +679,7 @@ export default class Selection {
 	 * @param {Boolean} [isLastBackward=false] Flag describing if last added range was selected forward - from start to end
 	 * (`false`) or backward - from end to start (`true`). Defaults to `false`.
 	 */
-	_setRanges( newRanges, isLastBackward = false ) {
+	private _setRanges( newRanges: Iterable<Range>, isLastBackward: boolean = false ) {
 		// New ranges should be copied to prevent removing them by setting them to `[]` first.
 		// Only applies to situations when selection is set to the same selection or same selection's ranges.
 		newRanges = Array.from( newRanges );
@@ -623,7 +706,7 @@ export default class Selection {
 	 * @param {Boolean} [options.fake] If set to true selection will be marked as `fake`.
 	 * @param {String} [options.label=''] Fake selection label.
 	 */
-	_setFakeOptions( options = {} ) {
+	private _setFakeOptions( options: ConstructorParameters<typeof Selection>[ 2 ] = {} ) {
 		this._isFake = !!options.fake;
 		this._fakeSelectionLabel = options.fake ? options.label || '' : '';
 	}
@@ -645,7 +728,7 @@ export default class Selection {
 	 * @param {module:engine/view/range~Range} range
 	 * @param {Boolean} [isBackward]
 	 */
-	_addRange( range, isBackward = false ) {
+	private _addRange( range: Range, isBackward: boolean = false ): void {
 		if ( !( range instanceof Range ) ) {
 			/**
 			 * Selection range set to an object that is not an instance of {@link module:engine/view/range~Range}.
@@ -671,7 +754,7 @@ export default class Selection {
 	 * @private
 	 * @param {module:engine/view/range~Range} range
 	 */
-	_pushRange( range ) {
+	private _pushRange( range: Range ): void {
 		for ( const storedRange of this._ranges ) {
 			if ( range.isIntersecting( storedRange ) ) {
 				/**
@@ -701,6 +784,10 @@ export default class Selection {
 
 mix( Selection, EmitterMixin );
 
+interface Selection extends Emitter {}
+
+export default Selection;
+
 /**
  * An entity that is used to set selection.
  *
@@ -716,3 +803,4 @@ mix( Selection, EmitterMixin );
  *    null
  * } module:engine/view/selection~Selectable
  */
+export type Selectable = Selection | DocumentSelection | Position | Iterable<Range> | Range | Item | null;

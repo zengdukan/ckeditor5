@@ -16,6 +16,7 @@ import type { default as Document, ChangeType } from './document';
 
 import type AttributeElement from './attributeelement';
 import type ContainerElement from './containerelement';
+import type DocumentSelection from './documentselection';
 import type EditableElement from './editableelement';
 import type Element from './element';
 import type EmptyElement from './emptyelement';
@@ -25,6 +26,7 @@ import type Position from './position';
 import type Range from './range';
 import type RawElement from './rawelement';
 import type RootEditableElement from './rooteditableelement';
+import type Selection from './selection';
 import type UIElement from './uielement';
 
 /**
@@ -137,6 +139,8 @@ class DocumentFragment {
 	public is( type: '$textProxy' | 'view:$textProxy' ): this is TextProxy;
 	public is( type: 'position' | 'view:position' ): this is Position;
 	public is( type: 'range' | 'view:range' ): this is Range;
+	public is( type: 'selection' | 'view:selection' ): this is Selection;
+	public is( type: 'documentSelection' | 'view:documentSelection' ): this is DocumentSelection;
 
 	public is<N extends string>( type: 'element' | 'view:element', name: N ):
 		this is (

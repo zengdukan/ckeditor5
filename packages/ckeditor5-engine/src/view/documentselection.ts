@@ -9,7 +9,23 @@
 
 import Selection from './selection';
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
-import EmitterMixin from '@ckeditor/ckeditor5-utils/src/emittermixin';
+import { default as EmitterMixin, type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
+
+import type AttributeElement from './attributeelement';
+import type ContainerElement from './containerelement';
+import type DocumentFragment from './documentfragment';
+import type EditableElement from './editableelement';
+import type Element from './element';
+import type EmptyElement from './emptyelement';
+import type Item from './item';
+import type Node from './node';
+import type Position from './position';
+import type Range from './range';
+import type RawElement from './rawelement';
+import type RootEditableElement from './rooteditableelement';
+import type Text from './text';
+import type TextProxy from './textproxy';
+import type UIElement from './uielement';
 
 /**
  * Class representing the document selection in the view.
@@ -21,7 +37,9 @@ import EmitterMixin from '@ckeditor/ckeditor5-utils/src/emittermixin';
  * the {@link module:engine/view/view~View#change `View#change()`} block
  * (so via {@link module:engine/view/downcastwriter~DowncastWriter#setSelection `DowncastWriter#setSelection()`}).
  */
-export default class DocumentSelection {
+class DocumentSelection {
+	private readonly _selection: Selection;
+
 	/**
 	 * Creates new DocumentSelection instance.
 	 *
@@ -78,7 +96,9 @@ export default class DocumentSelection {
 	 * @param {Boolean} [options.fake] Sets this selection instance to be marked as `fake`.
 	 * @param {String} [options.label] Label for the fake selection.
 	 */
-	constructor( selectable = null, placeOrOffset, options ) {
+	constructor( ...args: ConstructorParameters<typeof Selection> ) {
+		const [ selectable, placeOrOffset, options ] = args;
+
 		/**
 		 * Selection is used internally (`DocumentSelection` is a proxy to that selection).
 		 *
@@ -100,7 +120,7 @@ export default class DocumentSelection {
 	 * @see #_setTo
 	 * @type {Boolean}
 	 */
-	get isFake() {
+	public get isFake(): boolean {
 		return this._selection.isFake;
 	}
 
@@ -110,7 +130,7 @@ export default class DocumentSelection {
 	 * @see #_setTo
 	 * @type {String}
 	 */
-	get fakeSelectionLabel() {
+	public get fakeSelectionLabel(): string {
 		return this._selection.fakeSelectionLabel;
 	}
 
@@ -123,7 +143,7 @@ export default class DocumentSelection {
 	 * @see #focus
 	 * @type {module:engine/view/position~Position}
 	 */
-	get anchor() {
+	public get anchor(): Position | null {
 		return this._selection.anchor;
 	}
 
@@ -133,7 +153,7 @@ export default class DocumentSelection {
 	 * @see #anchor
 	 * @type {module:engine/view/position~Position}
 	 */
-	get focus() {
+	public get focus(): Position | null {
 		return this._selection.focus;
 	}
 
@@ -143,7 +163,7 @@ export default class DocumentSelection {
 	 *
 	 * @type {Boolean}
 	 */
-	get isCollapsed() {
+	public get isCollapsed(): boolean {
 		return this._selection.isCollapsed;
 	}
 
@@ -152,7 +172,7 @@ export default class DocumentSelection {
 	 *
 	 * @type {Number}
 	 */
-	get rangeCount() {
+	public get rangeCount(): number {
 		return this._selection.rangeCount;
 	}
 
@@ -161,7 +181,7 @@ export default class DocumentSelection {
 	 *
 	 * @type {Boolean}
 	 */
-	get isBackward() {
+	public get isBackward(): boolean {
 		return this._selection.isBackward;
 	}
 
@@ -171,7 +191,7 @@ export default class DocumentSelection {
 	 *
 	 * @type {module:engine/view/editableelement~EditableElement|null}
 	 */
-	get editableElement() {
+	public get editableElement(): EditableElement | null {
 		return this._selection.editableElement;
 	}
 
@@ -180,7 +200,7 @@ export default class DocumentSelection {
 	 *
 	 * @protected
 	 */
-	get _ranges() {
+	public get _ranges(): Range[] {
 		return this._selection._ranges;
 	}
 
@@ -189,7 +209,7 @@ export default class DocumentSelection {
 	 *
 	 * @returns {Iterable.<module:engine/view/range~Range>}
 	 */
-	* getRanges() {
+	public* getRanges(): IterableIterator<Range> {
 		yield* this._selection.getRanges();
 	}
 
@@ -201,7 +221,7 @@ export default class DocumentSelection {
 	 *
 	 * @returns {module:engine/view/range~Range|null}
 	 */
-	getFirstRange() {
+	public getFirstRange(): Range | null {
 		return this._selection.getFirstRange();
 	}
 
@@ -212,7 +232,7 @@ export default class DocumentSelection {
 	 *
 	 * @returns {module:engine/view/range~Range|null}
 	 */
-	getLastRange() {
+	public getLastRange(): Range | null {
 		return this._selection.getLastRange();
 	}
 
@@ -223,7 +243,7 @@ export default class DocumentSelection {
 	 *
 	 * @returns {module:engine/view/position~Position|null}
 	 */
-	getFirstPosition() {
+	public getFirstPosition(): Position | null {
 		return this._selection.getFirstPosition();
 	}
 
@@ -234,7 +254,7 @@ export default class DocumentSelection {
 	 *
 	 * @returns {module:engine/view/position~Position|null}
 	 */
-	getLastPosition() {
+	public getLastPosition(): Position | null {
 		return this._selection.getLastPosition();
 	}
 
@@ -245,7 +265,7 @@ export default class DocumentSelection {
 	 *
 	 * @returns {module:engine/view/element~Element|null}
 	 */
-	getSelectedElement() {
+	public getSelectedElement(): Element | null {
 		return this._selection.getSelectedElement();
 	}
 
@@ -257,7 +277,7 @@ export default class DocumentSelection {
 	 * Selection to compare with.
 	 * @returns {Boolean} `true` if selections are equal, `false` otherwise.
 	 */
-	isEqual( otherSelection ) {
+	public isEqual( otherSelection: Selection | DocumentSelection ): boolean {
 		return this._selection.isEqual( otherSelection );
 	}
 
@@ -270,9 +290,49 @@ export default class DocumentSelection {
 	 * Selection to compare with.
 	 * @returns {Boolean} `true` if selections are similar, `false` otherwise.
 	 */
-	isSimilar( otherSelection ) {
+	public isSimilar( otherSelection: Selection | DocumentSelection ): boolean {
 		return this._selection.isSimilar( otherSelection );
 	}
+
+	public is( type: 'node' | 'view:node' ):
+		this is
+			Node | Element | AttributeElement | ContainerElement | EditableElement |
+			EmptyElement | RawElement | RootEditableElement | UIElement;
+
+	public is( type: 'element' | 'view:element' ): this is Element;
+	public is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
+	public is( type: 'containerElement' | 'view:containerElement' ): this is ContainerElement;
+	public is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement;
+	public is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
+	public is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
+	public is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
+	public is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
+	public is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
+	public is( type: '$text' | 'view:$text' ): this is Text;
+	public is( type: '$textProxy' | 'view:$textProxy' ): this is TextProxy;
+	public is( type: 'position' | 'view:position' ): this is Position;
+	public is( type: 'range' | 'view:range' ): this is Range;
+	public is( type: 'selection' | 'view:selection' ): this is Selection;
+	public is( type: 'documentSelection' | 'view:documentSelection' ): this is DocumentSelection;
+
+	public is<N extends string>( type: 'element' | 'view:element', name: N ):
+		this is (
+			Element | AttributeElement | ContainerElement | EditableElement | EmptyElement | RawElement | RootEditableElement | UIElement
+		) & { name: N };
+	public is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
+		this is ( AttributeElement ) & { name: N };
+	public is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
+		this is ( ContainerElement ) & { name: N };
+	public is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
+		this is ( EditableElement ) & { name: N };
+	public is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
+		this is ( EmptyElement ) & { name: N };
+	public is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
+		this is ( RawElement ) & { name: N };
+	public is<N extends string>( type: 'rootElement' | 'view:rootElement', name: N ):
+		this is ( RootEditableElement ) & { name: N };
+	public is<N extends string>( type: 'uiElement' | 'view:uiElement', name: N ):
+		this is ( UIElement ) & { name: N };
 
 	/**
 	 * Checks whether this object is of the given type.
@@ -291,7 +351,7 @@ export default class DocumentSelection {
 	 * @param {String} type
 	 * @returns {Boolean}
 	 */
-	is( type ) {
+	public is( type: string ): boolean {
 		return type === 'selection' ||
 			type == 'documentSelection' ||
 			type == 'view:selection' ||
@@ -357,8 +417,8 @@ export default class DocumentSelection {
 	 * @param {Boolean} [options.fake] Sets this selection instance to be marked as `fake`.
 	 * @param {String} [options.label] Label for the fake selection.
 	 */
-	_setTo( selectable, placeOrOffset, options ) {
-		this._selection.setTo( selectable, placeOrOffset, options );
+	public _setTo( ...args: Parameters< Selection[ 'setTo' ]> ): void {
+		this._selection.setTo( ...args );
 	}
 
 	/**
@@ -373,7 +433,7 @@ export default class DocumentSelection {
 	 * @param {Number|'end'|'before'|'after'} [offset] Offset or one of the flags. Used only when
 	 * first parameter is a {@link module:engine/view/item~Item view item}.
 	 */
-	_setFocus( itemOrPosition, offset ) {
+	public _setFocus( itemOrPosition: Item | Position, offset: number | 'before' | 'end' | 'after' ): void {
 		this._selection.setFocus( itemOrPosition, offset );
 	}
 
@@ -385,3 +445,7 @@ export default class DocumentSelection {
 }
 
 mix( DocumentSelection, EmitterMixin );
+
+interface DocumentSelection extends Emitter {}
+
+export default DocumentSelection;

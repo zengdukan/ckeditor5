@@ -20,12 +20,15 @@ import type AttributeElement from './attributeelement';
 import type ContainerElement from './containerelement';
 import type Document from './document';
 import type DocumentFragment from './documentfragment';
+import type DocumentSelection from './documentselection';
 import type EditableElement from './editableelement';
 import type EmptyElement from './emptyelement';
 import type Item from './item';
 import type Position from './position';
+import type Range from './range';
 import type RawElement from './rawelement';
 import type RootEditableElement from './rooteditableelement';
+import type Selection from './selection';
 import type UIElement from './uielement';
 
 // @if CK_DEBUG_ENGINE // const { convertMapToTags } = require( '../dev-utils/utils' );
@@ -209,6 +212,8 @@ export default class Element extends Node {
 	public override is( type: '$textProxy' | 'view:$textProxy' ): this is TextProxy;
 	public override is( type: 'position' | 'view:position' ): this is Position;
 	public override is( type: 'range' | 'view:range' ): this is Range;
+	public override is( type: 'selection' | 'view:selection' ): this is Selection;
+	public override is( type: 'documentSelection' | 'view:documentSelection' ): this is DocumentSelection;
 
 	public override is<N extends string>( type: 'element' | 'view:element', name: N ):
 		this is (

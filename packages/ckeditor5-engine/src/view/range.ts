@@ -12,6 +12,7 @@ import Position from './position';
 import type AttributeElement from './attributeelement';
 import type ContainerElement from './containerelement';
 import type DocumentFragment from './documentfragment';
+import type DocumentSelection from './documentselection';
 import type EditableElement from './editableelement';
 import type Element from './element';
 import type EmptyElement from './emptyelement';
@@ -19,6 +20,7 @@ import type Item from './item';
 import type Node from './node';
 import type RawElement from './rawelement';
 import type RootEditableElement from './rooteditableelement';
+import type Selection from './selection';
 import type Text from './text';
 import type TextProxy from './textproxy';
 import type UIElement from './uielement';
@@ -468,6 +470,8 @@ export default class Range {
 	public is( type: '$textProxy' | 'view:$textProxy' ): this is TextProxy;
 	public is( type: 'position' | 'view:position' ): this is Position;
 	public is( type: 'range' | 'view:range' ): this is Range;
+	public is( type: 'selection' | 'view:selection' ): this is Selection;
+	public is( type: 'documentSelection' | 'view:documentSelection' ): this is DocumentSelection;
 
 	public is<N extends string>( type: 'element' | 'view:element', name: N ):
 		this is (
