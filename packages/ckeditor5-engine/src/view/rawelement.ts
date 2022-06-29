@@ -24,6 +24,9 @@ import type Selection from './selection';
 import type Text from './text';
 import type TextProxy from './textproxy';
 import type UIElement from './uielement';
+import type DomConverter from './domconverter';
+
+type DomElement = globalThis.HTMLElement;
 
 /**
  * The raw element class.
@@ -190,6 +193,9 @@ export default class RawElement extends Element {
 	 * @param {HTMLElement} domElement The native DOM element representing the raw view element.
 	 * @param {module:engine/view/domconverter~DomConverter} domConverter Instance of the DomConverter used to optimize the output.
 	 */
+	public render(): void;
+	public render( domElement: DomElement, domConverter: DomConverter ): void;
+	public render(): void {}
 }
 
 // Returns `null` because block filler is not needed for raw elements.

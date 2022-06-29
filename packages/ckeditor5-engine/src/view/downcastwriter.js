@@ -378,7 +378,9 @@ export default class DowncastWriter {
 	createRawElement( name, attributes, renderFunction, options = {} ) {
 		const rawElement = new RawElement( this.document, name, attributes );
 
-		rawElement.render = renderFunction || ( () => {} );
+		if ( renderFunction ) {
+			rawElement.render = renderFunction;
+		}
 
 		if ( options.renderUnsafeAttributes ) {
 			rawElement._unsafeAttributesToRender.push( ...options.renderUnsafeAttributes );

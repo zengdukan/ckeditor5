@@ -27,9 +27,10 @@ import type Selection from './selection';
 import type Text from './text';
 import type TextProxy from './textproxy';
 import type View from './view';
+import type DomConverter from './domconverter';
 
 type DomDocument = globalThis.Document;
-type DomElement = globalThis.Element;
+type DomElement = globalThis.HTMLElement;
 
 /**
  * UI element class. It should be used to represent editing UI which needs to be injected into the editing view
@@ -198,9 +199,9 @@ export default class UIElement extends Element {
 	 * @param {module:engine/view/domconverter~DomConverter} domConverter Instance of the DomConverter used to optimize the output.
 	 * @returns {HTMLElement}
 	 */
-	public render( domDocument: DomDocument ): DomElement {
+	public render( ...args: [ domDocument: DomDocument, domConverter: DomConverter ] ): DomElement {
 		// Provide basic, default output.
-		return this.toDomElement( domDocument );
+		return this.toDomElement( args[ 0 ] );
 	}
 
 	/**
@@ -283,7 +284,7 @@ function jumpOverUiElement( evt: BubblingEventInfo, data: any, domConverter: Dom
 			// If anything has been skipped, fix position.
 			// This `if` could be possibly omitted but maybe it is better not to mess with DOM selection if not needed.
 			if ( jumpedOverAnyUiElement ) {
-				const newDomPosition = domConverter.viewPositionToDom( nextViewPosition );
+				const newDomPosition = domConverter.viewPositionToDom( nextViewPosition )!;
 
 				if ( domSelectionCollapsed ) {
 					// Selection was collapsed, so collapse it at further position.

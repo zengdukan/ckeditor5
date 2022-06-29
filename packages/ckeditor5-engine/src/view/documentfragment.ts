@@ -48,7 +48,7 @@ class DocumentFragment {
 	 * @param {module:engine/view/node~Node|Iterable.<module:engine/view/node~Node>} [children]
 	 * A list of nodes to be inserted into the created document fragment.
 	 */
-	constructor( document: Document, children: Node | Iterable<Node> ) {
+	constructor( document: Document, children?: Node | Iterable<Node> ) {
 		/**
 		 * The document to which this document fragment belongs.
 		 *
@@ -187,7 +187,7 @@ class DocumentFragment {
 	 * @param {module:engine/view/item~Item|Iterable.<module:engine/view/item~Item>} items Items to be inserted.
 	 * @returns {Number} Number of appended nodes.
 	 */
-	private _appendChild( items: Item | Iterable<Item> ): number {
+	public _appendChild( items: Item | Iterable<Item> ): number {
 		return this._insertChild( this.childCount, items );
 	}
 

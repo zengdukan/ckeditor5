@@ -97,8 +97,6 @@ class DocumentSelection {
 	 * @param {String} [options.label] Label for the fake selection.
 	 */
 	constructor( ...args: ConstructorParameters<typeof Selection> ) {
-		const [ selectable, placeOrOffset, options ] = args;
-
 		/**
 		 * Selection is used internally (`DocumentSelection` is a proxy to that selection).
 		 *
@@ -111,7 +109,7 @@ class DocumentSelection {
 		this._selection.delegate( 'change' ).to( this );
 
 		// Set selection data.
-		this._selection.setTo( selectable, placeOrOffset, options );
+		this._selection.setTo( ...args );
 	}
 
 	/**

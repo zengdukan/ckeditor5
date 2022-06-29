@@ -114,13 +114,22 @@ class Selection {
 	 * @param {String} [options.label] Label for the fake selection.
 	 */
 	constructor(
-		selectable?: Selectable,
-		placeOrOffset?: number | 'before' | 'end' | 'after' | 'on' | 'in',
-		options?: {
-			backward?: boolean;
-			fake?: boolean;
-			label?: string;
-		}
+		...args: [
+			selectable?: Selectable,
+			placeOrOffset?: number | 'before' | 'end' | 'after' | 'on' | 'in',
+			options?: {
+				backward?: boolean;
+				fake?: boolean;
+				label?: string;
+			}
+		] | [
+			selectable?: Selectable,
+			options?: {
+				backward?: boolean;
+				fake?: boolean;
+				label?: string;
+			}
+		]
 	) {
 		/**
 		 * Stores all ranges that are selected.
@@ -154,7 +163,7 @@ class Selection {
 		 */
 		this._fakeSelectionLabel = '';
 
-		this.setTo( selectable, placeOrOffset, options );
+		this.setTo( ...args );
 	}
 
 	/**

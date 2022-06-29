@@ -692,7 +692,7 @@ export default class Element extends Node {
 	 * @fires module:engine/view/node~Node#change
 	 * @returns {Number} Number of appended nodes.
 	 */
-	private _appendChild( items: Item | Iterable<Item> ): number {
+	public _appendChild( items: Item | Iterable<Item> ): number {
 		return this._insertChild( this.childCount, items );
 	}
 
@@ -760,7 +760,7 @@ export default class Element extends Node {
 	 * @param {String} value Attribute value.
 	 * @fires module:engine/view/node~Node#change
 	 */
-	private _setAttribute( key: string, value: string ): void {
+	public _setAttribute( key: string, value: string ): void {
 		value = String( value );
 
 		this._fireChange( 'attributes', this );
