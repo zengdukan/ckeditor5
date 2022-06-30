@@ -17,6 +17,7 @@ import BubblingEventInfo from './bubblingeventinfo';
 import type Document from '../document';
 import type Node from '../node';
 import type Range from '../range';
+import type Element from '../element';
 
 const contextsSymbol = Symbol( 'bubbling contexts' );
 
@@ -51,7 +52,7 @@ const BubblingEmitterMixin = {
 			const selectedElement = startRange ? startRange.getContainedElement() : null;
 			const isCustomContext = selectedElement ? Boolean( getCustomContext( eventContexts, selectedElement ) ) : false;
 
-			let node = selectedElement || getDeeperRangeParent( startRange );
+			let node: Node | null = selectedElement || getDeeperRangeParent( startRange );
 
 			updateEventInfo( eventInfo, 'atTarget', node );
 
@@ -84,7 +85,7 @@ const BubblingEmitterMixin = {
 					return eventInfo.return;
 				}
 
-				node = node.parent;
+				node = node.parent as Node;
 
 				updateEventInfo( eventInfo, 'bubbling', node );
 			}
@@ -145,7 +146,11 @@ export default BubblingEmitterMixin;
 // @param {module:utils/eventinfo~EventInfo} eventInfo The event info object to update.
 // @param {'none'|'capturing'|'atTarget'|'bubbling'} eventPhase The current event phase.
 // @param {module:engine/view/document~Document|module:engine/view/node~Node} currentTarget The current bubbling target.
-function updateEventInfo( eventInfo: EventInfo, eventPhase: BubblingEventInfo[ '_eventPhase' ], currentTarget: Document | Node ) {
+function updateEventInfo(
+	eventInfo: EventInfo,
+	eventPhase: BubblingEventInfo[ '_eventPhase' ],
+	currentTarget: BubblingEventInfo[ '_currentTarget' ]
+) {
 	if ( eventInfo instanceof BubblingEventInfo ) {
 		eventInfo._eventPhase = eventPhase;
 		eventInfo._currentTarget = currentTarget;
@@ -203,13 +208,13 @@ function getBubblingContexts( source: Document & { [ contextsSymbol ]?: Bubbling
 }
 
 // Returns the deeper parent element for the range.
-function getDeeperRangeParent( range: Range ) {
+function getDeeperRangeParent( range: Range ): Node | null {
 	if ( !range ) {
 		return null;
 	}
 
-	const startParent = range.start.parent;
-	const endParent = range.end.parent;
+	const startParent = range.start.parent as Element;
+	const endParent = range.end.parent as Element;
 
 	const startPath = startParent.getPath();
 	const endPath = endParent.getPath();

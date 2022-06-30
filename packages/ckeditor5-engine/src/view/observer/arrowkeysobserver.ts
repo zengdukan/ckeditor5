@@ -29,7 +29,7 @@ export default class ArrowKeysObserver extends Observer {
 
 		this.document.on( 'keydown', ( event, data ) => {
 			if ( this.isEnabled && isArrowKeyCode( data.keyCode ) ) {
-				const eventInfo = new BubblingEventInfo( this.document, 'arrowKey', this.document.selection.getFirstRange() );
+				const eventInfo = new BubblingEventInfo( this.document, 'arrowKey', this.document.selection.getFirstRange()! );
 
 				this.document.fire( eventInfo, data );
 

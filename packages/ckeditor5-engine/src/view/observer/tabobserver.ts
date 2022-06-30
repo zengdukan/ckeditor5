@@ -39,7 +39,7 @@ export default class TabObserver extends Observer {
 				return;
 			}
 
-			const event = new BubblingEventInfo( doc, 'tab', doc.selection.getFirstRange() );
+			const event = new BubblingEventInfo( doc, 'tab', doc.selection.getFirstRange()! );
 
 			doc.fire( event, data );
 
