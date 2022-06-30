@@ -199,7 +199,7 @@ class DocumentSelection {
 	 * @protected
 	 */
 	public get _ranges(): Range[] {
-		return this._selection._ranges;
+		return ( this._selection as any )._ranges;
 	}
 
 	/**

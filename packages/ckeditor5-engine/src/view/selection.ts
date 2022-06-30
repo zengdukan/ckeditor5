@@ -43,8 +43,7 @@ import type UIElement from './uielement';
  * the {@link module:engine/view/selection~Selection#setTo `Selection#setTo()`} method.
  */
 class Selection {
-	/* @internal */
-	public _ranges: Range[];
+	private _ranges: Range[];
 	private _lastRangeBackward: boolean;
 	private _isFake: boolean;
 	private _fakeSelectionLabel: string;
@@ -369,7 +368,7 @@ class Selection {
 		for ( const thisRange of this._ranges ) {
 			let found = false;
 
-			for ( const otherRange of otherSelection._ranges ) {
+			for ( const otherRange of ( otherSelection as any )._ranges ) {
 				if ( thisRange.isEqual( otherRange ) ) {
 					found = true;
 					break;
