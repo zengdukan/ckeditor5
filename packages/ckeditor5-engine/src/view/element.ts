@@ -117,7 +117,7 @@ export default class Element extends Node {
 		 */
 		this._children = [];
 
-		if ( children ) {
+		if ( children && ( children instanceof Node || Array.from( children ).length ) ) {
 			this._insertChild( 0, children );
 		}
 
