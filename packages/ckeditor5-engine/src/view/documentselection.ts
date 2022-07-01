@@ -109,7 +109,9 @@ class DocumentSelection {
 		this._selection.delegate( 'change' ).to( this );
 
 		// Set selection data.
-		this._selection.setTo( ...args );
+		if ( args.length ) {
+			this._selection.setTo( ...args );
+		}
 	}
 
 	/**

@@ -113,7 +113,7 @@ class Selection {
 	 * @param {String} [options.label] Label for the fake selection.
 	 */
 	constructor(
-		...args: [
+		...args: [] | [
 			selectable?: Selectable,
 			placeOrOffset?: number | 'before' | 'end' | 'after' | 'on' | 'in',
 			options?: {
@@ -162,7 +162,9 @@ class Selection {
 		 */
 		this._fakeSelectionLabel = '';
 
-		this.setTo( ...args );
+		if ( args.length ) {
+			this.setTo( ...args );
+		}
 	}
 
 	/**
