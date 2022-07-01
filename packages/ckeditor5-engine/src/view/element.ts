@@ -61,7 +61,8 @@ import { isPlainObject } from 'lodash-es';
  */
 export default class Element extends Node {
 	public name: string;
-	public _unsafeAttributesToRender: string[];
+
+	private _unsafeAttributesToRender: string[];
 	private readonly _attrs: Map<string, string>;
 	private readonly _children: Node[];
 	private readonly _classes: Set<string>;

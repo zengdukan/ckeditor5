@@ -152,8 +152,8 @@ function updateEventInfo(
 	currentTarget: BubblingEventInfo[ '_currentTarget' ]
 ) {
 	if ( eventInfo instanceof BubblingEventInfo ) {
-		eventInfo._eventPhase = eventPhase;
-		eventInfo._currentTarget = currentTarget;
+		( eventInfo as any )._eventPhase = eventPhase;
+		( eventInfo as any )._currentTarget = currentTarget;
 	}
 }
 

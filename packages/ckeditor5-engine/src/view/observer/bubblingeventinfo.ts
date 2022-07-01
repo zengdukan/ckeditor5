@@ -22,10 +22,10 @@ export default class BubblingEventInfo extends EventInfo {
 	public readonly startRange: Range;
 
 	/** @internal */
-	public _eventPhase: 'none' | 'capturing' | 'atTarget' | 'bubbling';
+	private _eventPhase: 'none' | 'capturing' | 'atTarget' | 'bubbling';
 
 	/** @internal */
-	public _currentTarget: Document | Node | null;
+	private _currentTarget: Document | Node | null;
 
 	/**
 	 * @param {Object} source The emitter.

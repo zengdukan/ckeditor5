@@ -228,7 +228,7 @@ export default class DowncastWriter {
 		}
 
 		if ( options.renderUnsafeAttributes ) {
-			attributeElement._unsafeAttributesToRender.push( ...options.renderUnsafeAttributes );
+			( attributeElement as any )._unsafeAttributesToRender.push( ...options.renderUnsafeAttributes );
 		}
 
 		return attributeElement;
@@ -300,7 +300,7 @@ export default class DowncastWriter {
 		const containerElement = new ContainerElement( this.document, name, attributes, children );
 
 		if ( ( options as Options ).renderUnsafeAttributes ) {
-			containerElement._unsafeAttributesToRender.push( ...( options as Options ).renderUnsafeAttributes! );
+			( containerElement as any )._unsafeAttributesToRender.push( ...( options as Options ).renderUnsafeAttributes! );
 		}
 
 		return containerElement;
@@ -332,7 +332,7 @@ export default class DowncastWriter {
 		const editableElement = new EditableElement( this.document, name, attributes );
 
 		if ( options.renderUnsafeAttributes ) {
-			editableElement._unsafeAttributesToRender.push( ...options.renderUnsafeAttributes );
+			( editableElement as any )._unsafeAttributesToRender.push( ...options.renderUnsafeAttributes );
 		}
 
 		return editableElement;
@@ -361,7 +361,7 @@ export default class DowncastWriter {
 		const emptyElement = new EmptyElement( this.document, name, attributes );
 
 		if ( options.renderUnsafeAttributes ) {
-			emptyElement._unsafeAttributesToRender.push( ...options.renderUnsafeAttributes );
+			( emptyElement as any )._unsafeAttributesToRender.push( ...options.renderUnsafeAttributes );
 		}
 
 		return emptyElement;
@@ -448,7 +448,7 @@ export default class DowncastWriter {
 		}
 
 		if ( options.renderUnsafeAttributes ) {
-			rawElement._unsafeAttributesToRender.push( ...options.renderUnsafeAttributes );
+			( rawElement as any )._unsafeAttributesToRender.push( ...options.renderUnsafeAttributes );
 		}
 
 		return rawElement;
