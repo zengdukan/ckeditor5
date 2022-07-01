@@ -206,7 +206,7 @@ class Document {
 	 * @protected
 	 * @param {module:engine/view/downcastwriter~DowncastWriter} writer
 	 */
-	private _callPostFixers( writer: DowncastWriter ): void {
+	public _callPostFixers( writer: DowncastWriter ): void {
 		let wasFixed = false;
 
 		do {

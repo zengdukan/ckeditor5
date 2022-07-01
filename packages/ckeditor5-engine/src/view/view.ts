@@ -24,12 +24,16 @@ import InputObserver from './observer/inputobserver';
 import ArrowKeysObserver from './observer/arrowkeysobserver';
 import TabObserver from './observer/tabobserver';
 
-import ObservableMixin from '@ckeditor/ckeditor5-utils/src/observablemixin';
+import { default as ObservableMixin, type Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
 import { scrollViewportToShowTarget } from '@ckeditor/ckeditor5-utils/src/dom/scroll';
 import { injectUiElementHandling } from './uielement';
 import { injectQuirksHandling } from './filler';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
+import type { StylesProcessor } from './stylesmap';
+import { type default as Observer, type ObserverSubClass } from './observer/observer';
+import type Element from './element';
+import type Item from './item';
 
 /**
  * Editor's view controller class. Its main responsibility is DOM - View management for editing purposes, to provide
@@ -63,11 +67,29 @@ import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
  *
  * @mixes module:utils/observablemixin~ObservableMixin
  */
-export default class View {
+class View {
+	public readonly document: Document;
+	public readonly domConverter: DomConverter;
+	public readonly domRoots: Map<string, HTMLElement>;
+
+	declare public isFocused: boolean;
+	declare public isSelecting: boolean;
+	declare public isRenderingInProgress: boolean;
+	declare public hasDomSelection: boolean;
+
+	private readonly _renderer: Renderer;
+	private readonly _initialDomRootAttributes: WeakMap<HTMLElement, Record<string, string>>;
+	private readonly _observers: Map<ObserverSubClass, Observer>;
+	private readonly _writer: DowncastWriter;
+	private _ongoingChange: boolean;
+	private _postFixersInProgress: boolean;
+	private _renderingDisabled: boolean;
+	private _hasChangedSinceTheLastRendering: boolean;
+
 	/**
 	 * @param {module:engine/view/stylesmap~StylesProcessor} stylesProcessor The styles processor instance.
 	 */
-	constructor( stylesProcessor ) {
+	constructor( stylesProcessor: StylesProcessor ) {
 		/**
 		 * Instance of the {@link module:engine/view/document~Document} associated with this view controller.
 		 *
@@ -117,7 +139,7 @@ export default class View {
 		 * @type {module:engine/view/renderer~Renderer}
 		 */
 		this._renderer = new Renderer( this.domConverter, this.document.selection );
-		this._renderer.bind( 'isFocused', 'isSelecting' ).to( this.document );
+		this._renderer.bind( 'isFocused', 'isSelecting' ).to( this.document, 'isFocused', 'isSelecting' );
 
 		/**
 		 * A DOM root attributes cache. It saves the initial values of DOM root attributes before the DOM element
@@ -229,13 +251,13 @@ export default class View {
 	 * @param {Element} domRoot DOM root element.
 	 * @param {String} [name='main'] Name of the root.
 	 */
-	attachDomRoot( domRoot, name = 'main' ) {
-		const viewRoot = this.document.getRoot( name );
+	public attachDomRoot( domRoot: HTMLElement, name: string = 'main' ): void {
+		const viewRoot = this.document.getRoot( name )!;
 
 		// Set view root name the same as DOM root tag name.
 		viewRoot._name = domRoot.tagName.toLowerCase();
 
-		const initialDomRootAttributes = {};
+		const initialDomRootAttributes: Record<string, string> = {};
 
 		// 1. Copy and cache the attributes to remember the state of the element before attaching.
 		//    The cached attributes will be restored in detachDomRoot() so the element goes to the
@@ -261,7 +283,7 @@ export default class View {
 		this._initialDomRootAttributes.set( domRoot, initialDomRootAttributes );
 
 		const updateContenteditableAttribute = () => {
-			this._writer.setAttribute( 'contenteditable', !viewRoot.isReadOnly, viewRoot );
+			this._writer.setAttribute( 'contenteditable', ( !viewRoot.isReadOnly ).toString(), viewRoot );
 
 			if ( viewRoot.isReadOnly ) {
 				this._writer.addClass( 'ck-read-only', viewRoot );
@@ -299,8 +321,8 @@ export default class View {
 	 *
 	 * @param {String} name Name of the root to detach.
 	 */
-	detachDomRoot( name ) {
-		const domRoot = this.domRoots.get( name );
+	public detachDomRoot( name: string ): void {
+		const domRoot = this.domRoots.get( name )!;
 
 		// Remove all root attributes so the DOM element is "bare".
 		Array.from( domRoot.attributes ).forEach( ( { name } ) => domRoot.removeAttribute( name ) );
@@ -322,7 +344,7 @@ export default class View {
 	 * @param {String} [name='main']  Name of the root.
 	 * @returns {Element} DOM root element instance.
 	 */
-	getDomRoot( name = 'main' ) {
+	public getDomRoot( name: string = 'main' ): HTMLElement | undefined {
 		return this.domRoots.get( name );
 	}
 
@@ -339,16 +361,16 @@ export default class View {
 	 * Should create an instance inheriting from {@link module:engine/view/observer/observer~Observer}.
 	 * @returns {module:engine/view/observer/observer~Observer} Added observer instance.
 	 */
-	addObserver( Observer ) {
-		let observer = this._observers.get( Observer );
+	public addObserver( ObserverConstructor: ObserverSubClass ): Observer {
+		let observer = this._observers.get( ObserverConstructor );
 
 		if ( observer ) {
 			return observer;
 		}
 
-		observer = new Observer( this );
+		observer = new ObserverConstructor( this ) as Observer;
 
-		this._observers.set( Observer, observer );
+		this._observers.set( ObserverConstructor, observer );
 
 		for ( const [ name, domElement ] of this.domRoots ) {
 			observer.observe( domElement, name );
@@ -365,14 +387,14 @@ export default class View {
 	 * @param {Function} Observer The constructor of an observer to get.
 	 * @returns {module:engine/view/observer/observer~Observer|undefined} Observer instance or undefined.
 	 */
-	getObserver( Observer ) {
-		return this._observers.get( Observer );
+	public getObserver<T extends ObserverSubClass>( ObserverConstructor: T ): InstanceType<T> | undefined {
+		return this._observers.get( ObserverConstructor ) as InstanceType<T>;
 	}
 
 	/**
 	 * Disables all added observers.
 	 */
-	disableObservers() {
+	public disableObservers(): void {
 		for ( const observer of this._observers.values() ) {
 			observer.disable();
 		}
@@ -381,7 +403,7 @@ export default class View {
 	/**
 	 * Enables all added observers.
 	 */
-	enableObservers() {
+	public enableObservers(): void {
 		for ( const observer of this._observers.values() ) {
 			observer.enable();
 		}
@@ -391,7 +413,7 @@ export default class View {
 	 * Scrolls the page viewport and {@link #domRoots} with their ancestors to reveal the
 	 * caret, if not already visible to the user.
 	 */
-	scrollToTheSelection() {
+	public scrollToTheSelection(): void {
 		const range = this.document.selection.getFirstRange();
 
 		if ( range ) {
@@ -406,7 +428,7 @@ export default class View {
 	 * It will focus DOM element representing {@link module:engine/view/editableelement~EditableElement EditableElement}
 	 * that is currently having selection inside.
 	 */
-	focus() {
+	public focus(): void {
 		if ( !this.document.isFocused ) {
 			const editable = this.document.selection.editableElement;
 
@@ -452,7 +474,7 @@ export default class View {
 	 * @param {Function} callback Callback function which may modify the view.
 	 * @returns {*} Value returned by the callback.
 	 */
-	change( callback ) {
+	public change<TReturn>( callback: ( writer: DowncastWriter ) => TReturn ): TReturn {
 		if ( this.isRenderingInProgress || this._postFixersInProgress ) {
 			/**
 			 * Thrown when there is an attempt to make changes to the view tree when it is in incorrect state. This may
@@ -495,7 +517,7 @@ export default class View {
 			}
 
 			return callbackResult;
-		} catch ( err ) {
+		} catch ( err: any ) {
 			// @if CK_DEBUG // throw err;
 			/* istanbul ignore next */
 			CKEditorError.rethrowUnexpectedError( err, this );
@@ -512,7 +534,7 @@ export default class View {
 	 * Throws {@link module:utils/ckeditorerror~CKEditorError CKEditorError} `applying-view-changes-on-rendering` when
 	 * trying to re-render when rendering to DOM has already started.
 	 */
-	forceRender() {
+	public forceRender(): void {
 		this._hasChangedSinceTheLastRendering = true;
 		this.change( () => {} );
 	}
@@ -520,7 +542,7 @@ export default class View {
 	/**
 	 * Destroys this instance. Makes sure that all observers are destroyed and listeners removed.
 	 */
-	destroy() {
+	public destroy(): void {
 		for ( const observer of this._observers.values() ) {
 			observer.destroy();
 		}
@@ -547,7 +569,7 @@ export default class View {
 	 * @param {Number|'end'|'before'|'after'} [offset] Offset or one of the flags. Used only when
 	 * first parameter is a {@link module:engine/view/item~Item view item}.
 	 */
-	createPositionAt( itemOrPosition, offset ) {
+	public createPositionAt( itemOrPosition: Item | Position, offset?: number | 'before' | 'after' | 'end' ): Position {
 		return Position._createAt( itemOrPosition, offset );
 	}
 
@@ -557,7 +579,7 @@ export default class View {
 	 * @param {module:engine/view/item~Item} item View item after which the position should be located.
 	 * @returns {module:engine/view/position~Position}
 	 */
-	createPositionAfter( item ) {
+	public createPositionAfter( item: Item ): Position {
 		return Position._createAfter( item );
 	}
 
@@ -567,7 +589,7 @@ export default class View {
 	 * @param {module:engine/view/item~Item} item View item before which the position should be located.
 	 * @returns {module:engine/view/position~Position}
 	 */
-	createPositionBefore( item ) {
+	public createPositionBefore( item: Item ): Position {
 		return Position._createBefore( item );
 	}
 
@@ -580,8 +602,8 @@ export default class View {
 	 * @param {module:engine/view/position~Position} [end] End position. If not set, range will be collapsed at `start` position.
 	 * @returns {module:engine/view/range~Range}
 	 */
-	createRange( start, end ) {
-		return new Range( start, end );
+	public createRange( ...args: ConstructorParameters<typeof Range> ): Range {
+		return new Range( ...args );
 	}
 
 	/**
@@ -590,7 +612,7 @@ export default class View {
 	 * @param {module:engine/view/item~Item} item
 	 * @returns {module:engine/view/range~Range}
 	 */
-	createRangeOn( item ) {
+	public createRangeOn( item: Item ): Range {
 		return Range._createOn( item );
 	}
 
@@ -601,7 +623,7 @@ export default class View {
 	 * @param {module:engine/view/element~Element} element Element which is a parent for the range.
 	 * @returns {module:engine/view/range~Range}
 	 */
-	createRangeIn( element ) {
+	public createRangeIn( element: Element ): Range {
 		return Range._createIn( element );
 	}
 
@@ -665,8 +687,8 @@ export default class View {
 	 * @param {String} [options.label] Label for the fake selection.
 	 * @returns {module:engine/view/selection~Selection}
 	 */
-	createSelection( selectable, placeOrOffset, options ) {
-		return new Selection( selectable, placeOrOffset, options );
+	public createSelection( ...args: ConstructorParameters<typeof Selection> ): Selection {
+		return new Selection( ...args );
 	}
 
 	/**
@@ -676,7 +698,7 @@ export default class View {
 	 * @protected
 	 * @param {Boolean} flag A flag indicates whether the rendering should be disabled.
 	 */
-	_disableRendering( flag ) {
+	private _disableRendering( flag: boolean ): void {
 		this._renderingDisabled = flag;
 
 		if ( flag == false ) {
@@ -691,7 +713,7 @@ export default class View {
 	 *
 	 * @private
 	 */
-	_render() {
+	private _render(): void {
 		this.isRenderingInProgress = true;
 		this.disableObservers();
 		this._renderer.render();
@@ -718,3 +740,7 @@ export default class View {
 }
 
 mix( View, ObservableMixin );
+
+interface View extends Observable {}
+
+export default View;

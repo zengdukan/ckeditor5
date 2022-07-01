@@ -128,4 +128,12 @@ mix( Observer, DomEmitterMixin );
 
 interface Observer extends DomEmitter {}
 
+/**
+ * TODO
+ * The for all all classes that inherit from Observer but excludes the abstract Observer itself.
+ */
+export type ObserverSubClass =
+	( new ( ...args: ConstructorParameters<typeof Observer> ) => Observer ) &
+	{ [ K in keyof typeof Observer ]: typeof Observer[ K ] };
+
 export default Observer;

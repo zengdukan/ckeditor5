@@ -93,9 +93,9 @@ export default class DomConverter {
 	 * or improve editing experience by filtering out interactive data.
 	 */
 	constructor( document: Document, options: {
-		blockFillerMode: BlockFillerMode;
-		renderingMode: 'data' | 'editing';
-	} ) {
+		blockFillerMode?: BlockFillerMode;
+		renderingMode?: 'data' | 'editing';
+	} = {} ) {
 		/**
 		 * @readonly
 		 * @type {module:engine/view/document~Document}
