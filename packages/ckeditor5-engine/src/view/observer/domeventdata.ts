@@ -72,7 +72,7 @@ export default class DomEventData {
 	 * @type module:engine/view/element~Element
 	 */
 	public get target(): Element {
-		return this.view.domConverter.mapDomToView( this.domTarget );
+		return this.view.domConverter.mapDomToView( this.domTarget ) as Element;
 	}
 
 	/**

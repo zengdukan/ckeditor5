@@ -831,7 +831,7 @@ export default class DomConverter {
 	 * @param {Range} domRange DOM range.
 	 * @returns {module:engine/view/range~Range|null} View range.
 	 */
-	public domRangeToView( domRange: DomRange ): ViewRange | null {
+	public domRangeToView( domRange: DomRange | StaticRange ): ViewRange | null {
 		const viewStart = this.domPositionToView( domRange.startContainer, domRange.startOffset );
 		const viewEnd = this.domPositionToView( domRange.endContainer, domRange.endOffset );
 

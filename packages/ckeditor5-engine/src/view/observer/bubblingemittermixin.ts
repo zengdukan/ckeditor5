@@ -335,20 +335,20 @@ export type BubblingCallbackOptions = CallbackOptions & {
 export interface BubblingEmitter extends Emitter {
 	on(
 		event: string,
-		callback: ( this: this, ev: EventInfo, ...args: any[] ) => void,
+		callback: ( this: this, ev: BubblingEventInfo, ...args: any[] ) => void,
 		options?: BubblingCallbackOptions
 	): void;
 
 	once(
 		event: string,
-		callback: ( this: this, ev: EventInfo, ...args: any[] ) => void,
+		callback: ( this: this, ev: BubblingEventInfo, ...args: any[] ) => void,
 		options?: BubblingCallbackOptions
 	): void;
 
 	listenTo(
 		emitter: Emitter,
 		event: string,
-		callback: ( this: this, ev: EventInfo, ...args: any[] ) => void,
+		callback: ( this: this, ev: BubblingEventInfo, ...args: any[] ) => void,
 		options?: BubblingCallbackOptions
 	): void;
 }

@@ -86,7 +86,7 @@ export function disablePlaceholder( view: View, element: Element ): void {
 		const placeholders = documentPlaceholders.get( doc )!;
 		const config = placeholders.get( element )!;
 
-		writer.removeAttribute( 'data-placeholder', config.hostElement );
+		writer.removeAttribute( 'data-placeholder', config.hostElement! );
 		hidePlaceholder( writer, config.hostElement! );
 
 		placeholders.delete( element );
@@ -187,7 +187,7 @@ export function needsPlaceholder( element: Element, keepOnFocus: boolean ): bool
 	const selectionAnchor = viewSelection.anchor;
 
 	// If document is focused and the element is empty but the selection is not anchored inside it.
-	return selectionAnchor && selectionAnchor.parent !== element;
+	return !!selectionAnchor && selectionAnchor.parent !== element;
 }
 
 // Updates all placeholders associated with a document in a post–fixer callback.
@@ -258,7 +258,7 @@ function updatePlaceholder( writer: DowncastWriter, element: Element, config: Pl
 
 	// This may be necessary when updating the placeholder text to something else.
 	if ( hostElement!.getAttribute( 'data-placeholder' ) !== text ) {
-		writer.setAttribute( 'data-placeholder', text, hostElement );
+		writer.setAttribute( 'data-placeholder', text, hostElement! );
 		wasViewModified = true;
 	}
 

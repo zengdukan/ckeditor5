@@ -159,7 +159,7 @@ export default class ContainerElement extends Element {
  *
  * @returns {Number|null} Block filler offset or `null` if block filler is not needed.
  */
-function getFillerOffset( this: ContainerElement ): number | null {
+export function getFillerOffset( this: ContainerElement ): number | null {
 	const children = [ ...this.getChildren() ];
 	const lastChild = children[ this.childCount - 1 ];
 
