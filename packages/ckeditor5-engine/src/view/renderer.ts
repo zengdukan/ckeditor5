@@ -3,8 +3,6 @@
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
-/* globals Node */
-
 /**
  * @module engine/view/renderer
  */
@@ -14,10 +12,10 @@ import ViewPosition from './position';
 import { INLINE_FILLER, INLINE_FILLER_LENGTH, startsWithFiller, isInlineFiller } from './filler';
 
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
-import diff from '@ckeditor/ckeditor5-utils/src/diff';
+import { default as diff, type DiffResult } from '@ckeditor/ckeditor5-utils/src/diff';
 import insertAt from '@ckeditor/ckeditor5-utils/src/dom/insertat';
 import remove from '@ckeditor/ckeditor5-utils/src/dom/remove';
-import ObservableMixin from '@ckeditor/ckeditor5-utils/src/observablemixin';
+import { default as ObservableMixin, type Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 import isText from '@ckeditor/ckeditor5-utils/src/dom/istext';
 import isComment from '@ckeditor/ckeditor5-utils/src/dom/iscomment';
@@ -25,7 +23,20 @@ import isNode from '@ckeditor/ckeditor5-utils/src/dom/isnode';
 import fastDiff from '@ckeditor/ckeditor5-utils/src/fastdiff';
 import env from '@ckeditor/ckeditor5-utils/src/env';
 
+import type { ChangeType } from './document';
+import type DocumentSelection from './documentselection';
+import type DomConverter from './domconverter';
+import type EditableElement from './editableelement';
+import type ViewElement from './element';
+import type ViewNode from './node';
+
 import '../../theme/renderer.css';
+
+type DomText = globalThis.Text;
+type DomNode = globalThis.Node;
+type DomDocument = globalThis.Document;
+type DomElement = globalThis.HTMLElement;
+type DomSelection = globalThis.Selection;
 
 /**
  * Renderer is responsible for updating the DOM structure and the DOM selection based on
@@ -40,14 +51,27 @@ import '../../theme/renderer.css';
  * Renderer uses {@link module:engine/view/domconverter~DomConverter} to transform view nodes and positions
  * to and from the DOM.
  */
-export default class Renderer {
+class Renderer {
+	public readonly domDocuments: Set<DomDocument>;
+	public readonly domConverter: DomConverter;
+	public readonly markedAttributes: Set<ViewElement>;
+	public readonly markedChildren: Set<ViewElement>;
+	public readonly markedTexts: Set<ViewNode>;
+	public readonly selection: DocumentSelection;
+
+	declare public readonly isFocused: boolean;
+	declare public readonly isSelecting: boolean;
+
+	private _inlineFiller: DomText | null;
+	private _fakeSelectionContainer: DomElement | null;
+
 	/**
 	 * Creates a renderer instance.
 	 *
 	 * @param {module:engine/view/domconverter~DomConverter} domConverter Converter instance.
 	 * @param {module:engine/view/documentselection~DocumentSelection} selection View selection.
 	 */
-	constructor( domConverter, selection ) {
+	constructor( domConverter: DomConverter, selection: DocumentSelection ) {
 		/**
 		 * Set of DOM Documents instances.
 		 *
@@ -68,7 +92,7 @@ export default class Renderer {
 		 * Set of nodes which attributes changed and may need to be rendered.
 		 *
 		 * @readonly
-		 * @member {Set.<module:engine/view/node~Node>}
+		 * @member {Set.<module:engine/view/node~ViewNode>}
 		 */
 		this.markedAttributes = new Set();
 
@@ -76,7 +100,7 @@ export default class Renderer {
 		 * Set of elements which child lists changed and may need to be rendered.
 		 *
 		 * @readonly
-		 * @member {Set.<module:engine/view/node~Node>}
+		 * @member {Set.<module:engine/view/node~ViewNode>}
 		 */
 		this.markedChildren = new Set();
 
@@ -84,7 +108,7 @@ export default class Renderer {
 		 * Set of text nodes which text data changed and may need to be rendered.
 		 *
 		 * @readonly
-		 * @member {Set.<module:engine/view/node~Node>}
+		 * @member {Set.<module:engine/view/node~ViewNode>}
 		 */
 		this.markedTexts = new Set();
 
@@ -157,11 +181,11 @@ export default class Renderer {
 	 * @see #markedTexts
 	 *
 	 * @param {module:engine/view/document~ChangeType} type Type of the change.
-	 * @param {module:engine/view/node~Node} node Node to be marked.
+	 * @param {module:engine/view/node~ViewNode} node ViewNode to be marked.
 	 */
-	markToSync( type, node ) {
+	public markToSync( type: ChangeType, node: ViewNode ): void {
 		if ( type === 'text' ) {
-			if ( this.domConverter.mapViewToDom( node.parent ) ) {
+			if ( this.domConverter.mapViewToDom( node.parent! ) ) {
 				this.markedTexts.add( node );
 			}
 		} else {
@@ -172,9 +196,9 @@ export default class Renderer {
 			}
 
 			if ( type === 'attributes' ) {
-				this.markedAttributes.add( node );
+				this.markedAttributes.add( node as ViewElement );
 			} else if ( type === 'children' ) {
-				this.markedChildren.add( node );
+				this.markedChildren.add( node as ViewElement );
 			} else {
 				/**
 				 * Unknown type passed to Renderer.markToSync.
@@ -197,8 +221,8 @@ export default class Renderer {
 	 * at the selection position and adds or removes it. To prevent breaking text composition inline filler will not be
 	 * removed as long as the selection is in the text node which needed it at first.
 	 */
-	render() {
-		let inlineFillerPosition;
+	public render(): void {
+		let inlineFillerPosition: ViewPosition | null = null;
 		const isInlineFillerRenderingPossible = env.isBlink && !env.isAndroid ? !this.isSelecting : true;
 
 		// Refresh mappings.
@@ -223,17 +247,17 @@ export default class Renderer {
 			}
 			// Otherwise, if it's needed, create it at the selection position.
 			else if ( this._needsInlineFillerAtSelection() ) {
-				inlineFillerPosition = this.selection.getFirstPosition();
+				inlineFillerPosition = this.selection.getFirstPosition()!;
 
 				// Do not use `markToSync` so it will be added even if the parent is already added.
-				this.markedChildren.add( inlineFillerPosition.parent );
+				this.markedChildren.add( inlineFillerPosition.parent as ViewElement );
 			}
 		}
 		// Paranoid check: we make sure the inline filler has any parent so it can be mapped to view position
 		// by DomConverter.
 		else if ( this._inlineFiller && this._inlineFiller.parentNode ) {
 			// While the user is making selection, preserve the inline filler at its original position.
-			inlineFillerPosition = this.domConverter.domPositionToView( this._inlineFiller );
+			inlineFillerPosition = this.domConverter.domPositionToView( this._inlineFiller )!;
 
 			if ( inlineFillerPosition.parent.is( '$text' ) ) {
 				inlineFillerPosition = ViewPosition._createBefore( inlineFillerPosition.parent );
@@ -249,8 +273,8 @@ export default class Renderer {
 		}
 
 		for ( const node of this.markedTexts ) {
-			if ( !this.markedChildren.has( node.parent ) && this.domConverter.mapViewToDom( node.parent ) ) {
-				this._updateText( node, { inlineFillerPosition } );
+			if ( !this.markedChildren.has( node.parent as ViewElement ) && this.domConverter.mapViewToDom( node.parent as ViewElement ) ) {
+				this._updateText( node as ViewText, { inlineFillerPosition } );
 			}
 		}
 
@@ -264,15 +288,15 @@ export default class Renderer {
 		//   (https://github.com/ckeditor/ckeditor5/issues/10562, https://github.com/ckeditor/ckeditor5/issues/10723).
 		if ( isInlineFillerRenderingPossible ) {
 			if ( inlineFillerPosition ) {
-				const fillerDomPosition = this.domConverter.viewPositionToDom( inlineFillerPosition );
-				const domDocument = fillerDomPosition.parent.ownerDocument;
+				const fillerDomPosition = this.domConverter.viewPositionToDom( inlineFillerPosition )!;
+				const domDocument = fillerDomPosition.parent.ownerDocument!;
 
 				if ( !startsWithFiller( fillerDomPosition.parent ) ) {
 					// Filler has not been created at filler position. Create it now.
 					this._inlineFiller = addInlineFiller( domDocument, fillerDomPosition.parent, fillerDomPosition.offset );
 				} else {
 					// Filler has been found, save it.
-					this._inlineFiller = fillerDomPosition.parent;
+					this._inlineFiller = fillerDomPosition.parent as DomText;
 				}
 			} else {
 				// There is no filler needed.
@@ -298,9 +322,9 @@ export default class Renderer {
 	 * Thanks to that these elements do not need to be re-rendered completely.
 	 *
 	 * @private
-	 * @param {module:engine/view/node~Node} viewElement The view element whose children mappings will be updated.
+	 * @param {module:engine/view/node~ViewNode} viewElement The view element whose children mappings will be updated.
 	 */
-	_updateChildrenMappings( viewElement ) {
+	private _updateChildrenMappings( viewElement: ViewElement ): void {
 		const domElement = this.domConverter.mapViewToDom( viewElement );
 
 		if ( !domElement ) {
@@ -315,10 +339,10 @@ export default class Renderer {
 		//
 		// Converting live list to an array to make the list static.
 		const actualDomChildren = Array.from(
-			this.domConverter.mapViewToDom( viewElement ).childNodes
+			this.domConverter.mapViewToDom( viewElement )!.childNodes
 		);
 		const expectedDomChildren = Array.from(
-			this.domConverter.viewChildrenToDom( viewElement, domElement.ownerDocument, { withChildren: false } )
+			this.domConverter.viewChildrenToDom( viewElement, domElement.ownerDocument!, { withChildren: false } )
 		);
 		const diff = this._diffNodeLists( actualDomChildren, expectedDomChildren );
 		const actions = this._findReplaceActions( diff, actualDomChildren, expectedDomChildren );
@@ -336,7 +360,7 @@ export default class Renderer {
 					// so we cannot use them with replacing flow (since they use view children during rendering
 					// which will always result in rendering empty elements).
 					if ( viewChild && !( viewChild.is( 'uiElement' ) || viewChild.is( 'rawElement' ) ) ) {
-						this._updateElementMappings( viewChild, actualDomChildren[ deleteIndex ] );
+						this._updateElementMappings( viewChild as ViewElement, actualDomChildren[ deleteIndex ] as DomElement );
 					}
 
 					remove( expectedDomChildren[ insertIndex ] );
@@ -352,10 +376,10 @@ export default class Renderer {
 	 * Updates mappings of a given view element.
 	 *
 	 * @private
-	 * @param {module:engine/view/node~Node} viewElement The view element whose mappings will be updated.
-	 * @param {Node} domElement The DOM element representing the given view element.
+	 * @param {module:engine/view/node~ViewNode} viewElement The view element whose mappings will be updated.
+	 * @param {ViewNode} domElement The DOM element representing the given view element.
 	 */
-	_updateElementMappings( viewElement, domElement ) {
+	private _updateElementMappings( viewElement: ViewElement, domElement: DomElement ): void {
 		// Remap 'DomConverter' bindings.
 		this.domConverter.unbindDomElement( domElement );
 		this.domConverter.bindElements( domElement, viewElement );
@@ -388,11 +412,11 @@ export default class Renderer {
 	 * @private
 	 * @returns {module:engine/view/position~Position}
 	 */
-	_getInlineFillerPosition() {
-		const firstPos = this.selection.getFirstPosition();
+	private _getInlineFillerPosition(): ViewPosition {
+		const firstPos = this.selection.getFirstPosition()!;
 
 		if ( firstPos.parent.is( '$text' ) ) {
-			return ViewPosition._createBefore( this.selection.getFirstPosition().parent );
+			return ViewPosition._createBefore( firstPos.parent );
 		} else {
 			return firstPos;
 		}
@@ -406,7 +430,7 @@ export default class Renderer {
 	 * @private
 	 * @returns {Boolean} `true` if the inline filler and selection are in the same place.
 	 */
-	_isSelectionInInlineFiller() {
+	private _isSelectionInInlineFiller(): boolean {
 		if ( this.selection.rangeCount != 1 || !this.selection.isCollapsed ) {
 			return false;
 		}
@@ -420,7 +444,7 @@ export default class Renderer {
 		// Possible options are:
 		// "FILLER{}"
 		// "FILLERadded-text{}"
-		const selectionPosition = this.selection.getFirstPosition();
+		const selectionPosition = this.selection.getFirstPosition()!;
 		const position = this.domConverter.viewPositionToDom( selectionPosition );
 
 		if ( position && isText( position.parent ) && startsWithFiller( position.parent ) ) {
@@ -435,8 +459,8 @@ export default class Renderer {
 	 *
 	 * @private
 	 */
-	_removeInlineFiller() {
-		const domFillerNode = this._inlineFiller;
+	private _removeInlineFiller(): void {
+		const domFillerNode = this._inlineFiller!;
 
 		// Something weird happened and the stored node doesn't contain the filler's text.
 		if ( !startsWithFiller( domFillerNode ) ) {
@@ -464,12 +488,12 @@ export default class Renderer {
 	 * @private
 	 * @returns {Boolean} `true` if the inline filler should be added.
 	 */
-	_needsInlineFillerAtSelection() {
+	private _needsInlineFillerAtSelection(): boolean {
 		if ( this.selection.rangeCount != 1 || !this.selection.isCollapsed ) {
 			return false;
 		}
 
-		const selectionPosition = this.selection.getFirstPosition();
+		const selectionPosition = this.selection.getFirstPosition()!;
 		const selectionParent = selectionPosition.parent;
 		const selectionOffset = selectionPosition.offset;
 
@@ -489,7 +513,7 @@ export default class Renderer {
 		}
 
 		// We have block filler, we do not need inline one.
-		if ( selectionOffset === selectionParent.getFillerOffset() ) {
+		if ( selectionOffset === ( selectionParent as EditableElement ).getFillerOffset() ) {
 			return false;
 		}
 
@@ -512,9 +536,9 @@ export default class Renderer {
 	 * @param {module:engine/view/position~Position} options.inlineFillerPosition The position where the inline
 	 * filler should be rendered.
 	 */
-	_updateText( viewText, options ) {
-		const domText = this.domConverter.findCorrespondingDomText( viewText );
-		const newDomText = this.domConverter.viewToDom( viewText, domText.ownerDocument );
+	private _updateText( viewText: ViewText, options: { inlineFillerPosition: ViewPosition | null } ) {
+		const domText = this.domConverter.findCorrespondingDomText( viewText )!;
+		const newDomText = this.domConverter.viewToDom( viewText, domText.ownerDocument ) as DomText;
 
 		const actualText = domText.data;
 		let expectedText = newDomText.data;
@@ -544,7 +568,7 @@ export default class Renderer {
 	 * @private
 	 * @param {module:engine/view/element~Element} viewElement The view element to update.
 	 */
-	_updateAttrs( viewElement ) {
+	private _updateAttrs( viewElement: ViewElement ): void {
 		const domElement = this.domConverter.mapViewToDom( viewElement );
 
 		if ( !domElement ) {
@@ -555,19 +579,19 @@ export default class Renderer {
 			return;
 		}
 
-		const domAttrKeys = Array.from( domElement.attributes ).map( attr => attr.name );
+		const domAttrKeys = Array.from( ( domElement as DomElement ).attributes ).map( attr => attr.name );
 		const viewAttrKeys = viewElement.getAttributeKeys();
 
 		// Add or overwrite attributes.
 		for ( const key of viewAttrKeys ) {
-			this.domConverter.setDomElementAttribute( domElement, key, viewElement.getAttribute( key ), viewElement );
+			this.domConverter.setDomElementAttribute( domElement as DomElement, key, viewElement.getAttribute( key )!, viewElement );
 		}
 
 		// Remove from DOM attributes which do not exists in the view.
 		for ( const key of domAttrKeys ) {
 			// All other attributes not present in the DOM should be removed.
 			if ( !viewElement.hasAttribute( key ) ) {
-				this.domConverter.removeDomElementAttribute( domElement, key );
+				this.domConverter.removeDomElementAttribute( domElement as DomElement, key );
 			}
 		}
 	}
@@ -581,7 +605,7 @@ export default class Renderer {
 	 * @param {module:engine/view/position~Position} options.inlineFillerPosition The position where the inline
 	 * filler should be rendered.
 	 */
-	_updateChildren( viewElement, options ) {
+	private _updateChildren( viewElement: ViewElement, options: { inlineFillerPosition: ViewPosition | null } ) {
 		const domElement = this.domConverter.mapViewToDom( viewElement );
 
 		if ( !domElement ) {
@@ -591,22 +615,22 @@ export default class Renderer {
 		}
 
 		const inlineFillerPosition = options.inlineFillerPosition;
-		const actualDomChildren = this.domConverter.mapViewToDom( viewElement ).childNodes;
+		const actualDomChildren = this.domConverter.mapViewToDom( viewElement )!.childNodes;
 		const expectedDomChildren = Array.from(
-			this.domConverter.viewChildrenToDom( viewElement, domElement.ownerDocument, { bind: true } )
+			this.domConverter.viewChildrenToDom( viewElement, ( domElement as DomElement ).ownerDocument, { bind: true } )
 		);
 
 		// Inline filler element has to be created as it is present in the DOM, but not in the view. It is required
 		// during diffing so text nodes could be compared correctly and also during rendering to maintain
 		// proper order and indexes while updating the DOM.
 		if ( inlineFillerPosition && inlineFillerPosition.parent === viewElement ) {
-			addInlineFiller( domElement.ownerDocument, expectedDomChildren, inlineFillerPosition.offset );
+			addInlineFiller( ( domElement as DomElement ).ownerDocument, expectedDomChildren, inlineFillerPosition.offset );
 		}
 
 		const diff = this._diffNodeLists( actualDomChildren, expectedDomChildren );
 
 		let i = 0;
-		const nodesToUnbind = new Set();
+		const nodesToUnbind: Set<DomNode> = new Set();
 
 		// Handle deletions first.
 		// This is to prevent a situation where an element that already exists in `actualDomChildren` is inserted at a different
@@ -616,7 +640,7 @@ export default class Renderer {
 		// It doesn't matter in what order we remove or add nodes, as long as we remove and add correct nodes at correct indexes.
 		for ( const action of diff ) {
 			if ( action === 'delete' ) {
-				nodesToUnbind.add( actualDomChildren[ i ] );
+				nodesToUnbind.add( actualDomChildren[ i ] as DomElement );
 				remove( actualDomChildren[ i ] );
 			} else if ( action === 'equal' ) {
 				i++;
@@ -627,12 +651,12 @@ export default class Renderer {
 
 		for ( const action of diff ) {
 			if ( action === 'insert' ) {
-				insertAt( domElement, i, expectedDomChildren[ i ] );
+				insertAt( domElement as DomElement, i, expectedDomChildren[ i ] );
 				i++;
 			} else if ( action === 'equal' ) {
 				// Force updating text nodes inside elements which did not change and do not need to be re-rendered (#1125).
 				// Do it here (not in the loop above) because only after insertions the `i` index is correct.
-				this._markDescendantTextToSync( this.domConverter.domToView( expectedDomChildren[ i ] ) );
+				this._markDescendantTextToSync( this.domConverter.domToView( expectedDomChildren[ i ] ) as any );
 				i++;
 			}
 		}
@@ -642,7 +666,7 @@ export default class Renderer {
 		// it was moved to DOM tree out of the removed node.
 		for ( const node of nodesToUnbind ) {
 			if ( !node.parentNode ) {
-				this.domConverter.unbindDomElement( node );
+				this.domConverter.unbindDomElement( node as DomElement );
 			}
 		}
 	}
@@ -651,11 +675,11 @@ export default class Renderer {
 	 * Shorthand for diffing two arrays or node lists of DOM nodes.
 	 *
 	 * @private
-	 * @param {Array.<Node>|NodeList} actualDomChildren Actual DOM children
-	 * @param {Array.<Node>|NodeList} expectedDomChildren Expected DOM children.
+	 * @param {Array.<ViewNode>|NodeList} actualDomChildren Actual DOM children
+	 * @param {Array.<ViewNode>|NodeList} expectedDomChildren Expected DOM children.
 	 * @returns {Array.<String>} The list of actions based on the {@link module:utils/diff~diff} function.
 	 */
-	_diffNodeLists( actualDomChildren, expectedDomChildren ) {
+	private _diffNodeLists( actualDomChildren: DomNode[] | NodeList, expectedDomChildren: DomNode[] | NodeList ) {
 		actualDomChildren = filterOutFakeSelectionContainer( actualDomChildren, this._fakeSelectionContainer );
 
 		return diff( actualDomChildren, expectedDomChildren, sameNodes.bind( null, this.domConverter ) );
@@ -672,17 +696,20 @@ export default class Renderer {
 	 *
 	 * @private
 	 * @param {Array.<String>} actions Actions array which is a result of the {@link module:utils/diff~diff} function.
-	 * @param {Array.<Node>|NodeList} actualDom Actual DOM children
-	 * @param {Array.<Node>} expectedDom Expected DOM children.
+	 * @param {Array.<ViewNode>|NodeList} actualDom Actual DOM children
+	 * @param {Array.<ViewNode>} expectedDom Expected DOM children.
 	 * @returns {Array.<String>} Actions array modified with the `replace` actions.
 	 */
-	_findReplaceActions( actions, actualDom, expectedDom ) {
+	private _findReplaceActions(
+		actions: DiffResult[],
+		actualDom: DomNode[] | NodeList, expectedDom: DomNode[]
+	): ( DiffResult | 'replace' )[] {
 		// If there is no both 'insert' and 'delete' actions, no need to check for replaced elements.
 		if ( actions.indexOf( 'insert' ) === -1 || actions.indexOf( 'delete' ) === -1 ) {
 			return actions;
 		}
 
-		let newActions = [];
+		let newActions: ( DiffResult | 'replace' )[] = [];
 		let actualSlice = [];
 		let expectedSlice = [];
 
@@ -712,9 +739,9 @@ export default class Renderer {
 	 * If a text node is passed, it will be marked. If an element is passed, all descendant text nodes inside it will be marked.
 	 *
 	 * @private
-	 * @param {module:engine/view/node~Node} viewNode View node to sync.
+	 * @param {module:engine/view/node~ViewNode} viewNode View node to sync.
 	 */
-	_markDescendantTextToSync( viewNode ) {
+	private _markDescendantTextToSync( viewNode: ViewNode | undefined ): void {
 		if ( !viewNode ) {
 			return;
 		}
@@ -733,7 +760,7 @@ export default class Renderer {
 	 *
 	 * @private
 	 */
-	_updateSelection() {
+	private _updateSelection(): void {
 		// Block updating DOM selection in (non-Android) Blink while the user is selecting to prevent accidental selection collapsing.
 		// Note: Structural changes in DOM must trigger selection rendering, though. Nodes the selection was anchored
 		// to, may disappear in DOM which would break the selection (e.g. in real-time collaboration scenarios).
@@ -750,7 +777,7 @@ export default class Renderer {
 			return;
 		}
 
-		const domRoot = this.domConverter.mapViewToDom( this.selection.editableElement );
+		const domRoot = this.domConverter.mapViewToDom( this.selection.editableElement! ) as DomElement;
 
 		// Do nothing if there is no focus, or there is no DOM element corresponding to selection's editable element.
 		if ( !this.isFocused || !domRoot ) {
@@ -772,7 +799,7 @@ export default class Renderer {
 	 * @private
 	 * @param {HTMLElement} domRoot A valid DOM root where the fake selection container should be added.
 	 */
-	_updateFakeSelection( domRoot ) {
+	private _updateFakeSelection( domRoot: DomElement ): void {
 		const domDocument = domRoot.ownerDocument;
 
 		if ( !this._fakeSelectionContainer ) {
@@ -794,7 +821,7 @@ export default class Renderer {
 
 		container.textContent = this.selection.fakeSelectionLabel || '\u00A0';
 
-		const domSelection = domDocument.getSelection();
+		const domSelection = domDocument.getSelection()!;
 		const domRange = domDocument.createRange();
 
 		domSelection.removeAllRanges();
@@ -808,8 +835,8 @@ export default class Renderer {
 	 * @private
 	 * @param {HTMLElement} domRoot A valid DOM root where the DOM selection should be rendered.
 	 */
-	_updateDomSelection( domRoot ) {
-		const domSelection = domRoot.ownerDocument.defaultView.getSelection();
+	private _updateDomSelection( domRoot: DomElement ) {
+		const domSelection = domRoot.ownerDocument.defaultView!.getSelection()!;
 
 		// Let's check whether DOM selection needs updating at all.
 		if ( !this._domSelectionNeedsUpdate( domSelection ) ) {
@@ -821,8 +848,8 @@ export default class Renderer {
 		// and focus of view selection.
 		// Since we are not supporting multi-range selection, we also do not need to check if proper editable is
 		// selected. If there is any editable selected, it is okay (editable is taken from selection anchor).
-		const anchor = this.domConverter.viewPositionToDom( this.selection.anchor );
-		const focus = this.domConverter.viewPositionToDom( this.selection.focus );
+		const anchor = this.domConverter.viewPositionToDom( this.selection.anchor! )!;
+		const focus = this.domConverter.viewPositionToDom( this.selection.focus! )!;
 
 		domSelection.collapse( anchor.parent, anchor.offset );
 		domSelection.extend( focus.parent, focus.offset );
@@ -840,7 +867,7 @@ export default class Renderer {
 	 * @param {Selection} domSelection The DOM selection to check.
 	 * @returns {Boolean}
 	 */
-	_domSelectionNeedsUpdate( domSelection ) {
+	private _domSelectionNeedsUpdate( domSelection: Selection ): boolean {
 		if ( !this.domConverter.isDomSelectionCorrect( domSelection ) ) {
 			// Current DOM selection is in incorrect position. We need to update it.
 			return true;
@@ -869,9 +896,9 @@ export default class Renderer {
 	 * @param {HTMLElement} domRoot A valid DOM root where a new fake selection container should be added.
 	 * @returns {Boolean}
 	 */
-	_fakeSelectionNeedsUpdate( domRoot ) {
+	private _fakeSelectionNeedsUpdate( domRoot: DomElement ): boolean {
 		const container = this._fakeSelectionContainer;
-		const domSelection = domRoot.ownerDocument.getSelection();
+		const domSelection = domRoot.ownerDocument.getSelection()!;
 
 		// Fake selection needs to be updated if there's no fake selection container, or the container currently sits
 		// in a different root.
@@ -892,16 +919,16 @@ export default class Renderer {
 	 *
 	 * @private
 	 */
-	_removeDomSelection() {
+	private _removeDomSelection(): void {
 		for ( const doc of this.domDocuments ) {
-			const domSelection = doc.getSelection();
+			const domSelection = doc.getSelection()!;
 
 			if ( domSelection.rangeCount ) {
-				const activeDomElement = doc.activeElement;
+				const activeDomElement = doc.activeElement!;
 				const viewElement = this.domConverter.mapDomToView( activeDomElement );
 
 				if ( activeDomElement && viewElement ) {
-					doc.getSelection().removeAllRanges();
+					domSelection.removeAllRanges();
 				}
 			}
 		}
@@ -912,7 +939,7 @@ export default class Renderer {
 	 *
 	 * @private
 	 */
-	_removeFakeSelection() {
+	private _removeFakeSelection(): void {
 		const container = this._fakeSelectionContainer;
 
 		if ( container ) {
@@ -925,7 +952,7 @@ export default class Renderer {
 	 *
 	 * @private
 	 */
-	_updateFocus() {
+	private _updateFocus(): void {
 		if ( this.isFocused ) {
 			const editable = this.selection.editableElement;
 
@@ -938,17 +965,21 @@ export default class Renderer {
 
 mix( Renderer, ObservableMixin );
 
+interface Renderer extends Observable {}
+
+export default Renderer;
+
 // Checks if provided element is editable.
 //
 // @private
 // @param {module:engine/view/element~Element} element
 // @returns {Boolean}
-function isEditable( element ) {
+function isEditable( element: ViewElement ): boolean {
 	if ( element.getAttribute( 'contenteditable' ) == 'false' ) {
 		return false;
 	}
 
-	const parent = element.findAncestor( element => element.hasAttribute( 'contenteditable' ) );
+	const parent = element.findAncestor( element => ( { name: element.hasAttribute( 'contenteditable' ) } ) );
 
 	return !parent || parent.getAttribute( 'contenteditable' ) == 'true';
 }
@@ -960,10 +991,10 @@ function isEditable( element ) {
 //
 // @private
 // @param {Document} domDocument
-// @param {Element|Array.<Node>} domParentOrArray
+// @param {Element|Array.<ViewNode>} domParentOrArray
 // @param {Number} offset
 // @returns {Text} The DOM text node that contains an inline filler.
-function addInlineFiller( domDocument, domParentOrArray, offset ) {
+function addInlineFiller( domDocument: DomDocument, domParentOrArray: DomNode | DomNode[], offset: number ): DomText {
 	const childNodes = domParentOrArray instanceof Array ? domParentOrArray : domParentOrArray.childNodes;
 	const nodeAfterFiller = childNodes[ offset ];
 
@@ -975,9 +1006,9 @@ function addInlineFiller( domDocument, domParentOrArray, offset ) {
 		const fillerNode = domDocument.createTextNode( INLINE_FILLER );
 
 		if ( Array.isArray( domParentOrArray ) ) {
-			childNodes.splice( offset, 0, fillerNode );
+			( childNodes as DomNode[] ).splice( offset, 0, fillerNode );
 		} else {
-			insertAt( domParentOrArray, offset, fillerNode );
+			insertAt( domParentOrArray as DomElement, offset, fillerNode );
 		}
 
 		return fillerNode;
@@ -988,14 +1019,14 @@ function addInlineFiller( domDocument, domParentOrArray, offset ) {
 // Nodes are considered similar if they have the same tag name.
 //
 // @private
-// @param {Node} node1
-// @param {Node} node2
+// @param {ViewNode} node1
+// @param {ViewNode} node2
 // @returns {Boolean}
-function areSimilar( node1, node2 ) {
+function areSimilar( node1: DomNode, node2: DomNode ): boolean {
 	return isNode( node1 ) && isNode( node2 ) &&
 		!isText( node1 ) && !isText( node2 ) &&
 		!isComment( node1 ) && !isComment( node2 ) &&
-		node1.tagName.toLowerCase() === node2.tagName.toLowerCase();
+		( node1 as DomElement ).tagName.toLowerCase() === ( node2 as DomElement ).tagName.toLowerCase();
 }
 
 // Whether two dom nodes should be considered as the same.
@@ -1007,10 +1038,10 @@ function areSimilar( node1, node2 ) {
 //
 // @private
 // @param {String} blockFillerMode Block filler mode, see {@link module:engine/view/domconverter~DomConverter#blockFillerMode}.
-// @param {Node} node1
-// @param {Node} node2
+// @param {ViewNode} node1
+// @param {ViewNode} node2
 // @returns {Boolean}
-function sameNodes( domConverter, actualDomChild, expectedDomChild ) {
+function sameNodes( domConverter: DomConverter, actualDomChild: DomNode, expectedDomChild: DomNode ): boolean {
 	// Elements.
 	if ( actualDomChild === expectedDomChild ) {
 		return true;
@@ -1036,25 +1067,25 @@ function sameNodes( domConverter, actualDomChild, expectedDomChild ) {
 //
 // which happens a lot when using the soft line break, the browser fails to (visually) move the
 // caret to the new line. A quick fix is as simple as force–refreshing the selection with the same range.
-function fixGeckoSelectionAfterBr( focus, domSelection ) {
-	const parent = focus.parent;
+function fixGeckoSelectionAfterBr( focus: ReturnType<DomConverter[ 'viewPositionToDom' ]>, domSelection: DomSelection ) {
+	const parent = focus!.parent;
 
 	// This fix works only when the focus point is at the very end of an element.
 	// There is no point in running it in cases unrelated to the browser bug.
-	if ( parent.nodeType != Node.ELEMENT_NODE || focus.offset != parent.childNodes.length - 1 ) {
+	if ( parent.nodeType != Node.ELEMENT_NODE || focus!.offset != parent.childNodes.length - 1 ) {
 		return;
 	}
 
-	const childAtOffset = parent.childNodes[ focus.offset ];
+	const childAtOffset = parent.childNodes[ focus!.offset ];
 
 	// To stay on the safe side, the fix being as specific as possible, it targets only the
 	// selection which is at the very end of the element and preceded by <br />.
-	if ( childAtOffset && childAtOffset.tagName == 'BR' ) {
+	if ( childAtOffset && ( childAtOffset as DomElement ).tagName == 'BR' ) {
 		domSelection.addRange( domSelection.getRangeAt( 0 ) );
 	}
 }
 
-function filterOutFakeSelectionContainer( domChildList, fakeSelectionContainer ) {
+function filterOutFakeSelectionContainer( domChildList: DomNode[] | NodeList, fakeSelectionContainer: DomElement | null ) {
 	const childList = Array.from( domChildList );
 
 	if ( childList.length == 0 || !fakeSelectionContainer ) {
@@ -1075,7 +1106,7 @@ function filterOutFakeSelectionContainer( domChildList, fakeSelectionContainer )
 // @private
 // @param {Document} domDocument
 // @returns {HTMLElement}
-function createFakeSelectionContainer( domDocument ) {
+function createFakeSelectionContainer( domDocument: DomDocument ): DomElement {
 	const container = domDocument.createElement( 'div' );
 
 	container.className = 'ck-fake-selection-container';
