@@ -267,40 +267,35 @@ export default class DowncastWriter {
 	 * pipeline even though they would normally be filtered out by unsafe attribute detection mechanisms.
 	 * @returns {module:engine/view/containerelement~ContainerElement} Created element.
 	 */
-	public createContainerElement<
-		Attributes extends ConstructorParameters<typeof Element>[ 2 ],
-		Children extends ConstructorParameters<typeof Element>[ 3 ],
-		Options extends object & {
-			priority?: number;
-			id?: number | string;
-			renderUnsafeAttributes?: string[];
-		}
-	>(
-		...args: [
-			name: string,
-			attributes?: Attributes,
-			childrenOrOptions?: Children | Options,
-			options?: Options
-		] | [
-			name: string,
-			attributes?: Attributes,
-			options?: Options
-		]
-	): ContainerElement
-	{
-		let [ name, attributes, childrenOrOptions, options = {} ] = args;
-		let children: Children | undefined;
+	public createContainerElement(
+		name: string,
+		attributes: ConstructorParameters<typeof Element>[ 2 ],
+		childrenOrOptions: { renderUnsafeAttributes?: string[] }
+	): ContainerElement;
+	public createContainerElement(
+		name: string,
+		attributes: ConstructorParameters<typeof Element>[ 2 ],
+		childrenOrOptions: Node | Iterable<Node>,
+		options: { renderUnsafeAttributes?: string[] }
+	): ContainerElement;
+	public createContainerElement(
+		name: string,
+		attributes: ConstructorParameters<typeof Element>[ 2 ],
+		childrenOrOptions: Node | Iterable<Node> | { renderUnsafeAttributes?: string[] } = {},
+		options: { renderUnsafeAttributes?: string[] } = {}
+	): ContainerElement {
+		let children = null;
 
 		if ( isPlainObject( childrenOrOptions ) ) {
-			options = childrenOrOptions as Options;
+			options = childrenOrOptions as { renderUnsafeAttributes?: string[] };
 		} else {
-			children = childrenOrOptions as Children;
+			children = childrenOrOptions;
 		}
 
-		const containerElement = new ContainerElement( this.document, name, attributes, children );
+		const containerElement = new ContainerElement( this.document, name, attributes, children as Node | Iterable<Node> );
 
-		if ( ( options as Options ).renderUnsafeAttributes ) {
-			( containerElement as any )._unsafeAttributesToRender.push( ...( options as Options ).renderUnsafeAttributes! );
+		if ( options.renderUnsafeAttributes ) {
+			( containerElement as any )._unsafeAttributesToRender.push( ...options.renderUnsafeAttributes );
 		}
 
 		return containerElement;
