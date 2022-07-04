@@ -75,7 +75,7 @@ export function injectSelectionPostFixer( model: Model ): void {
 //
 // @param {module:engine/model/writer~Writer} writer
 // @param {module:engine/model/model~Model} model
-function selectionPostFixer( writer: Writer, model: Model ) {
+function selectionPostFixer( writer: Writer, model: Model ): boolean {
 	const selection = model.document.selection;
 	const schema = model.schema;
 
