@@ -16,7 +16,7 @@ type NativeDataTransfer = globalThis.DataTransfer & {
  * A facade over the native [`DataTransfer`](https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer) object.
  */
 export default class DataTransfer {
-	public readonly files: ( DataTransferItem | File | null )[];
+	public readonly files: File[];
 	private readonly _native: NativeDataTransfer;
 
 	constructor( nativeDataTransfer: NativeDataTransfer ) {
@@ -104,7 +104,7 @@ export default class DataTransfer {
 	}
 }
 
-function getFiles( nativeDataTransfer: NativeDataTransfer ): ( File | DataTransferItem | null )[] {
+function getFiles( nativeDataTransfer: NativeDataTransfer ): File[] {
 	// DataTransfer.files and items are array-like and might not have an iterable interface.
 	const files = Array.from( nativeDataTransfer.files || [] );
 	const items = Array.from( nativeDataTransfer.items || [] );
@@ -116,5 +116,5 @@ function getFiles( nativeDataTransfer: NativeDataTransfer ): ( File | DataTransf
 	// Chrome has empty DataTransfer.files, but allows getting files through the items interface.
 	return items
 		.filter( item => item.kind === 'file' )
-		.map( item => item.getAsFile() );
+		.map( item => item.getAsFile()! );
 }

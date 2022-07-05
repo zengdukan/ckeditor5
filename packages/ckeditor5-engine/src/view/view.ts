@@ -31,7 +31,7 @@ import { injectUiElementHandling } from './uielement';
 import { injectQuirksHandling } from './filler';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 import type { StylesProcessor } from './stylesmap';
-import { type default as Observer, type ObserverSubClass } from './observer/observer';
+import { type default as Observer, type ObserverConstructor } from './observer/observer';
 import type Element from './element';
 import type Item from './item';
 
@@ -79,7 +79,7 @@ class View {
 
 	private readonly _renderer: Renderer;
 	private readonly _initialDomRootAttributes: WeakMap<HTMLElement, Record<string, string>>;
-	private readonly _observers: Map<ObserverSubClass, Observer>;
+	private readonly _observers: Map<ObserverConstructor, Observer>;
 	private readonly _writer: DowncastWriter;
 	private _ongoingChange: boolean;
 	private _postFixersInProgress: boolean;
@@ -361,7 +361,7 @@ class View {
 	 * Should create an instance inheriting from {@link module:engine/view/observer/observer~Observer}.
 	 * @returns {module:engine/view/observer/observer~Observer} Added observer instance.
 	 */
-	public addObserver( ObserverConstructor: ObserverSubClass ): Observer {
+	public addObserver( ObserverConstructor: ObserverConstructor ): Observer {
 		let observer = this._observers.get( ObserverConstructor );
 
 		if ( observer ) {
@@ -387,8 +387,8 @@ class View {
 	 * @param {Function} Observer The constructor of an observer to get.
 	 * @returns {module:engine/view/observer/observer~Observer|undefined} Observer instance or undefined.
 	 */
-	public getObserver<T extends ObserverSubClass>( ObserverConstructor: T ): InstanceType<T> | undefined {
-		return this._observers.get( ObserverConstructor ) as InstanceType<T>;
+	public getObserver<T extends ObserverConstructor>( ObserverConstructor: T ): InstanceType<T> | undefined {
+		return this._observers.get( ObserverConstructor ) as ( InstanceType<T> | undefined );
 	}
 
 	/**

@@ -198,13 +198,17 @@ export default class Element extends Node {
 
 	public override is( type: 'node' | 'view:node' ):
 		this is
-			Node | Element | AttributeElement | ContainerElement | EditableElement |
+			Node | Text | Element | AttributeElement | ContainerElement | EditableElement |
 			EmptyElement | RawElement | RootEditableElement | UIElement;
 
-	public override is( type: 'element' | 'view:element' ): this is Element;
+	public override is( type: 'element' | 'view:element' ):
+		this is
+			Element | AttributeElement | ContainerElement | EditableElement |
+			EmptyElement | RawElement | RootEditableElement | UIElement;
 	public override is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
-	public override is( type: 'containerElement' | 'view:containerElement' ): this is ContainerElement;
-	public override is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement;
+	public override is( type: 'containerElement' | 'view:containerElement' ):
+		this is ContainerElement | EditableElement | RootEditableElement;
+	public override is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement | RootEditableElement;
 	public override is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
 	public override is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
 	public override is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
@@ -224,9 +228,9 @@ export default class Element extends Node {
 	public override is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
 		this is ( AttributeElement ) & { name: N };
 	public override is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
-		this is ( ContainerElement ) & { name: N };
+		this is ( ContainerElement | EditableElement | RootEditableElement ) & { name: N };
 	public override is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
-		this is ( EditableElement ) & { name: N };
+		this is ( EditableElement | RootEditableElement ) & { name: N };
 	public override is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
 		this is ( EmptyElement ) & { name: N };
 	public override is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
@@ -275,7 +279,7 @@ export default class Element extends Node {
 	 * @param {Number} index Index of child.
 	 * @returns {module:engine/view/node~Node} Child node.
 	 */
-	public getChild( index: number ): Node | null {
+	public getChild( index: number ): Node | undefined {
 		return this._children[ index ];
 	}
 
@@ -285,7 +289,7 @@ export default class Element extends Node {
 	 * @param {module:engine/view/node~Node} node Child node.
 	 * @returns {Number} Index of the child node.
 	 */
-	public getChildIndex( node: Node ): number | null {
+	public getChildIndex( node: Node ): number {
 		return this._children.indexOf( node );
 	}
 
@@ -303,7 +307,7 @@ export default class Element extends Node {
 	 *
 	 * @returns {Iterable.<String>} Keys for attributes.
 	 */
-	public* getAttributeKeys(): Iterable<string> {
+	public* getAttributeKeys(): IterableIterator<string> {
 		if ( this._classes.size > 0 ) {
 			yield 'class';
 		}
@@ -323,7 +327,7 @@ export default class Element extends Node {
 	 *
 	 * @returns {Iterable.<*>}
 	 */
-	public* getAttributes(): Iterable<[ string, string ]> {
+	public* getAttributes(): IterableIterator<[ string, string ]> {
 		yield* this._attrs.entries();
 
 		if ( this._classes.size > 0 ) {
@@ -937,6 +941,7 @@ export default class Element extends Node {
 	 * @abstract
 	 * @method module:engine/view/element~Element#getFillerOffset
 	 */
+	// TODO
 
 	// @if CK_DEBUG_ENGINE // printTree( level = 0) {
 	// @if CK_DEBUG_ENGINE // 	let string = '';

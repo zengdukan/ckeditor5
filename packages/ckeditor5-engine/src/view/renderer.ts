@@ -536,7 +536,7 @@ class Renderer {
 	 * @param {module:engine/view/position~Position} options.inlineFillerPosition The position where the inline
 	 * filler should be rendered.
 	 */
-	private _updateText( viewText: ViewText, options: { inlineFillerPosition: ViewPosition | null } ) {
+	private _updateText( viewText: ViewText, options: { inlineFillerPosition?: ViewPosition | null } ) {
 		const domText = this.domConverter.findCorrespondingDomText( viewText )!;
 		const newDomText = this.domConverter.viewToDom( viewText, domText.ownerDocument ) as DomText;
 

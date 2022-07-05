@@ -83,13 +83,17 @@ export default class UIElement extends Element {
 
 	public override is( type: 'node' | 'view:node' ):
 		this is
-			Node | Element | AttributeElement | ContainerElement | EditableElement |
+			Node | Text | Element | AttributeElement | ContainerElement | EditableElement |
 			EmptyElement | RawElement | RootEditableElement | UIElement;
 
-	public override is( type: 'element' | 'view:element' ): this is Element;
+	public override is( type: 'element' | 'view:element' ):
+		this is
+			Element | AttributeElement | ContainerElement | EditableElement |
+			EmptyElement | RawElement | RootEditableElement | UIElement;
 	public override is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
-	public override is( type: 'containerElement' | 'view:containerElement' ): this is ContainerElement;
-	public override is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement;
+	public override is( type: 'containerElement' | 'view:containerElement' ):
+		this is ContainerElement | EditableElement | RootEditableElement;
+	public override is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement | RootEditableElement;
 	public override is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
 	public override is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
 	public override is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
@@ -109,9 +113,9 @@ export default class UIElement extends Element {
 	public override is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
 		this is ( AttributeElement ) & { name: N };
 	public override is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
-		this is ( ContainerElement ) & { name: N };
+		this is ( ContainerElement | EditableElement | RootEditableElement ) & { name: N };
 	public override is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
-		this is ( EditableElement ) & { name: N };
+		this is ( EditableElement | RootEditableElement ) & { name: N };
 	public override is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
 		this is ( EmptyElement ) & { name: N };
 	public override is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
@@ -199,9 +203,9 @@ export default class UIElement extends Element {
 	 * @param {module:engine/view/domconverter~DomConverter} domConverter Instance of the DomConverter used to optimize the output.
 	 * @returns {HTMLElement}
 	 */
-	public render( ...args: [ domDocument: DomDocument, domConverter: DomConverter ] ): DomElement {
+	public render( domDocument: DomDocument, domConverter: DomConverter ): DomElement {
 		// Provide basic, default output.
-		return this.toDomElement( args[ 0 ] );
+		return this.toDomElement( domDocument );
 	}
 
 	/**

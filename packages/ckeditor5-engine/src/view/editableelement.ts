@@ -39,8 +39,8 @@ import type UIElement from './uielement';
  * @mixes module:utils/observablemixin~ObservableMixin
  */
 class EditableElement extends ContainerElement {
-	public isReadOnly!: boolean;
-	public isFocused!: boolean;
+	declare public isReadOnly: boolean;
+	declare public isFocused: boolean;
 
 	/**
 	 * Creates an editable element.

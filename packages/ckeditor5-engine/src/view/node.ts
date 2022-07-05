@@ -79,7 +79,7 @@ abstract class Node {
 	 * @readonly
 	 * @type {Number|null}
 	 */
-	public get index(): number | null | never {
+	public get index(): number | null {
 		let pos;
 
 		if ( !this.parent ) {
@@ -319,13 +319,17 @@ abstract class Node {
 
 	public is( type: 'node' | 'view:node' ):
 		this is
-			Node | Element | AttributeElement | ContainerElement | EditableElement |
+			Node | Text | Element | AttributeElement | ContainerElement | EditableElement |
 			EmptyElement | RawElement | RootEditableElement | UIElement;
 
-	public is( type: 'element' | 'view:element' ): this is Element;
+	public is( type: 'element' | 'view:element' ):
+		this is
+			Element | AttributeElement | ContainerElement | EditableElement |
+			EmptyElement | RawElement | RootEditableElement | UIElement;
 	public is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
-	public is( type: 'containerElement' | 'view:containerElement' ): this is ContainerElement;
-	public is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement;
+	public is( type: 'containerElement' | 'view:containerElement' ):
+		this is ContainerElement | EditableElement | RootEditableElement;
+	public is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement | RootEditableElement;
 	public is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
 	public is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
 	public is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
@@ -345,9 +349,9 @@ abstract class Node {
 	public is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
 		this is ( AttributeElement ) & { name: N };
 	public is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
-		this is ( ContainerElement ) & { name: N };
+		this is ( ContainerElement | EditableElement | RootEditableElement ) & { name: N };
 	public is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
-		this is ( EditableElement ) & { name: N };
+		this is ( EditableElement | RootEditableElement ) & { name: N };
 	public is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
 		this is ( EmptyElement ) & { name: N };
 	public is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):

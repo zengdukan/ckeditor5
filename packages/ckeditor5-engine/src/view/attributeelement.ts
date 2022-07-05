@@ -42,7 +42,7 @@ const DEFAULT_PRIORITY = 10;
  * @extends module:engine/view/element~Element
  */
 export default class AttributeElement extends Element {
-	public static DEFAULT_PRIORITY: number;
+	public static readonly DEFAULT_PRIORITY: number = DEFAULT_PRIORITY;
 
 	public readonly getFillerOffset: () => number | null;
 	private readonly _priority: number;
@@ -134,7 +134,7 @@ export default class AttributeElement extends Element {
 	 * @returns {Set.<module:engine/view/attributeelement~AttributeElement>} Set containing all the attribute elements
 	 * with the same `id` that were added and not removed from the view tree.
 	 */
-	public getElementsWithSameId(): Set<AttributeElement> | never {
+	public getElementsWithSameId(): Set<AttributeElement> {
 		if ( this.id === null ) {
 			/**
 			 * Cannot get elements with the same id for an attribute element without id.
@@ -152,13 +152,17 @@ export default class AttributeElement extends Element {
 
 	public override is( type: 'node' | 'view:node' ):
 		this is
-			Node | Element | AttributeElement | ContainerElement | EditableElement |
+			Node | Text | Element | AttributeElement | ContainerElement | EditableElement |
 			EmptyElement | RawElement | RootEditableElement | UIElement;
 
-	public override is( type: 'element' | 'view:element' ): this is Element;
+	public override is( type: 'element' | 'view:element' ):
+		this is
+			Element | AttributeElement | ContainerElement | EditableElement |
+			EmptyElement | RawElement | RootEditableElement | UIElement;
 	public override is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
-	public override is( type: 'containerElement' | 'view:containerElement' ): this is ContainerElement;
-	public override is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement;
+	public override is( type: 'containerElement' | 'view:containerElement' ):
+		this is ContainerElement | EditableElement | RootEditableElement;
+	public override is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement | RootEditableElement;
 	public override is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
 	public override is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
 	public override is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
@@ -178,9 +182,9 @@ export default class AttributeElement extends Element {
 	public override is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
 		this is ( AttributeElement ) & { name: N };
 	public override is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
-		this is ( ContainerElement ) & { name: N };
+		this is ( ContainerElement | EditableElement | RootEditableElement ) & { name: N };
 	public override is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
-		this is ( EditableElement ) & { name: N };
+		this is ( EditableElement | RootEditableElement ) & { name: N };
 	public override is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
 		this is ( EmptyElement ) & { name: N };
 	public override is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
@@ -281,13 +285,6 @@ export default class AttributeElement extends Element {
 		return cloned;
 	}
 }
-
-/**
- * Default attribute priority.
- *
- * @member {Number} module:engine/view/attributeelement~AttributeElement.DEFAULT_PRIORITY
- */
-AttributeElement.DEFAULT_PRIORITY = DEFAULT_PRIORITY;
 
 // Returns block {@link module:engine/view/filler~Filler filler} offset or `null` if block filler is not needed.
 //

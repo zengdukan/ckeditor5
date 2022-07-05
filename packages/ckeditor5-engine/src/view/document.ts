@@ -36,7 +36,7 @@ class Document {
 	declare public isSelecting: boolean;
 	declare public isComposing: boolean;
 
-	declare private _postFixers: Set<ViewDocumentPostFixer>;
+	private readonly _postFixers: Set<ViewDocumentPostFixer>;
 
 	/**
 	 * Creates a Document instance.

@@ -81,9 +81,9 @@ export default class UpcastWriter {
 	 * @returns {module:engine/view/element~Element} Created element.
 	 */
 	public createElement(
-		name: ConstructorParameters<typeof Element>[ 1 ],
-		attrs: ConstructorParameters<typeof Element>[ 2 ],
-		children: ConstructorParameters<typeof Element>[ 3 ]
+		name: string,
+		attrs: Record<string, string> | Iterable<[ string, string ]>,
+		children: Node | Iterable<Node>
 	): Element {
 		return new Element( this.document, name, attrs, children );
 	}
