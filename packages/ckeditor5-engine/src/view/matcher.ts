@@ -185,7 +185,7 @@ export default class Matcher {
 // @param {module:engine/view/element~Element} element
 // @param {Object|String|RegExp|Function} pattern
 // @returns {Object|null} Returns object with match information or null if element is not matching.
-function isElementMatching( element: Element, pattern: MatcherPattern ): Match | null {
+function isElementMatching( element: Element, pattern: MatcherPattern ): Match | boolean {
 	// If pattern is provided as function - return result of that function;
 	if ( typeof pattern == 'function' ) {
 		return pattern( element );
@@ -198,7 +198,7 @@ function isElementMatching( element: Element, pattern: MatcherPattern ): Match |
 		match.name = matchName( pattern.name, element.name );
 
 		if ( !match.name ) {
-			return null;
+			return false;
 		}
 	}
 
@@ -207,7 +207,7 @@ function isElementMatching( element: Element, pattern: MatcherPattern ): Match |
 		match.attributes = matchAttributes( pattern.attributes, element );
 
 		if ( !match.attributes ) {
-			return null;
+			return false;
 		}
 	}
 
@@ -216,7 +216,7 @@ function isElementMatching( element: Element, pattern: MatcherPattern ): Match |
 		match.classes = matchClasses( pattern.classes, element );
 
 		if ( !match.classes ) {
-			return null;
+			return false;
 		}
 	}
 
@@ -225,7 +225,7 @@ function isElementMatching( element: Element, pattern: MatcherPattern ): Match |
 		match.styles = matchStyles( pattern.styles, element );
 
 		if ( !match.styles ) {
-			return null;
+			return false;
 		}
 	}
 
@@ -725,7 +725,7 @@ function matchStyles( patterns: PropertyPatterns, element: Element ): string[] |
  */
 
 export type MatcherPattern =
-	( ( element: Element ) => Match ) |
+	( ( element: Element ) => Match | boolean ) |
 	{
 		name?: string | RegExp;
 		classes?: ClassPatterns;
@@ -743,7 +743,7 @@ export interface Match {
 export interface MatchResult {
 	element: Element;
 	pattern: MatcherPattern;
-	match: Match;
+	match: Match | boolean;
 }
 
 export type PropertyPatterns =
