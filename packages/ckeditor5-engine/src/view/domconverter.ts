@@ -427,19 +427,19 @@ export default class DomConverter {
 				}
 
 				return domElement;
-			} else if ( viewNode.is( 'element' ) ) {
+			} else {
 				// Create DOM element.
-				if ( this._shouldRenameElement( viewNode.name ) ) {
-					_logUnsafeElement( viewNode.name );
+				if ( this._shouldRenameElement( ( viewNode as ViewElement ).name ) ) {
+					_logUnsafeElement( ( viewNode as ViewElement ).name );
 
-					domElement = this._createReplacementDomElement( viewNode.name );
-				} else if ( viewNode.hasAttribute( 'xmlns' ) ) {
+					domElement = this._createReplacementDomElement( ( viewNode as ViewElement ).name );
+				} else if ( ( viewNode as ViewElement ).hasAttribute( 'xmlns' ) ) {
 					domElement = domDocument.createElementNS(
-						viewNode.getAttribute( 'xmlns' )!,
-						viewNode.name
+						( viewNode as ViewElement ).getAttribute( 'xmlns' )!,
+						( viewNode as ViewElement ).name
 					) as HTMLElement;
 				} else {
-					domElement = domDocument.createElement( viewNode.name );
+					domElement = domDocument.createElement( ( viewNode as ViewElement ).name );
 				}
 
 				// RawElement take care of their children in RawElement#render() method which can be customized
@@ -449,12 +449,17 @@ export default class DomConverter {
 				}
 
 				if ( options.bind ) {
-					this.bindElements( domElement, viewNode as ViewElement );
+					this.bindElements( domElement, ( viewNode as ViewElement ) );
 				}
 
 				// Copy element's attributes.
-				for ( const key of viewNode.getAttributeKeys() ) {
-					this.setDomElementAttribute( domElement, key, viewNode.getAttribute( key )!, viewNode );
+				for ( const key of ( viewNode as ViewElement ).getAttributeKeys() ) {
+					this.setDomElementAttribute(
+						domElement,
+						key,
+						( viewNode as ViewElement ).getAttribute( key )!,
+						( viewNode as ViewElement )
+					);
 				}
 			}
 
@@ -708,7 +713,7 @@ export default class DomConverter {
 			}
 		} else {
 			if ( this.mapDomToView( domNode ) ) {
-				return this.mapDomToView( domNode ) || null;
+				return this.mapDomToView( domNode )!;
 			}
 
 			let viewElement;
@@ -770,7 +775,7 @@ export default class DomConverter {
 	 * @param {Object} options See {@link module:engine/view/domconverter~DomConverter#domToView} options parameter.
 	 * @returns {Iterable.<module:engine/view/node~Node>} View nodes.
 	 */
-	public* domChildrenToView( domElement: DomElement, options: Parameters<DomConverter[ 'domToView' ]>[ 1 ] = {} ):
+	public* domChildrenToView( domElement: DomElement, options: Parameters<DomConverter[ 'domToView' ]>[ 1 ] ):
 		IterableIterator<ViewNode> {
 		for ( let i = 0; i < domElement.childNodes.length; i++ ) {
 			const domChild = domElement.childNodes[ i ];
@@ -1598,7 +1603,7 @@ export default class DomConverter {
 	 * @param {Object} options Conversion options. See {@link module:engine/view/domconverter~DomConverter#domToView} options parameter.
 	 * @returns {Element}
 	 */
-	private _createViewElement( node: DomNode, options: Parameters<DomConverter[ 'domToView' ]>[ 1 ] = {} ): ViewElement {
+	private _createViewElement( node: DomNode, options: { keepOriginalCase?: boolean } ): ViewElement {
 		if ( isComment( node ) ) {
 			return new ViewUIElement( this.document, '$comment' );
 		}
@@ -1616,7 +1621,7 @@ export default class DomConverter {
 	 * @param {Object} options Conversion options. See {@link module:engine/view/domconverter~DomConverter#domToView} options parameter.
 	 * @returns {Boolean}
 	 */
-	private _isViewElementWithRawContent( viewElement: ViewElement, options: Parameters<DomConverter[ 'domToView' ]>[ 1 ] = {} ): boolean {
+	private _isViewElementWithRawContent( viewElement: ViewElement, options: { withChildren?: boolean } ): boolean {
 		return options.withChildren !== false && !!this._rawContentElementMatcher.match( viewElement );
 	}
 
