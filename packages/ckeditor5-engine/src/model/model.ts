@@ -827,7 +827,7 @@ class Model {
 	 * @param {module:engine/model/item~Item} item Item after which the position should be placed.
 	 * @returns {module:engine/model/position~Position}
 	 */
-	public createPositionAfter( item: Item | DocumentFragment ): ModelPosition {
+	public createPositionAfter( item: Item ): ModelPosition {
 		return ModelPosition._createAfter( item );
 	}
 
@@ -840,7 +840,7 @@ class Model {
 	 * @param {module:engine/model/item~Item} item Item before which the position should be placed.
 	 * @returns {module:engine/model/position~Position}
 	 */
-	public createPositionBefore( item: Item | DocumentFragment ): ModelPosition {
+	public createPositionBefore( item: Item ): ModelPosition {
 		return ModelPosition._createBefore( item );
 	}
 
