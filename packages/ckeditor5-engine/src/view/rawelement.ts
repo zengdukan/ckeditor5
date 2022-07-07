@@ -33,7 +33,7 @@ type DomElement = globalThis.HTMLElement;
  * @extends module:engine/view/element~Element
  */
 export default class RawElement extends Element {
-	public readonly getFillerOffset: () => null;
+	public override readonly getFillerOffset: () => null;
 
 	/**
 	 * Creates a new instance of a raw element.

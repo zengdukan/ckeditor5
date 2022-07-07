@@ -22,7 +22,7 @@ import type Node from './node';
  * @extends module:engine/view/element~Element
  */
 export default class EmptyElement extends Element {
-	public readonly getFillerOffset: () => null;
+	public override readonly getFillerOffset: () => null;
 
 	/**
 	 * Creates new instance of EmptyElement.

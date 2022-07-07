@@ -50,6 +50,8 @@ import { isPlainObject } from 'lodash-es';
 export default class Element extends Node {
 	public name: string;
 
+	public readonly getFillerOffset?: () => number | null;
+
 	private _unsafeAttributesToRender: string[];
 	private readonly _attrs: Map<string, string>;
 	private readonly _children: Node[];
@@ -591,7 +593,7 @@ export default class Element extends Node {
 		// Clone filler offset method.
 		// We can't define this method in a prototype because it's behavior which
 		// is changed by e.g. toWidget() function from ckeditor5-widget. Perhaps this should be one of custom props.
-		cloned.getFillerOffset = ( this as any ).getFillerOffset;
+		cloned.getFillerOffset = this.getFillerOffset;
 
 		// Clone unsafe attributes list.
 		cloned._unsafeAttributesToRender = this._unsafeAttributesToRender;
@@ -852,7 +854,6 @@ export default class Element extends Node {
 	 * @abstract
 	 * @method module:engine/view/element~Element#getFillerOffset
 	 */
-	// TODO
 
 	// @if CK_DEBUG_ENGINE // printTree( level = 0) {
 	// @if CK_DEBUG_ENGINE // 	let string = '';
