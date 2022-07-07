@@ -573,7 +573,7 @@ export default class Element extends Node {
 
 		if ( deep ) {
 			for ( const child of this.getChildren() ) {
-				childrenClone.push( ( child as Element )._clone( deep ) );
+				childrenClone.push( child._clone( deep ) );
 			}
 		}
 

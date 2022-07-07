@@ -105,7 +105,7 @@ export default class Text extends Node {
 	 * @protected
 	 * @returns {module:engine/view/text~Text} Text node that is a clone of this node.
 	 */
-	private _clone(): Text {
+	public _clone(): Text {
 		return new Text( this.document, this.data );
 	}
 

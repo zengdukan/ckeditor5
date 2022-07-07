@@ -315,6 +315,7 @@ abstract class Node extends TypeCheckable {
 	 * @method #_clone
 	 * @returns {module:engine/view/node~Node} Clone of this node.
 	 */
+	public abstract _clone( deep?: boolean ): Node;
 
 	/**
 	 * Checks if provided node is similar to this node.
@@ -322,6 +323,7 @@ abstract class Node extends TypeCheckable {
 	 * @method #isSimilar
 	 * @returns {Boolean} True if nodes are similar.
 	 */
+	public abstract isSimilar( other: Node ): boolean;
 }
 
 /**
