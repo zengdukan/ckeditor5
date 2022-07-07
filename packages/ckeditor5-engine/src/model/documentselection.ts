@@ -7,6 +7,7 @@
  * @module engine/model/documentselection
  */
 
+import TypeCheckable from './typecheckable';
 import LiveRange from './liverange';
 import Selection from './selection';
 import Text from './text';
@@ -15,15 +16,11 @@ import TextProxy from './textproxy';
 import type { Marker } from './markercollection';
 import type Batch from './batch';
 import type Document from './document';
-import type DocumentFragment from './documentfragment';
 import type Element from './element';
 import type Item from './item';
-import type LivePosition from './liveposition';
 import type Model from './model';
-import type Node from './node';
 import type Position from './position';
 import type Range from './range';
-import type RootElement from './rootelement';
 
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 import Collection from '@ckeditor/ckeditor5-utils/src/collection';
@@ -60,7 +57,7 @@ const storePrefix = 'selection:';
  *
  * @mixes module:utils/emittermixin~EmitterMixin
  */
-class DocumentSelection {
+class DocumentSelection extends TypeCheckable {
 	protected _selection: LiveSelection;
 
 	/**
@@ -69,6 +66,8 @@ class DocumentSelection {
 	 * @param {module:engine/model/document~Document} doc Document which owns this selection.
 	 */
 	constructor( doc: Document ) {
+		super();
+
 		/**
 		 * Selection used internally by that class (`DocumentSelection` is a proxy to that selection).
 		 *
@@ -394,46 +393,6 @@ class DocumentSelection {
 		this._selection.observeMarkers( prefixOrName );
 	}
 
-	public is( type: 'node' | 'model:node' ): this is Node | Element | Text | RootElement;
-	public is( type: 'element' | 'model:element' ): this is Element | RootElement;
-	public is( type: 'rootElement' | 'model:rootElement' ): this is RootElement;
-	public is( type: '$text' | 'model:$text' ): this is Text;
-	public is( type: 'position' | 'model:position' ): this is Position | LivePosition;
-	public is( type: 'livePosition' | 'model:livePosition' ): this is LivePosition;
-	public is( type: 'range' | 'model:range' ): this is Range | LiveRange;
-	public is( type: 'liveRange' | 'model:liveRange' ): this is LiveRange;
-	public is( type: 'documentFragment' | 'model:documentFragment' ): this is DocumentFragment;
-	public is( type: 'selection' | 'model:selection' ): this is Selection | DocumentSelection;
-	public is( type: 'documentSelection' | 'model:documentSelection' ): this is DocumentSelection;
-	public is( type: 'marker' | 'model:marker' ): this is Marker;
-	public is( type: '$textProxy' | 'model:$textProxy' ): this is TextProxy;
-	public is<N extends string>( type: 'element' | 'model:element', name: N ): this is ( Element | RootElement ) & { name: N };
-	public is<N extends string>( type: 'rootElement' | 'model:rootElement', name: N ): this is RootElement & { name: N };
-
-	/**
-	 * Checks whether this object is of the given type.
-	 *
-	 *		selection.is( 'selection' ); // -> true
-	 *		selection.is( 'documentSelection' ); // -> true
-	 *		selection.is( 'model:selection' ); // -> true
-	 *		selection.is( 'model:documentSelection' ); // -> true
-	 *
-	 *		selection.is( 'view:selection' ); // -> false
-	 *		selection.is( 'element' ); // -> false
-	 *		selection.is( 'node' ); // -> false
-	 *
-	 * {@link module:engine/model/node~Node#is Check the entire list of model objects} which implement the `is()` method.
-	 *
-	 * @param {String} type
-	 * @returns {Boolean}
-	 */
-	public is( type: string ): boolean {
-		return type === 'selection' ||
-			type == 'model:selection' ||
-			type == 'documentSelection' ||
-			type == 'model:documentSelection';
-	}
-
 	/**
 	 * Moves {@link module:engine/model/documentselection~DocumentSelection#focus} to the specified location.
 	 * Should be used only within the {@link module:engine/model/writer~Writer#setSelectionFocus} method.
@@ -566,6 +525,30 @@ class DocumentSelection {
 		return key.startsWith( storePrefix );
 	}
 }
+
+/**
+ * Checks whether this object is of the given type.
+ *
+ *		selection.is( 'selection' ); // -> true
+ *		selection.is( 'documentSelection' ); // -> true
+ *		selection.is( 'model:selection' ); // -> true
+ *		selection.is( 'model:documentSelection' ); // -> true
+ *
+ *		selection.is( 'view:selection' ); // -> false
+ *		selection.is( 'element' ); // -> false
+ *		selection.is( 'node' ); // -> false
+ *
+ * {@link module:engine/model/node~Node#is Check the entire list of model objects} which implement the `is()` method.
+ *
+ * @param {String} type
+ * @returns {Boolean}
+ */
+DocumentSelection.prototype.is = function( type: string ): boolean {
+	return type === 'selection' ||
+		type == 'model:selection' ||
+		type == 'documentSelection' ||
+		type == 'model:documentSelection';
+};
 
 mix( DocumentSelection, EmitterMixin );
 

@@ -9,21 +9,13 @@
 
 import Range from './range';
 
-import type { Marker } from './markercollection';
 import type DocumentFragment from './documentfragment';
-import type DocumentSelection from './documentselection';
 import type Element from './element';
 import type Item from './item';
-import type LivePosition from './liveposition';
 import type MergeOperation from './operation/mergeoperation';
 import type MoveOperation from './operation/moveoperation';
-import type Node from './node';
 import type Operation from './operation/operation';
 import type Position from './position';
-import type RootElement from './rootelement';
-import type Selection from './selection';
-import type Text from './text';
-import type TextProxy from './textproxy';
 
 import EmitterMixin, { type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
@@ -55,44 +47,6 @@ class LiveRange extends Range {
 	 */
 	public detach(): void {
 		this.stopListening();
-	}
-
-	public override is( type: 'node' | 'model:node' ): this is Node | Element | Text | RootElement;
-	public override is( type: 'element' | 'model:element' ): this is Element | RootElement;
-	public override is( type: 'rootElement' | 'model:rootElement' ): this is RootElement;
-	public override is( type: '$text' | 'model:$text' ): this is Text;
-	public override is( type: 'position' | 'model:position' ): this is Position | LivePosition;
-	public override is( type: 'livePosition' | 'model:livePosition' ): this is LivePosition;
-	public override is( type: 'range' | 'model:range' ): this is Range | LiveRange;
-	public override is( type: 'liveRange' | 'model:liveRange' ): this is LiveRange;
-	public override is( type: 'documentFragment' | 'model:documentFragment' ): this is DocumentFragment;
-	public override is( type: 'selection' | 'model:selection' ): this is Selection | DocumentSelection;
-	public override is( type: 'documentSelection' | 'model:documentSelection' ): this is DocumentSelection;
-	public override is( type: 'marker' | 'model:marker' ): this is Marker;
-	public override is( type: '$textProxy' | 'model:$textProxy' ): this is TextProxy;
-	public override is<N extends string>( type: 'element' | 'model:element', name: N ): this is ( Element | RootElement ) & { name: N };
-	public override is<N extends string>( type: 'rootElement' | 'model:rootElement', name: N ): this is RootElement & { name: N };
-
-	/**
-	 * Checks whether this object is of the given.
-	 *
-	 *		liveRange.is( 'range' ); // -> true
-	 *		liveRange.is( 'model:range' ); // -> true
-	 *		liveRange.is( 'liveRange' ); // -> true
-	 *		liveRange.is( 'model:liveRange' ); // -> true
-	 *
-	 *		liveRange.is( 'view:range' ); // -> false
-	 *		liveRange.is( 'documentSelection' ); // -> false
-	 *
-	 * {@link module:engine/model/node~Node#is Check the entire list of model objects} which implement the `is()` method.
-	 *
-	 * @param {String} type
-	 * @returns {Boolean}
-	 */
-	public override is( type: string ): boolean {
-		return type === 'liveRange' || type === 'model:liveRange' ||
-			// From super.is(). This is highly utilised method and cannot call super. See ckeditor/ckeditor5#6529.
-			type == 'range' || type === 'model:range';
 	}
 
 	/**
@@ -175,6 +129,28 @@ class LiveRange extends Range {
 	 * for compatibility with the {@link module:engine/model/liverange~LiveRange#event:change:range} event.
 	 */
 }
+
+/**
+ * Checks whether this object is of the given.
+ *
+ *		liveRange.is( 'range' ); // -> true
+ *		liveRange.is( 'model:range' ); // -> true
+ *		liveRange.is( 'liveRange' ); // -> true
+ *		liveRange.is( 'model:liveRange' ); // -> true
+ *
+ *		liveRange.is( 'view:range' ); // -> false
+ *		liveRange.is( 'documentSelection' ); // -> false
+ *
+ * {@link module:engine/model/node~Node#is Check the entire list of model objects} which implement the `is()` method.
+ *
+ * @param {String} type
+ * @returns {Boolean}
+ */
+LiveRange.prototype.is = function( type: string ): boolean {
+	return type === 'liveRange' || type === 'model:liveRange' ||
+		// From super.is(). This is highly utilised method and cannot call super. See ckeditor/ckeditor5#6529.
+		type == 'range' || type === 'model:range';
+};
 
 // Binds this `LiveRange` to the {@link module:engine/model/document~Document document}
 // that owns this range's {@link module:engine/model/range~Range#root root}.

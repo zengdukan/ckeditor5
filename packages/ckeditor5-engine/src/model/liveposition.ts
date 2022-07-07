@@ -9,19 +9,10 @@
 
 import Position, { type PositionStickiness } from './position';
 
-import type { Marker } from './markercollection';
 import type DocumentFragment from './documentfragment';
-import type DocumentSelection from './documentselection';
-import type Element from './element';
 import type Item from './item';
-import type LiveRange from './liverange';
-import type Node from './node';
 import type Operation from './operation/operation';
-import type Range from './range';
 import type RootElement from './rootelement';
-import type Selection from './selection';
-import type Text from './text';
-import type TextProxy from './textproxy';
 
 import EmitterMixin, { type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
@@ -75,44 +66,6 @@ class LivePosition extends Position {
 	 */
 	public detach(): void {
 		this.stopListening();
-	}
-
-	public override is( type: 'node' | 'model:node' ): this is Node | Element | Text | RootElement;
-	public override is( type: 'element' | 'model:element' ): this is Element | RootElement;
-	public override is( type: 'rootElement' | 'model:rootElement' ): this is RootElement;
-	public override is( type: '$text' | 'model:$text' ): this is Text;
-	public override is( type: 'position' | 'model:position' ): this is Position | LivePosition;
-	public override is( type: 'livePosition' | 'model:livePosition' ): this is LivePosition;
-	public override is( type: 'range' | 'model:range' ): this is Range | LiveRange;
-	public override is( type: 'liveRange' | 'model:liveRange' ): this is LiveRange;
-	public override is( type: 'documentFragment' | 'model:documentFragment' ): this is DocumentFragment;
-	public override is( type: 'selection' | 'model:selection' ): this is Selection | DocumentSelection;
-	public override is( type: 'documentSelection' | 'model:documentSelection' ): this is DocumentSelection;
-	public override is( type: 'marker' | 'model:marker' ): this is Marker;
-	public override is( type: '$textProxy' | 'model:$textProxy' ): this is TextProxy;
-	public override is<N extends string>( type: 'element' | 'model:element', name: N ): this is ( Element | RootElement ) & { name: N };
-	public override is<N extends string>( type: 'rootElement' | 'model:rootElement', name: N ): this is RootElement & { name: N };
-
-	/**
-	 * Checks whether this object is of the given.
-	 *
-	 *		livePosition.is( 'position' ); // -> true
-	 *		livePosition.is( 'model:position' ); // -> true
-	 *		livePosition.is( 'liveposition' ); // -> true
-	 *		livePosition.is( 'model:livePosition' ); // -> true
-	 *
-	 *		livePosition.is( 'view:position' ); // -> false
-	 *		livePosition.is( 'documentSelection' ); // -> false
-	 *
-	 * {@link module:engine/model/node~Node#is Check the entire list of model objects} which implement the `is()` method.
-	 *
-	 * @param {String} type
-	 * @returns {Boolean}
-	 */
-	public override is( type: string ): boolean {
-		return type === 'livePosition' || type === 'model:livePosition' ||
-			// From super.is(). This is highly utilised method and cannot call super. See ckeditor/ckeditor5#6529.
-			type == 'position' || type === 'model:position';
 	}
 
 	/**
@@ -186,6 +139,28 @@ class LivePosition extends Position {
 	 * @param {module:engine/model/position~Position} oldPosition Position equal to this live position before it got changed.
 	 */
 }
+
+/**
+ * Checks whether this object is of the given.
+ *
+ *		livePosition.is( 'position' ); // -> true
+ *		livePosition.is( 'model:position' ); // -> true
+ *		livePosition.is( 'liveposition' ); // -> true
+ *		livePosition.is( 'model:livePosition' ); // -> true
+ *
+ *		livePosition.is( 'view:position' ); // -> false
+ *		livePosition.is( 'documentSelection' ); // -> false
+ *
+ * {@link module:engine/model/node~Node#is Check the entire list of model objects} which implement the `is()` method.
+ *
+ * @param {String} type
+ * @returns {Boolean}
+ */
+LivePosition.prototype.is = function( type: string ): boolean {
+	return type === 'livePosition' || type === 'model:livePosition' ||
+		// From super.is(). This is highly utilised method and cannot call super. See ckeditor/ckeditor5#6529.
+		type == 'position' || type === 'model:position';
+};
 
 // Binds this `LivePosition` to the {@link module:engine/model/document~Document document} that owns
 // this position's {@link module:engine/model/position~Position#root root}.
