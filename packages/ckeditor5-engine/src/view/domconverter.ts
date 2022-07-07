@@ -542,7 +542,7 @@ export default class DomConverter {
 		domDocument: DomDocument,
 		options: Parameters<DomConverter[ 'viewToDom' ]>[ 2 ] = {}
 	): IterableIterator<Node> {
-		const fillerPositionOffset = ( viewElement as any ).getFillerOffset && ( viewElement as any ).getFillerOffset();
+		const fillerPositionOffset = viewElement.getFillerOffset && viewElement.getFillerOffset();
 		let offset = 0;
 
 		for ( const childView of viewElement.getChildren() ) {
