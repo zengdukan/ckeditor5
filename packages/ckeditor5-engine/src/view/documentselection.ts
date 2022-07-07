@@ -7,25 +7,17 @@
  * @module engine/view/documentselection
  */
 
+import TypeCheckable from './typecheckable';
 import Selection from './selection';
+
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
 import { default as EmitterMixin, type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
 
-import type AttributeElement from './attributeelement';
-import type ContainerElement from './containerelement';
-import type DocumentFragment from './documentfragment';
 import type EditableElement from './editableelement';
 import type Element from './element';
-import type EmptyElement from './emptyelement';
 import type Item from './item';
-import type Node from './node';
 import type Position from './position';
 import type Range from './range';
-import type RawElement from './rawelement';
-import type RootEditableElement from './rooteditableelement';
-import type Text from './text';
-import type TextProxy from './textproxy';
-import type UIElement from './uielement';
 
 /**
  * Class representing the document selection in the view.
@@ -37,7 +29,7 @@ import type UIElement from './uielement';
  * the {@link module:engine/view/view~View#change `View#change()`} block
  * (so via {@link module:engine/view/downcastwriter~DowncastWriter#setSelection `DowncastWriter#setSelection()`}).
  */
-class DocumentSelection {
+class DocumentSelection extends TypeCheckable {
 	private readonly _selection: Selection;
 
 	/**
@@ -97,6 +89,8 @@ class DocumentSelection {
 	 * @param {String} [options.label] Label for the fake selection.
 	 */
 	constructor( ...args: ConstructorParameters<typeof Selection> ) {
+		super();
+
 		/**
 		 * Selection is used internally (`DocumentSelection` is a proxy to that selection).
 		 *
@@ -294,74 +288,6 @@ class DocumentSelection {
 		return this._selection.isSimilar( otherSelection );
 	}
 
-	public is( type: 'node' | 'view:node' ):
-		this is
-			Node | Text | Element | AttributeElement | ContainerElement | EditableElement |
-			EmptyElement | RawElement | RootEditableElement | UIElement;
-
-	public is( type: 'element' | 'view:element' ):
-		this is
-			Element | AttributeElement | ContainerElement | EditableElement |
-			EmptyElement | RawElement | RootEditableElement | UIElement;
-	public is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
-	public is( type: 'containerElement' | 'view:containerElement' ):
-		this is ContainerElement | EditableElement | RootEditableElement;
-	public is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement | RootEditableElement;
-	public is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
-	public is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
-	public is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
-	public is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
-	public is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
-	public is( type: '$text' | 'view:$text' ): this is Text;
-	public is( type: '$textProxy' | 'view:$textProxy' ): this is TextProxy;
-	public is( type: 'position' | 'view:position' ): this is Position;
-	public is( type: 'range' | 'view:range' ): this is Range;
-	public is( type: 'selection' | 'view:selection' ): this is Selection;
-	public is( type: 'documentSelection' | 'view:documentSelection' ): this is DocumentSelection;
-
-	public is<N extends string>( type: 'element' | 'view:element', name: N ):
-		this is (
-			Element | AttributeElement | ContainerElement | EditableElement | EmptyElement | RawElement | RootEditableElement | UIElement
-		) & { name: N };
-	public is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
-		this is ( AttributeElement ) & { name: N };
-	public is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
-		this is ( ContainerElement | EditableElement | RootEditableElement ) & { name: N };
-	public is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
-		this is ( EditableElement | RootEditableElement ) & { name: N };
-	public is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
-		this is ( EmptyElement ) & { name: N };
-	public is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
-		this is ( RawElement ) & { name: N };
-	public is<N extends string>( type: 'rootElement' | 'view:rootElement', name: N ):
-		this is ( RootEditableElement ) & { name: N };
-	public is<N extends string>( type: 'uiElement' | 'view:uiElement', name: N ):
-		this is ( UIElement ) & { name: N };
-
-	/**
-	 * Checks whether this object is of the given type.
-	 *
-	 *		docSelection.is( 'selection' ); // -> true
-	 *		docSelection.is( 'documentSelection' ); // -> true
-	 *		docSelection.is( 'view:selection' ); // -> true
-	 *		docSelection.is( 'view:documentSelection' ); // -> true
-	 *
-	 *		docSelection.is( 'model:documentSelection' ); // -> false
-	 *		docSelection.is( 'element' ); // -> false
-	 *		docSelection.is( 'node' ); // -> false
-	 *
-	 * {@link module:engine/view/node~Node#is Check the entire list of view objects} which implement the `is()` method.
-	 *
-	 * @param {String} type
-	 * @returns {Boolean}
-	 */
-	public is( type: string ): boolean {
-		return type === 'selection' ||
-			type == 'documentSelection' ||
-			type == 'view:selection' ||
-			type == 'view:documentSelection';
-	}
-
 	/**
 	 * Sets this selection's ranges and direction to the specified location based on the given
 	 * {@link module:engine/view/selection~Selectable selectable}.
@@ -447,6 +373,30 @@ class DocumentSelection {
 	 * @event change
 	 */
 }
+
+/**
+ * Checks whether this object is of the given type.
+ *
+ *		docSelection.is( 'selection' ); // -> true
+ *		docSelection.is( 'documentSelection' ); // -> true
+ *		docSelection.is( 'view:selection' ); // -> true
+ *		docSelection.is( 'view:documentSelection' ); // -> true
+ *
+ *		docSelection.is( 'model:documentSelection' ); // -> false
+ *		docSelection.is( 'element' ); // -> false
+ *		docSelection.is( 'node' ); // -> false
+ *
+ * {@link module:engine/view/node~Node#is Check the entire list of view objects} which implement the `is()` method.
+ *
+ * @param {String} type
+ * @returns {Boolean}
+ */
+DocumentSelection.prototype.is = function( type: string ): boolean {
+	return type === 'selection' ||
+		type == 'documentSelection' ||
+		type == 'view:selection' ||
+		type == 'view:documentSelection';
+};
 
 mix( DocumentSelection, EmitterMixin );
 

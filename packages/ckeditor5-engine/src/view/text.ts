@@ -9,21 +9,7 @@
 
 import Node from './node';
 
-import type AttributeElement from './attributeelement';
-import type ContainerElement from './containerelement';
 import type Document from './document';
-import type DocumentFragment from './documentfragment';
-import type DocumentSelection from './documentselection';
-import type EditableElement from './editableelement';
-import type Element from './element';
-import type EmptyElement from './emptyelement';
-import type Position from './position';
-import type Range from './range';
-import type RawElement from './rawelement';
-import type RootEditableElement from './rooteditableelement';
-import type Selection from './selection';
-import type TextProxy from './textproxy';
-import type UIElement from './uielement';
 
 /**
  * Tree view text node.
@@ -58,78 +44,6 @@ export default class Text extends Node {
 		 * @member {String} module:engine/view/text~Text#_textData
 		 */
 		this._textData = data;
-	}
-
-	public override is( type: 'node' | 'view:node' ):
-		this is
-			Node | Text | Element | AttributeElement | ContainerElement | EditableElement |
-			EmptyElement | RawElement | RootEditableElement | UIElement;
-
-	public override is( type: 'element' | 'view:element' ):
-		this is
-			Element | AttributeElement | ContainerElement | EditableElement |
-			EmptyElement | RawElement | RootEditableElement | UIElement;
-	public override is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
-	public override is( type: 'containerElement' | 'view:containerElement' ):
-		this is ContainerElement | EditableElement | RootEditableElement;
-	public override is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement | RootEditableElement;
-	public override is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
-	public override is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
-	public override is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
-	public override is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
-	public override is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
-	public override is( type: '$text' | 'view:$text' ): this is Text;
-	public override is( type: '$textProxy' | 'view:$textProxy' ): this is TextProxy;
-	public override is( type: 'position' | 'view:position' ): this is Position;
-	public override is( type: 'range' | 'view:range' ): this is Range;
-	public override is( type: 'selection' | 'view:selection' ): this is Selection;
-	public override is( type: 'documentSelection' | 'view:documentSelection' ): this is DocumentSelection;
-
-	public override is<N extends string>( type: 'element' | 'view:element', name: N ):
-		this is (
-			Element | AttributeElement | ContainerElement | EditableElement | EmptyElement | RawElement | RootEditableElement | UIElement
-		) & { name: N };
-	public override is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
-		this is ( AttributeElement ) & { name: N };
-	public override is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
-		this is ( ContainerElement | EditableElement | RootEditableElement ) & { name: N };
-	public override is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
-		this is ( EditableElement | RootEditableElement ) & { name: N };
-	public override is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
-		this is ( EmptyElement ) & { name: N };
-	public override is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
-		this is ( RawElement ) & { name: N };
-	public override is<N extends string>( type: 'rootElement' | 'view:rootElement', name: N ):
-		this is ( RootEditableElement ) & { name: N };
-	public override is<N extends string>( type: 'uiElement' | 'view:uiElement', name: N ):
-		this is ( UIElement ) & { name: N };
-
-	/**
-	 * Checks whether this object is of the given type.
-	 *
-	 *		text.is( '$text' ); // -> true
-	 *		text.is( 'node' ); // -> true
-	 *		text.is( 'view:$text' ); // -> true
-	 *		text.is( 'view:node' ); // -> true
-	 *
-	 *		text.is( 'model:$text' ); // -> false
-	 *		text.is( 'element' ); // -> false
-	 *		text.is( 'range' ); // -> false
-	 *
-	 * {@link module:engine/view/node~Node#is Check the entire list of view objects} which implement the `is()` method.
-	 *
-	 * **Note:** Until version 20.0.0 this method wasn't accepting `'$text'` type. The legacy `'text'` type is still
-	 * accepted for backward compatibility.
-	 *
-	 * @param {String} type Type to check.
-	 * @returns {Boolean}
-	 */
-	public override is( type: string ): boolean {
-		return type === '$text' || type === 'view:$text' ||
-			// This are legacy values kept for backward compatibility.
-			type === 'text' || type === 'view:text' ||
-			// From super.is(). This is highly utilised method and cannot call super. See ckeditor/ckeditor5#6529.
-			type === 'node' || type === 'view:node';
 	}
 
 	/**
@@ -207,3 +121,31 @@ export default class Text extends Node {
 	// @if CK_DEBUG_ENGINE // 	console.log( 'ViewText: ' + this );
 	// @if CK_DEBUG_ENGINE // }
 }
+
+/**
+ * Checks whether this object is of the given type.
+ *
+ *		text.is( '$text' ); // -> true
+ *		text.is( 'node' ); // -> true
+ *		text.is( 'view:$text' ); // -> true
+ *		text.is( 'view:node' ); // -> true
+ *
+ *		text.is( 'model:$text' ); // -> false
+ *		text.is( 'element' ); // -> false
+ *		text.is( 'range' ); // -> false
+ *
+ * {@link module:engine/view/node~Node#is Check the entire list of view objects} which implement the `is()` method.
+ *
+ * **Note:** Until version 20.0.0 this method wasn't accepting `'$text'` type. The legacy `'text'` type is still
+ * accepted for backward compatibility.
+ *
+ * @param {String} type Type to check.
+ * @returns {Boolean}
+ */
+Text.prototype.is = function( type: string ): boolean {
+	return type === '$text' || type === 'view:$text' ||
+		// This are legacy values kept for backward compatibility.
+		type === 'text' || type === 'view:text' ||
+		// From super.is(). This is highly utilised method and cannot call super. See ckeditor/ckeditor5#6529.
+		type === 'node' || type === 'view:node';
+};

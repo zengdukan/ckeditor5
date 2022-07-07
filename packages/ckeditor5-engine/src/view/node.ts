@@ -7,6 +7,8 @@
  * @module engine/view/node
  */
 
+import TypeCheckable from './typecheckable';
+
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 import EmitterMixin, { type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
@@ -17,21 +19,8 @@ import { clone } from 'lodash-es';
 import '@ckeditor/ckeditor5-utils/src/version';
 
 import type { default as Document, ChangeType } from './document';
-import type AttributeElement from './attributeelement';
-import type ContainerElement from './containerelement';
 import type DocumentFragment from './documentfragment';
-import type DocumentSelection from './documentselection';
-import type EditableElement from './editableelement';
 import type Element from './element';
-import type EmptyElement from './emptyelement';
-import type Position from './position';
-import type Range from './range';
-import type RawElement from './rawelement';
-import type RootEditableElement from './rooteditableelement';
-import type Selection from './selection';
-import type Text from './text';
-import type TextProxy from './textproxy';
-import type UIElement from './uielement';
 
 /**
  * Abstract view node class.
@@ -42,7 +31,7 @@ import type UIElement from './uielement';
  *
  * @abstract
  */
-abstract class Node {
+abstract class Node extends TypeCheckable {
 	public document: Document;
 	public parent: Element | DocumentFragment | null;
 
@@ -53,6 +42,8 @@ abstract class Node {
 	 * @param {module:engine/view/document~Document} document The document instance to which this node belongs.
 	 */
 	constructor( document: Document ) {
+		super();
+
 		/**
 		 * The document instance to which this node belongs.
 		 *
@@ -317,98 +308,6 @@ abstract class Node {
 		return json;
 	}
 
-	public is( type: 'node' | 'view:node' ):
-		this is
-			Node | Text | Element | AttributeElement | ContainerElement | EditableElement |
-			EmptyElement | RawElement | RootEditableElement | UIElement;
-
-	public is( type: 'element' | 'view:element' ):
-		this is
-			Element | AttributeElement | ContainerElement | EditableElement |
-			EmptyElement | RawElement | RootEditableElement | UIElement;
-	public is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
-	public is( type: 'containerElement' | 'view:containerElement' ):
-		this is ContainerElement | EditableElement | RootEditableElement;
-	public is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement | RootEditableElement;
-	public is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
-	public is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
-	public is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
-	public is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
-	public is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
-	public is( type: '$text' | 'view:$text' ): this is Text;
-	public is( type: '$textProxy' | 'view:$textProxy' ): this is TextProxy;
-	public is( type: 'position' | 'view:position' ): this is Position;
-	public is( type: 'range' | 'view:range' ): this is Range;
-	public is( type: 'selection' | 'view:selection' ): this is Selection;
-	public is( type: 'documentSelection' | 'view:documentSelection' ): this is DocumentSelection;
-
-	public is<N extends string>( type: 'element' | 'view:element', name: N ):
-		this is (
-			Element | AttributeElement | ContainerElement | EditableElement | EmptyElement | RawElement | RootEditableElement | UIElement
-		) & { name: N };
-	public is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
-		this is ( AttributeElement ) & { name: N };
-	public is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
-		this is ( ContainerElement | EditableElement | RootEditableElement ) & { name: N };
-	public is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
-		this is ( EditableElement | RootEditableElement ) & { name: N };
-	public is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
-		this is ( EmptyElement ) & { name: N };
-	public is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
-		this is ( RawElement ) & { name: N };
-	public is<N extends string>( type: 'rootElement' | 'view:rootElement', name: N ):
-		this is ( RootEditableElement ) & { name: N };
-	public is<N extends string>( type: 'uiElement' | 'view:uiElement', name: N ):
-		this is ( UIElement ) & { name: N };
-
-	/**
-	 * Checks whether this object is of the given type.
-	 *
-	 * This method is useful when processing view objects that are of unknown type. For example, a function
-	 * may return a {@link module:engine/view/documentfragment~DocumentFragment} or a {@link module:engine/view/node~Node}
-	 * that can be either a text node or an element. This method can be used to check what kind of object is returned.
-	 *
-	 *		someObject.is( 'element' ); // -> true if this is an element
-	 *		someObject.is( 'node' ); // -> true if this is a node (a text node or an element)
-	 *		someObject.is( 'documentFragment' ); // -> true if this is a document fragment
-	 *
-	 * Since this method is also available on a range of model objects, you can prefix the type of the object with
-	 * `model:` or `view:` to check, for example, if this is the model's or view's element:
-	 *
-	 *		viewElement.is( 'view:element' ); // -> true
-	 *		viewElement.is( 'model:element' ); // -> false
-	 *
-	 * By using this method it is also possible to check a name of an element:
-	 *
-	 *		imgElement.is( 'element', 'img' ); // -> true
-	 *		imgElement.is( 'view:element', 'img' ); // -> same as above, but more precise
-	 *
-	 * The list of view objects which implement the `is()` method:
-	 *
-	 * * {@link module:engine/view/attributeelement~AttributeElement#is `AttributeElement#is()`}
-	 * * {@link module:engine/view/containerelement~ContainerElement#is `ContainerElement#is()`}
-	 * * {@link module:engine/view/documentfragment~DocumentFragment#is `DocumentFragment#is()`}
-	 * * {@link module:engine/view/documentselection~DocumentSelection#is `DocumentSelection#is()`}
-	 * * {@link module:engine/view/editableelement~EditableElement#is `EditableElement#is()`}
-	 * * {@link module:engine/view/element~Element#is `Element#is()`}
-	 * * {@link module:engine/view/emptyelement~EmptyElement#is `EmptyElement#is()`}
-	 * * {@link module:engine/view/node~Node#is `Node#is()`}
-	 * * {@link module:engine/view/position~Position#is `Position#is()`}
-	 * * {@link module:engine/view/range~Range#is `Range#is()`}
-	 * * {@link module:engine/view/rooteditableelement~RootEditableElement#is `RootEditableElement#is()`}
-	 * * {@link module:engine/view/selection~Selection#is `Selection#is()`}
-	 * * {@link module:engine/view/text~Text#is `Text#is()`}
-	 * * {@link module:engine/view/textproxy~TextProxy#is `TextProxy#is()`}
-	 * * {@link module:engine/view/uielement~UIElement#is `UIElement#is()`}
-	 *
-	 * @method #is
-	 * @param {String} type Type to check.
-	 * @returns {Boolean}
-	 */
-	public is( type: string ): boolean {
-		return type === 'node' || type === 'view:node';
-	}
-
 	/**
 	 * Clones this node.
 	 *
@@ -424,6 +323,54 @@ abstract class Node {
 	 * @returns {Boolean} True if nodes are similar.
 	 */
 }
+
+/**
+ * Checks whether this object is of the given type.
+ *
+ * This method is useful when processing view objects that are of unknown type. For example, a function
+ * may return a {@link module:engine/view/documentfragment~DocumentFragment} or a {@link module:engine/view/node~Node}
+ * that can be either a text node or an element. This method can be used to check what kind of object is returned.
+ *
+ *		someObject.is( 'element' ); // -> true if this is an element
+ *		someObject.is( 'node' ); // -> true if this is a node (a text node or an element)
+ *		someObject.is( 'documentFragment' ); // -> true if this is a document fragment
+ *
+ * Since this method is also available on a range of model objects, you can prefix the type of the object with
+ * `model:` or `view:` to check, for example, if this is the model's or view's element:
+ *
+ *		viewElement.is( 'view:element' ); // -> true
+ *		viewElement.is( 'model:element' ); // -> false
+ *
+ * By using this method it is also possible to check a name of an element:
+ *
+ *		imgElement.is( 'element', 'img' ); // -> true
+ *		imgElement.is( 'view:element', 'img' ); // -> same as above, but more precise
+ *
+ * The list of view objects which implement the `is()` method:
+ *
+ * * {@link module:engine/view/attributeelement~AttributeElement#is `AttributeElement#is()`}
+ * * {@link module:engine/view/containerelement~ContainerElement#is `ContainerElement#is()`}
+ * * {@link module:engine/view/documentfragment~DocumentFragment#is `DocumentFragment#is()`}
+ * * {@link module:engine/view/documentselection~DocumentSelection#is `DocumentSelection#is()`}
+ * * {@link module:engine/view/editableelement~EditableElement#is `EditableElement#is()`}
+ * * {@link module:engine/view/element~Element#is `Element#is()`}
+ * * {@link module:engine/view/emptyelement~EmptyElement#is `EmptyElement#is()`}
+ * * {@link module:engine/view/node~Node#is `Node#is()`}
+ * * {@link module:engine/view/position~Position#is `Position#is()`}
+ * * {@link module:engine/view/range~Range#is `Range#is()`}
+ * * {@link module:engine/view/rooteditableelement~RootEditableElement#is `RootEditableElement#is()`}
+ * * {@link module:engine/view/selection~Selection#is `Selection#is()`}
+ * * {@link module:engine/view/text~Text#is `Text#is()`}
+ * * {@link module:engine/view/textproxy~TextProxy#is `TextProxy#is()`}
+ * * {@link module:engine/view/uielement~UIElement#is `UIElement#is()`}
+ *
+ * @method #is
+ * @param {String} type Type to check.
+ * @returns {Boolean}
+ */
+Node.prototype.is = function( type: string ): boolean {
+	return type === 'node' || type === 'view:node';
+};
 
 /**
  * Fired when list of {@link module:engine/view/element~Element elements} children changes.

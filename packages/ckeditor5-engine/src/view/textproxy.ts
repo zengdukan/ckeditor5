@@ -7,24 +7,14 @@
  * @module engine/view/textproxy
  */
 
+import TypeCheckable from './typecheckable';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 
-import type AttributeElement from './attributeelement';
-import type ContainerElement from './containerelement';
 import type Document from './document';
 import type DocumentFragment from './documentfragment';
-import type DocumentSelection from './documentselection';
-import type EditableElement from './editableelement';
 import type Element from './element';
-import type EmptyElement from './emptyelement';
 import type Node from './node';
-import type Position from './position';
-import type Range from './range';
-import type RawElement from './rawelement';
-import type RootEditableElement from './rooteditableelement';
-import type Selection from './selection';
 import type Text from './text';
-import type UIElement from './uielement';
 
 /**
  * TextProxy is a wrapper for substring of {@link module:engine/view/text~Text}. Instance of this class is created by
@@ -46,7 +36,7 @@ import type UIElement from './uielement';
  * `TextProxy` instances are created by {@link module:engine/view/treewalker~TreeWalker view tree walker}. You should not need to create
  * an instance of this class by your own.
  */
-export default class TextProxy {
+export default class TextProxy extends TypeCheckable {
 	public readonly textNode: Text;
 	public readonly data: string;
 	public readonly offsetInText: number;
@@ -62,6 +52,8 @@ export default class TextProxy {
 	 * @constructor
 	 */
 	constructor( textNode: Text, offsetInText: number, length: number ) {
+		super();
+
 		/**
 		 * Reference to the {@link module:engine/view/text~Text} element which TextProxy is a substring.
 		 *
@@ -161,74 +153,6 @@ export default class TextProxy {
 		return this.textNode.document;
 	}
 
-	public is( type: 'node' | 'view:node' ):
-		this is
-			Node | Text | Element | AttributeElement | ContainerElement | EditableElement |
-			EmptyElement | RawElement | RootEditableElement | UIElement;
-
-	public is( type: 'element' | 'view:element' ):
-		this is
-			Element | AttributeElement | ContainerElement | EditableElement |
-			EmptyElement | RawElement | RootEditableElement | UIElement;
-	public is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
-	public is( type: 'containerElement' | 'view:containerElement' ):
-		this is ContainerElement | EditableElement | RootEditableElement;
-	public is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement | RootEditableElement;
-	public is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
-	public is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
-	public is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
-	public is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
-	public is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
-	public is( type: '$text' | 'view:$text' ): this is Text;
-	public is( type: '$textProxy' | 'view:$textProxy' ): this is TextProxy;
-	public is( type: 'position' | 'view:position' ): this is Position;
-	public is( type: 'range' | 'view:range' ): this is Range;
-	public is( type: 'selection' | 'view:selection' ): this is Selection;
-	public is( type: 'documentSelection' | 'view:documentSelection' ): this is DocumentSelection;
-
-	public is<N extends string>( type: 'element' | 'view:element', name: N ):
-		this is (
-			Element | AttributeElement | ContainerElement | EditableElement | EmptyElement | RawElement | RootEditableElement | UIElement
-		) & { name: N };
-	public is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
-		this is ( AttributeElement ) & { name: N };
-	public is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
-		this is ( ContainerElement | EditableElement | RootEditableElement ) & { name: N };
-	public is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
-		this is ( EditableElement | RootEditableElement ) & { name: N };
-	public is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
-		this is ( EmptyElement ) & { name: N };
-	public is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
-		this is ( RawElement ) & { name: N };
-	public is<N extends string>( type: 'rootElement' | 'view:rootElement', name: N ):
-		this is ( RootEditableElement ) & { name: N };
-	public is<N extends string>( type: 'uiElement' | 'view:uiElement', name: N ):
-		this is ( UIElement ) & { name: N };
-
-	/**
-	 * Checks whether this object is of the given type.
-	 *
-	 *		textProxy.is( '$textProxy' ); // -> true
-	 *		textProxy.is( 'view:$textProxy' ); // -> true
-	 *
-	 *		textProxy.is( 'model:$textProxy' ); // -> false
-	 *		textProxy.is( 'element' ); // -> false
-	 *		textProxy.is( 'range' ); // -> false
-	 *
-	 * {@link module:engine/view/node~Node#is Check the entire list of view objects} which implement the `is()` method.
-	 *
-	 * **Note:** Until version 20.0.0 this method wasn't accepting `'$textProxy'` type. The legacy `'textProxy'` type is still
-	 * accepted for backward compatibility.
-	 *
-	 * @param {String} type Type to check.
-	 * @returns {Boolean}
-	 */
-	public is( type: string ): boolean {
-		return type === '$textProxy' || type === 'view:$textProxy' ||
-			// This are legacy values kept for backward compatibility.
-			type === 'textProxy' || type === 'view:textProxy';
-	}
-
 	/**
 	 * Returns ancestors array of this text proxy.
 	 *
@@ -265,3 +189,27 @@ export default class TextProxy {
 	// @if CK_DEBUG_ENGINE // 	console.log( 'ViewTextProxy: ' + this );
 	// @if CK_DEBUG_ENGINE // }
 }
+
+/**
+ * Checks whether this object is of the given type.
+ *
+ *		textProxy.is( '$textProxy' ); // -> true
+ *		textProxy.is( 'view:$textProxy' ); // -> true
+ *
+ *		textProxy.is( 'model:$textProxy' ); // -> false
+ *		textProxy.is( 'element' ); // -> false
+ *		textProxy.is( 'range' ); // -> false
+ *
+ * {@link module:engine/view/node~Node#is Check the entire list of view objects} which implement the `is()` method.
+ *
+ * **Note:** Until version 20.0.0 this method wasn't accepting `'$textProxy'` type. The legacy `'textProxy'` type is still
+ * accepted for backward compatibility.
+ *
+ * @param {String} type Type to check.
+ * @returns {Boolean}
+ */
+TextProxy.prototype.is = function( type: string ): boolean {
+	return type === '$textProxy' || type === 'view:$textProxy' ||
+		// This are legacy values kept for backward compatibility.
+		type === 'textProxy' || type === 'view:textProxy';
+};

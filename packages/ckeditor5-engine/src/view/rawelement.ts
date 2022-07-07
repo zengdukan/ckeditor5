@@ -10,20 +10,6 @@
 import Element from './element';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 
-import type AttributeElement from './attributeelement';
-import type ContainerElement from './containerelement';
-import type DocumentFragment from './documentfragment';
-import type DocumentSelection from './documentselection';
-import type EditableElement from './editableelement';
-import type EmptyElement from './emptyelement';
-import type Node from './node';
-import type Position from './position';
-import type Range from './range';
-import type RootEditableElement from './rooteditableelement';
-import type Selection from './selection';
-import type Text from './text';
-import type TextProxy from './textproxy';
-import type UIElement from './uielement';
 import type DomConverter from './domconverter';
 
 type DomElement = globalThis.HTMLElement;
@@ -75,92 +61,6 @@ export default class RawElement extends Element {
 		this.getFillerOffset = getFillerOffset;
 	}
 
-	public override is( type: 'node' | 'view:node' ):
-		this is
-			Node | Text | Element | AttributeElement | ContainerElement | EditableElement |
-			EmptyElement | RawElement | RootEditableElement | UIElement;
-
-	public override is( type: 'element' | 'view:element' ):
-		this is
-			Element | AttributeElement | ContainerElement | EditableElement |
-			EmptyElement | RawElement | RootEditableElement | UIElement;
-	public override is( type: 'attributeElement' | 'view:attributeElement' ): this is AttributeElement;
-	public override is( type: 'containerElement' | 'view:containerElement' ):
-		this is ContainerElement | EditableElement | RootEditableElement;
-	public override is( type: 'editableElement' | 'view:editableElement' ): this is EditableElement | RootEditableElement;
-	public override is( type: 'emptyElement' | 'view:emptyElement' ): this is EmptyElement;
-	public override is( type: 'rawElement' | 'view:rawElement' ): this is RawElement;
-	public override is( type: 'rootElement' | 'view:rootElement' ): this is RootEditableElement;
-	public override is( type: 'uiElement' | 'view:uiElement' ): this is UIElement;
-	public override is( type: 'documentFragment' | 'view:documentFragment' ): this is DocumentFragment;
-	public override is( type: '$text' | 'view:$text' ): this is Text;
-	public override is( type: '$textProxy' | 'view:$textProxy' ): this is TextProxy;
-	public override is( type: 'position' | 'view:position' ): this is Position;
-	public override is( type: 'range' | 'view:range' ): this is Range;
-	public override is( type: 'selection' | 'view:selection' ): this is Selection;
-	public override is( type: 'documentSelection' | 'view:documentSelection' ): this is DocumentSelection;
-
-	public override is<N extends string>( type: 'element' | 'view:element', name: N ):
-		this is (
-			Element | AttributeElement | ContainerElement | EditableElement | EmptyElement | RawElement | RootEditableElement | UIElement
-		) & { name: N };
-	public override is<N extends string>( type: 'attributeElement' | 'view:attributeElement', name: N ):
-		this is ( AttributeElement ) & { name: N };
-	public override is<N extends string>( type: 'containerElement' | 'view:containerElement', name: N ):
-		this is ( ContainerElement | EditableElement | RootEditableElement ) & { name: N };
-	public override is<N extends string>( type: 'editableElement' | 'view:editableElement', name: N ):
-		this is ( EditableElement | RootEditableElement ) & { name: N };
-	public override is<N extends string>( type: 'emptyElement' | 'view:emptyElement', name: N ):
-		this is ( EmptyElement ) & { name: N };
-	public override is<N extends string>( type: 'rawElement' | 'view:rawElement', name: N ):
-		this is ( RawElement ) & { name: N };
-	public override is<N extends string>( type: 'rootElement' | 'view:rootElement', name: N ):
-		this is ( RootEditableElement ) & { name: N };
-	public override is<N extends string>( type: 'uiElement' | 'view:uiElement', name: N ):
-		this is ( UIElement ) & { name: N };
-
-	/**
-	 * Checks whether this object is of the given type or name.
-	 *
-	 *		rawElement.is( 'rawElement' ); // -> true
-	 *		rawElement.is( 'element' ); // -> true
-	 *		rawElement.is( 'node' ); // -> true
-	 *		rawElement.is( 'view:rawElement' ); // -> true
-	 *		rawElement.is( 'view:element' ); // -> true
-	 *		rawElement.is( 'view:node' ); // -> true
-	 *
-	 *		rawElement.is( 'model:element' ); // -> false
-	 *		rawElement.is( 'documentFragment' ); // -> false
-	 *
-	 * Assuming that the object being checked is a raw element, you can also check its
-	 * {@link module:engine/view/rawelement~RawElement#name name}:
-	 *
-	 *		rawElement.is( 'img' ); // -> true if this is an img element
-	 *		rawElement.is( 'rawElement', 'img' ); // -> same as above
-	 *		text.is( 'img' ); -> false
-	 *
-	 * {@link module:engine/view/node~Node#is Check the entire list of view objects} which implement the `is()` method.
-	 *
-	 * @param {String} type The type to check when the `name` parameter is present.
-	 * Otherwise, it acts like the `name` parameter.
-	 * @param {String} [name] The element name.
-	 * @returns {Boolean}
-	 */
-	public override is( type: string, name?: string ): boolean {
-		if ( !name ) {
-			return type === 'rawElement' || type === 'view:rawElement' ||
-				// From super.is(). This is highly utilised method and cannot call super. See ckeditor/ckeditor5#6529.
-				type === this.name || type === 'view:' + this.name ||
-				type === 'element' || type === 'view:element' ||
-				type === 'node' || type === 'view:node';
-		} else {
-			return name === this.name && (
-				type === 'rawElement' || type === 'view:rawElement' ||
-				type === 'element' || type === 'view:element'
-			);
-		}
-	}
-
 	/**
 	 * Overrides the {@link module:engine/view/element~Element#_insertChild} method.
 	 * Throws the `view-rawelement-cannot-add` {@link module:utils/ckeditorerror~CKEditorError CKEditorError} to prevent
@@ -201,6 +101,48 @@ export default class RawElement extends Element {
 	public render(): void {}
 	// TODO
 }
+
+/**
+ * Checks whether this object is of the given type or name.
+ *
+ *		rawElement.is( 'rawElement' ); // -> true
+ *		rawElement.is( 'element' ); // -> true
+ *		rawElement.is( 'node' ); // -> true
+ *		rawElement.is( 'view:rawElement' ); // -> true
+ *		rawElement.is( 'view:element' ); // -> true
+ *		rawElement.is( 'view:node' ); // -> true
+ *
+ *		rawElement.is( 'model:element' ); // -> false
+ *		rawElement.is( 'documentFragment' ); // -> false
+ *
+ * Assuming that the object being checked is a raw element, you can also check its
+ * {@link module:engine/view/rawelement~RawElement#name name}:
+ *
+ *		rawElement.is( 'img' ); // -> true if this is an img element
+ *		rawElement.is( 'rawElement', 'img' ); // -> same as above
+ *		text.is( 'img' ); -> false
+ *
+ * {@link module:engine/view/node~Node#is Check the entire list of view objects} which implement the `is()` method.
+ *
+ * @param {String} type The type to check when the `name` parameter is present.
+ * Otherwise, it acts like the `name` parameter.
+ * @param {String} [name] The element name.
+ * @returns {Boolean}
+ */
+RawElement.prototype.is = function( type: string, name?: string ): boolean {
+	if ( !name ) {
+		return type === 'rawElement' || type === 'view:rawElement' ||
+			// From super.is(). This is highly utilised method and cannot call super. See ckeditor/ckeditor5#6529.
+			type === this.name || type === 'view:' + this.name ||
+			type === 'element' || type === 'view:element' ||
+			type === 'node' || type === 'view:node';
+	} else {
+		return name === this.name && (
+			type === 'rawElement' || type === 'view:rawElement' ||
+			type === 'element' || type === 'view:element'
+		);
+	}
+};
 
 // Returns `null` because block filler is not needed for raw elements.
 //
