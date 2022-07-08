@@ -11,16 +11,23 @@
 
 import OperationFactory from '../model/operation/operationfactory';
 
+import type Model from '../model/model';
+import type Operation from '../model/operation/operation';
+
 /**
  * Operation replayer is a development tool created for easy replaying of operations on the document from stringified operations.
  */
 export default class OperationReplayer {
+	private _model: Model;
+	private _logSeparator: string;
+	private _operationsToReplay!: Operation[];
+
 	/**
 	 * @param {module:engine/model/model~Model} model Data model.
 	 * @param {String} logSeparator Separator between operations.
 	 * @param {String} stringifiedOperations Operations to replay.
 	 */
-	constructor( model, logSeparator, stringifiedOperations ) {
+	constructor( model: Model, logSeparator: string, stringifiedOperations: string ) {
 		this._model = model;
 		this._logSeparator = logSeparator;
 		this.setStringifiedOperations( stringifiedOperations );
@@ -31,7 +38,7 @@ export default class OperationReplayer {
 	 *
 	 * @param {String} stringifiedOperations Stringified operations to replay.
 	 */
-	setStringifiedOperations( stringifiedOperations ) {
+	public setStringifiedOperations( stringifiedOperations: string ): void {
 		if ( stringifiedOperations === '' ) {
 			this._operationsToReplay = [];
 
@@ -48,7 +55,7 @@ export default class OperationReplayer {
 	 *
 	 * @returns {Array.<module:engine/model/operation/operation~Operation>}
 	 */
-	getOperationsToReplay() {
+	public getOperationsToReplay(): Operation[] {
 		return this._operationsToReplay;
 	}
 
@@ -58,8 +65,9 @@ export default class OperationReplayer {
 	 * @param {Number} timeInterval Time between applying operations.
 	 * @returns {Promise}
 	 */
-	play( timeInterval = 1000 ) {
-		const operationReplayer = this; // eslint-disable-line consistent-this
+	public play( timeInterval = 1000 ): Promise<void> {
+		// eslint-disable-next-line @typescript-eslint/no-this-alias, consistent-this
+		const operationReplayer = this;
 
 		return new Promise( ( res, rej ) => {
 			play();
@@ -84,7 +92,7 @@ export default class OperationReplayer {
 	 * @param {Number} numberOfOperations The number of operations to apply.
 	 * @returns {Promise}
 	 */
-	applyOperations( numberOfOperations ) {
+	public applyOperations( numberOfOperations: number ): Promise<void> | undefined {
 		if ( numberOfOperations <= 0 ) {
 			return;
 		}
@@ -102,7 +110,7 @@ export default class OperationReplayer {
 	 *
 	 * @returns {Promise}
 	 */
-	applyAllOperations() {
+	public applyAllOperations(): Promise<void> {
 		return this.applyNextOperation()
 			.then( isFinished => {
 				if ( !isFinished ) {
@@ -117,7 +125,7 @@ export default class OperationReplayer {
 	 *
 	 * @returns {Promise.<Boolean>}
 	 */
-	applyNextOperation() {
+	public applyNextOperation(): Promise<boolean> {
 		const model = this._model;
 
 		return new Promise( res => {

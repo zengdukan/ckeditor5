@@ -979,7 +979,9 @@ function isEditable( element: ViewElement ): boolean {
 		return false;
 	}
 
-	const parent = element.findAncestor( element => element.hasAttribute( 'contenteditable' ) );
+	const parent = element.findAncestor( element =>
+		element.hasAttribute( 'contenteditable' ) ? { attributes: [ 'contenteditable' ] } : null
+	);
 
 	return !parent || parent.getAttribute( 'contenteditable' ) == 'true';
 }

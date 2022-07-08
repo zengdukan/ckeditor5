@@ -18,7 +18,7 @@ import { logWarning } from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
  * Instance of this class can be used to find {@link module:engine/view/element~Element elements} that match given pattern.
  */
 export default class Matcher {
-	private readonly _patterns: MatcherPattern[];
+	private readonly _patterns: Exclude<MatcherPattern, string | RegExp>[];
 
 	/**
 	 * Creates new instance of Matcher.
@@ -26,10 +26,10 @@ export default class Matcher {
 	 * @param {String|RegExp|Object|Function} [pattern] Match patterns. See {@link module:engine/view/matcher~Matcher#add add method} for
 	 * more information.
 	 */
-	constructor( ...pattern: ( string | RegExp | MatcherPattern )[] ) {
+	constructor( ...pattern: MatcherPattern[] ) {
 		/**
 		 * @private
-		 * @type {Array<String|RegExp|Object|Function>}
+		 * @type {Array<Object|Function>}
 		 */
 		this._patterns = [];
 
@@ -73,7 +73,7 @@ export default class Matcher {
 	 * represents style name. Value under that key can be either a string or a regular expression and it will be used
 	 * to match style value.
 	 */
-	public add( ...pattern: ( string | RegExp | MatcherPattern )[] ): void {
+	public add( ...pattern: MatcherPattern[] ): void {
 		for ( let item of pattern ) {
 			// String or RegExp pattern is used as element's name.
 			if ( typeof item == 'string' || item instanceof RegExp ) {
@@ -185,7 +185,7 @@ export default class Matcher {
 // @param {module:engine/view/element~Element} element
 // @param {Object|String|RegExp|Function} pattern
 // @returns {Object|null} Returns object with match information or null if element is not matching.
-function isElementMatching( element: Element, pattern: MatcherPattern ): Match | boolean {
+function isElementMatching( element: Element, pattern: Exclude<MatcherPattern, string | RegExp> ): Match | null {
 	// If pattern is provided as function - return result of that function;
 	if ( typeof pattern == 'function' ) {
 		return pattern( element );
@@ -198,7 +198,7 @@ function isElementMatching( element: Element, pattern: MatcherPattern ): Match |
 		match.name = matchName( pattern.name, element.name );
 
 		if ( !match.name ) {
-			return false;
+			return null;
 		}
 	}
 
@@ -207,7 +207,7 @@ function isElementMatching( element: Element, pattern: MatcherPattern ): Match |
 		match.attributes = matchAttributes( pattern.attributes, element );
 
 		if ( !match.attributes ) {
-			return false;
+			return null;
 		}
 	}
 
@@ -216,7 +216,7 @@ function isElementMatching( element: Element, pattern: MatcherPattern ): Match |
 		match.classes = matchClasses( pattern.classes, element );
 
 		if ( !match.classes ) {
-			return false;
+			return null;
 		}
 	}
 
@@ -225,7 +225,7 @@ function isElementMatching( element: Element, pattern: MatcherPattern ): Match |
 		match.styles = matchStyles( pattern.styles, element );
 
 		if ( !match.styles ) {
-			return false;
+			return null;
 		}
 	}
 
@@ -706,7 +706,7 @@ function matchStyles( patterns: PropertyPatterns, element: Element ): string[] |
  *				const size = fontSize.match( /(\d+)/px );
  *
  *				if ( size && Number( size[ 1 ] ) > 26 ) {
- *					return { name: true, attribute: [ 'font-size' ] };
+ *					return { name: true, attributes: [ 'font-size' ] };
  *				}
  *			}
  *
@@ -725,7 +725,9 @@ function matchStyles( patterns: PropertyPatterns, element: Element ): string[] |
  */
 
 export type MatcherPattern =
-	( ( element: Element ) => Match | boolean ) |
+	string |
+	RegExp |
+	( ( element: Element ) => Match | null ) |
 	{
 		name?: string | RegExp;
 		classes?: ClassPatterns;
@@ -742,8 +744,8 @@ export interface Match {
 
 export interface MatchResult {
 	element: Element;
-	pattern: MatcherPattern;
-	match: Match | boolean;
+	pattern: Exclude<MatcherPattern, string | RegExp>;
+	match: Match;
 }
 
 export type PropertyPatterns =

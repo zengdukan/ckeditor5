@@ -3,6 +3,8 @@
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
+import type HtmlWriter from './htmlwriter';
+
 /**
  * @module engine/dataprocessor/basichtmlwriter
  */
@@ -15,14 +17,14 @@
  *
  * @implements module:engine/dataprocessor/htmlwriter~HtmlWriter
  */
-export default class BasicHtmlWriter {
+export default class BasicHtmlWriter implements HtmlWriter {
 	/**
 	 * Returns an HTML string created from the document fragment.
 	 *
 	 * @param {DocumentFragment} fragment
 	 * @returns {String}
 	 */
-	getHtml( fragment ) {
+	public getHtml( fragment: DocumentFragment ): string {
 		const doc = document.implementation.createHTMLDocument( '' );
 		const container = doc.createElement( 'div' );
 		container.appendChild( fragment );

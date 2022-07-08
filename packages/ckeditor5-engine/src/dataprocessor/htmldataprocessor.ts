@@ -12,19 +12,30 @@
 import BasicHtmlWriter from './basichtmlwriter';
 import DomConverter from '../view/domconverter';
 
+import type DataProcessor from './dataprocessor';
+import type HtmlWriter from './htmlwriter';
+import type ViewNode from '../view/node';
+import type ViewDocument from '../view/document';
+import type ViewDocumentFragment from '../view/documentfragment';
+import { type MatcherPattern } from '../view/matcher';
+
 /**
  * The HTML data processor class.
  * This data processor implementation uses HTML as input and output data.
  *
  * @implements module:engine/dataprocessor/dataprocessor~DataProcessor
  */
-export default class HtmlDataProcessor {
+export default class HtmlDataProcessor implements DataProcessor {
+	public domParser: DOMParser;
+	public domConverter: DomConverter;
+	public htmlWriter: HtmlWriter;
+
 	/**
 	 * Creates a new instance of the HTML data processor class.
 	 *
 	 * @param {module:engine/view/document~Document} document The view document instance.
 	 */
-	constructor( document ) {
+	constructor( document: ViewDocument ) {
 		/**
 		 * A DOM parser instance used to parse an HTML string to an HTML document.
 		 *
@@ -54,9 +65,9 @@ export default class HtmlDataProcessor {
 	 * @param {module:engine/view/documentfragment~DocumentFragment} viewFragment
 	 * @returns {String} HTML string.
 	 */
-	toData( viewFragment ) {
+	public toData( viewFragment: ViewDocumentFragment ): string {
 		// Convert view DocumentFragment to DOM DocumentFragment.
-		const domFragment = this.domConverter.viewToDom( viewFragment, document );
+		const domFragment = this.domConverter.viewToDom( viewFragment, document ) as DocumentFragment;
 
 		// Convert DOM DocumentFragment to HTML output.
 		return this.htmlWriter.getHtml( domFragment );
@@ -68,7 +79,7 @@ export default class HtmlDataProcessor {
 	 * @param {String} data An HTML string.
 	 * @returns {module:engine/view/node~Node|module:engine/view/documentfragment~DocumentFragment|null} A converted view element.
 	 */
-	toView( data ) {
+	public toView( data: string ): ViewNode | ViewDocumentFragment | null {
 		// Convert input HTML data to DOM DocumentFragment.
 		const domFragment = this._toDom( data );
 
@@ -86,7 +97,7 @@ export default class HtmlDataProcessor {
 	 * @param {module:engine/view/matcher~MatcherPattern} pattern Pattern matching all view elements whose content should
 	 * be treated as raw data.
 	 */
-	registerRawContentMatcher( pattern ) {
+	public registerRawContentMatcher( pattern: MatcherPattern ): void {
 		this.domConverter.registerRawContentMatcher( pattern );
 	}
 
@@ -101,7 +112,7 @@ export default class HtmlDataProcessor {
 	 *
 	 * @param {'default'|'marked'} type Whether to use the default or the marked `&nbsp;` block fillers.
 	 */
-	useFillerType( type ) {
+	public useFillerType( type: 'default' | 'marked' ): void {
 		this.domConverter.blockFillerMode = type == 'marked' ? 'markedNbsp' : 'nbsp';
 	}
 
@@ -113,7 +124,7 @@ export default class HtmlDataProcessor {
 	 * @param {String} data
 	 * @returns {DocumentFragment}
 	 */
-	_toDom( data ) {
+	private _toDom( data: string ): DocumentFragment {
 		// Wrap data with a <body> tag so leading non-layout nodes (like <script>, <style>, HTML comment)
 		// will be preserved in the body collection.
 		// Do it only for data that is not a full HTML document.

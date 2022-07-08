@@ -20,3 +20,7 @@
  * @param {DocumentFragment} fragment
  * @returns {String}
  */
+
+export default interface HtmlWriter {
+    getHtml( fragment: DocumentFragment ): string;
+}

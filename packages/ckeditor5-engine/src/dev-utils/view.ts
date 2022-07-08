@@ -28,6 +28,10 @@ import UIElement from '../view/uielement';
 import RawElement from '../view/rawelement';
 import { StylesProcessor } from '../view/stylesmap';
 
+import type ViewNode from '../view/node';
+import type ViewText from '../view/text';
+import type DomConverter from '../view/domconverter';
+
 const ELEMENT_RANGE_START_TOKEN = '[';
 const ELEMENT_RANGE_END_TOKEN = ']';
 const TEXT_RANGE_START_TOKEN = '{';
@@ -41,11 +45,11 @@ const allowedTypes = {
 };
 // Returns simplified implementation of {@link module:engine/view/domconverter~DomConverter#setContentOf DomConverter.setContentOf} method.
 // Used to render UIElement and RawElement.
-const domConverterStub = {
-	setContentOf: ( node, html ) => {
+const domConverterStub: DomConverter = {
+	setContentOf: ( node: any, html: string ) => {
 		node.innerHTML = html;
 	}
-};
+} as any;
 
 /**
  * Writes the content of the {@link module:engine/view/document~Document document} to an HTML-like string.
@@ -71,7 +75,18 @@ const domConverterStub = {
  * i.e. with view data filtering. Otherwise the simple stub is used.
  * @returns {String} The stringified data.
  */
-export function getData( view, options = {} ) {
+export function getData(
+	view: View,
+	options: {
+		withoutSelection?: boolean;
+		rootName?: string;
+		showType?: boolean;
+		showPriority?: boolean;
+		renderUIElements?: boolean;
+		renderRawElements?: boolean;
+		domConverter?: DomConverter;
+	} = {}
+): string {
 	if ( !( view instanceof View ) ) {
 		throw new TypeError( 'View needs to be an instance of module:engine/view/view~View.' );
 	}
@@ -79,7 +94,7 @@ export function getData( view, options = {} ) {
 	const document = view.document;
 	const withoutSelection = !!options.withoutSelection;
 	const rootName = options.rootName || 'main';
-	const root = document.getRoot( rootName );
+	const root = document.getRoot( rootName )!;
 	const stringifyOptions = {
 		showType: options.showType,
 		showPriority: options.showPriority,
@@ -106,17 +121,21 @@ getData._stringify = stringify;
  * @param {String} [options.rootName='main'] The root name where parsed data will be stored. If not provided,
  * the default `main` name will be used.
  */
-export function setData( view, data, options = {} ) {
+export function setData(
+	view: View,
+	data: string,
+	options: { rootName?: string } = {}
+): void {
 	if ( !( view instanceof View ) ) {
 		throw new TypeError( 'View needs to be an instance of module:engine/view/view~View.' );
 	}
 
 	const document = view.document;
 	const rootName = options.rootName || 'main';
-	const root = document.getRoot( rootName );
+	const root = document.getRoot( rootName )!;
 
 	view.change( writer => {
-		const result = setData._parse( data, { rootElement: root } );
+		const result: any = setData._parse( data, { rootElement: root } );
 
 		if ( result.view && result.selection ) {
 			writer.setSelection( result.selection );
@@ -257,7 +276,20 @@ setData._parse = parse;
  * i.e. with view data filtering. Otherwise the simple stub is used.
  * @returns {String} An HTML-like string representing the view.
  */
-export function stringify( node, selectionOrPositionOrRange = null, options = {} ) {
+export function stringify(
+	node: ViewNode | ViewDocumentFragment,
+	selectionOrPositionOrRange: DocumentSelection | Position | Range | null = null,
+	options: {
+		showType?: boolean;
+		showPriority?: boolean;
+		showAttributeElementId?: boolean;
+		ignoreRoot?: boolean;
+		sameSelectionCharacters?: boolean;
+		renderUIElements?: boolean;
+		renderRawElements?: boolean;
+		domConverter?: DomConverter;
+	} = {}
+): string {
 	let selection;
 
 	if (
@@ -349,7 +381,15 @@ export function stringify( node, selectionOrPositionOrRange = null, options = {}
  * Returns the parsed view node or an object with two fields: `view` and `selection` when selection ranges were included in the data
  * to parse.
  */
-export function parse( data, options = {} ) {
+export function parse(
+	data: string,
+	options: {
+		order?: number[];
+		lastRangeBackward?: boolean;
+		rootElement?: ViewElement | ViewDocumentFragment;
+		sameSelectionCharacters?: boolean;
+	} = {}
+): ViewNode | ViewDocumentFragment | { view: ViewNode | ViewDocumentFragment; selection: DocumentSelection } {
 	const viewDocument = new ViewDocument( new StylesProcessor() );
 
 	options.order = options.order || [];
@@ -361,7 +401,7 @@ export function parse( data, options = {} ) {
 	} );
 
 	// Convert data to view.
-	let view = processor.toView( data );
+	let view = processor.toView( data )!;
 
 	// At this point we have a view tree with Elements that could have names like `attribute:b:1`. In the next step
 	// we need to parse Element's names and convert them to AttributeElements and ContainerElements.
@@ -370,7 +410,7 @@ export function parse( data, options = {} ) {
 	// If custom root is provided - move all nodes there.
 	if ( options.rootElement ) {
 		const root = options.rootElement;
-		const nodes = view._removeChildren( 0, view.childCount );
+		const nodes = ( view as any )._removeChildren( 0, ( view as any ).childCount );
 
 		root._removeChildren( 0, root.childCount );
 		root._appendChild( nodes );
@@ -410,6 +450,9 @@ export function parse( data, options = {} ) {
  * @private
  */
 class RangeParser {
+	public sameSelectionCharacters: boolean;
+	private _positions!: { bracket: string; position: Position }[];
+
 	/**
 	 * Creates a range parser instance.
 	 *
@@ -417,7 +460,7 @@ class RangeParser {
 	 * @param {Boolean} [options.sameSelectionCharacters=false] When set to `true`, the selection inside the text is marked as
 	 * `{` and `}` and the selection outside the text as `[` and `]`. When set to `false`, both are marked as `[` and `]`.
 	 */
-	constructor( options ) {
+	constructor( options: { sameSelectionCharacters?: boolean } ) {
 		this.sameSelectionCharacters = !!options.sameSelectionCharacters;
 	}
 
@@ -432,7 +475,7 @@ class RangeParser {
 	 * as the first.
 	 * @returns {Array.<module:engine/view/range~Range>} An array with ranges found.
 	 */
-	parse( node, order ) {
+	public parse( node: ViewNode | ViewDocumentFragment, order: number[] ): Range[] {
 		this._positions = [];
 
 		// Remove all range brackets from view nodes and save their positions.
@@ -462,7 +505,7 @@ class RangeParser {
 	 * @private
 	 * @param {module:engine/view/node~Node} node Staring node.
 	 */
-	_getPositions( node ) {
+	private _getPositions( node: ViewNode | ViewDocumentFragment ): void {
 		if ( node.is( 'documentFragment' ) || node.is( 'element' ) ) {
 			// Copy elements into the array, when nodes will be removed from parent node this array will still have all the
 			// items needed for iteration.
@@ -498,8 +541,8 @@ class RangeParser {
 
 			text = text.replace( regexp, '' );
 			node._data = text;
-			const index = node.index;
-			const parent = node.parent;
+			const index = node.index!;
+			const parent = node.parent!;
 
 			// Remove empty text nodes.
 			if ( !text ) {
@@ -565,7 +608,7 @@ class RangeParser {
 	 * @param {Array.<Number>} rangesOrder An array with new range order.
 	 * @returns {Array} Sorted ranges array.
 	 */
-	_sortRanges( ranges, rangesOrder ) {
+	private _sortRanges( ranges: Range[], rangesOrder: number[] ): Range[] {
 		const sortedRanges = [];
 		let index = 0;
 
@@ -587,7 +630,7 @@ class RangeParser {
 	 * @private
 	 * @returns {Array.<module:engine/view/range~Range>}
 	 */
-	_createRanges() {
+	private _createRanges(): Range[] {
 		const ranges = [];
 		let range = null;
 
@@ -606,8 +649,8 @@ class RangeParser {
 			if ( item.bracket == ELEMENT_RANGE_START_TOKEN || item.bracket == TEXT_RANGE_START_TOKEN ) {
 				range = new Range( item.position, item.position );
 			} else {
-				range.end = item.position;
-				ranges.push( range );
+				range!.end = item.position;
+				ranges.push( range! );
 				range = null;
 			}
 		}
@@ -627,6 +670,18 @@ class RangeParser {
  * @private
  */
 class ViewStringify {
+	public root: ViewNode | ViewDocumentFragment;
+	public selection: DocumentSelection | null;
+	public ranges: Range[];
+	public showType: boolean;
+	public showPriority: boolean;
+	public showAttributeElementId: boolean;
+	public ignoreRoot: boolean;
+	public sameSelectionCharacters: boolean;
+	public renderUIElements: boolean;
+	public renderRawElements: boolean;
+	public domConverter: DomConverter;
+
 	/**
 	 * Creates a view stringify instance.
 	 *
@@ -649,12 +704,25 @@ class ViewStringify {
 	 * i.e. with view data filtering. Otherwise the simple stub is used.
 	 * {@link module:engine/view/rawelement~RawElement} will be printed.
 	 */
-	constructor( root, selection, options ) {
+	constructor(
+		root: ViewNode | ViewDocumentFragment,
+		selection: DocumentSelection | null,
+		options: {
+			showType?: boolean;
+			showPriority?: boolean;
+			showAttributeElementId?: boolean;
+			ignoreRoot?: boolean;
+			sameSelectionCharacters?: boolean;
+			renderUIElements?: boolean;
+			renderRawElements?: boolean;
+			domConverter?: DomConverter;
+		}
+	) {
 		this.root = root;
 		this.selection = selection;
 		this.ranges = [];
 
-		if ( this.selection ) {
+		if ( selection ) {
 			this.ranges = [ ...selection.getRanges() ];
 		}
 
@@ -673,7 +741,7 @@ class ViewStringify {
 	 *
 	 * @returns {String} String representation of the view elements.
 	 */
-	stringify() {
+	public stringify(): string {
 		let result = '';
 		this._walkView( this.root, chunk => {
 			result += chunk;
@@ -690,7 +758,10 @@ class ViewStringify {
 	 * @param {module:engine/view/documentfragment~DocumentFragment|module:engine/view/element~Element|module:engine/view/text~Text} root
 	 * @param {Function} callback
 	 */
-	_walkView( root, callback ) {
+	private _walkView(
+		root: ViewNode | ViewDocumentFragment,
+		callback: ( chunk: string ) => void
+	): void {
 		const ignore = this.ignoreRoot && this.root === root;
 
 		if ( root.is( 'element' ) || root.is( 'documentFragment' ) ) {
@@ -736,7 +807,7 @@ class ViewStringify {
 	 * @param {module:engine/view/element~Element} element
 	 * @param {Number} offset
 	 */
-	_stringifyElementRanges( element, offset ) {
+	private _stringifyElementRanges( element: ViewElement | ViewDocumentFragment, offset: number ): string {
 		let start = '';
 		let end = '';
 		let collapsed = '';
@@ -767,9 +838,9 @@ class ViewStringify {
 	 * @private
 	 * @param {module:engine/view/text~Text} node
 	 */
-	_stringifyTextRanges( node ) {
+	private _stringifyTextRanges( node: ViewText ): string {
 		const length = node.data.length;
-		let result = node.data.split( '' );
+		const data = node.data.split( '' );
 		let rangeStartToken, rangeEndToken;
 
 		if ( this.sameSelectionCharacters ) {
@@ -781,10 +852,10 @@ class ViewStringify {
 		}
 
 		// Add one more element for ranges ending after last character in text.
-		result[ length ] = '';
+		data[ length ] = '';
 
 		// Represent each letter as object with information about opening/closing ranges at each offset.
-		result = result.map( letter => {
+		const result = data.map( letter => {
 			return {
 				letter,
 				start: '',
@@ -825,7 +896,7 @@ class ViewStringify {
 	 * @param {module:engine/view/element~Element} element
 	 * @returns {String}
 	 */
-	_stringifyElementOpen( element ) {
+	private _stringifyElementOpen( element: ViewElement ): string {
 		const priority = this._stringifyElementPriority( element );
 		const id = this._stringifyElementId( element );
 
@@ -846,7 +917,7 @@ class ViewStringify {
 	 * @param {module:engine/view/element~Element} element
 	 * @returns {String}
 	 */
-	_stringifyElementClose( element ) {
+	private _stringifyElementClose( element: ViewElement ): string {
 		const type = this._stringifyElementType( element );
 		const name = [ type, element.name ].filter( i => i !== '' ).join( ':' );
 
@@ -868,10 +939,10 @@ class ViewStringify {
 	 * @param {module:engine/view/element~Element} element
 	 * @returns {String}
 	 */
-	_stringifyElementType( element ) {
+	private _stringifyElementType( element: ViewElement ): string {
 		if ( this.showType ) {
 			for ( const type in allowedTypes ) {
-				if ( element instanceof allowedTypes[ type ] ) {
+				if ( element instanceof allowedTypes[ type as keyof typeof allowedTypes ] ) {
 					return type;
 				}
 			}
@@ -891,7 +962,7 @@ class ViewStringify {
 	 * @param {module:engine/view/element~Element} element
 	 * @returns {String}
 	 */
-	_stringifyElementPriority( element ) {
+	private _stringifyElementPriority( element: ViewElement ): string {
 		if ( this.showPriority && element.is( 'attributeElement' ) ) {
 			return `view-priority="${ element.priority }"`;
 		}
@@ -910,7 +981,7 @@ class ViewStringify {
 	 * @param {module:engine/view/element~Element} element
 	 * @returns {String}
 	 */
-	_stringifyElementId( element ) {
+	private _stringifyElementId( element: ViewElement ): string {
 		if ( this.showAttributeElementId && element.is( 'attributeElement' ) && element.id ) {
 			return `view-id="${ element.id }"`;
 		}
@@ -926,7 +997,7 @@ class ViewStringify {
 	 * @param {module:engine/view/element~Element} element
 	 * @returns {String}
 	 */
-	_stringifyElementAttributes( element ) {
+	private _stringifyElementAttributes( element: ViewElement ): string {
 		const attributes = [];
 		const keys = [ ...element.getAttributeKeys() ].sort();
 
@@ -965,7 +1036,7 @@ class ViewStringify {
 //  rootNode The root node to convert.
 // @returns {module:engine/view/element~Element|module:engine/view/documentfragment~DocumentFragment|
 // module:engine/view/text~Text} The root node of converted elements.
-function _convertViewElements( rootNode ) {
+function _convertViewElements( rootNode: ViewNode | ViewDocumentFragment ) {
 	if ( rootNode.is( 'element' ) || rootNode.is( 'documentFragment' ) ) {
 		// Convert element or leave document fragment.
 
@@ -1017,24 +1088,24 @@ function _convertViewElements( rootNode ) {
 // module:engine/view/emptyelement~EmptyElement|module:engine/view/uielement~UIElement|
 // module:engine/view/containerelement~ContainerElement} A tree view
 // element converted according to its name.
-function _convertElement( viewDocument, viewElement ) {
+function _convertElement( viewDocument: ViewDocument, viewElement: ViewElement ) {
 	const info = _convertElementNameAndInfo( viewElement );
-	const ElementConstructor = allowedTypes[ info.type ];
+	const ElementConstructor = allowedTypes[ info.type! ];
 	const newElement = ElementConstructor ? new ElementConstructor( viewDocument, info.name ) : new ViewElement( viewDocument, info.name );
 
 	if ( newElement.is( 'attributeElement' ) ) {
 		if ( info.priority !== null ) {
-			newElement._priority = info.priority;
+			( newElement as any )._priority = info.priority;
 		}
 
 		if ( info.id !== null ) {
-			newElement._id = info.id;
+			( newElement as any )._id = info.id;
 		}
 	}
 
 	// Move attributes.
 	for ( const attributeKey of viewElement.getAttributeKeys() ) {
-		newElement._setAttribute( attributeKey, viewElement.getAttribute( attributeKey ) );
+		newElement._setAttribute( attributeKey, viewElement.getAttribute( attributeKey )! );
 	}
 
 	return newElement;
@@ -1053,10 +1124,10 @@ function _convertElement( viewDocument, viewElement ) {
 // @returns {String} info.name The parsed name of the element.
 // @returns {String|null} info.type The parsed type of the element. It can be `attribute`, `container` or `empty`.
 // returns {Number|null} info.priority The parsed priority of the element.
-function _convertElementNameAndInfo( viewElement ) {
+function _convertElementNameAndInfo( viewElement: ViewElement ) {
 	const parts = viewElement.name.split( ':' );
 
-	const priority = _convertPriority( viewElement.getAttribute( 'view-priority' ) );
+	const priority = _convertPriority( viewElement.getAttribute( 'view-priority' )! );
 	const id = viewElement.hasAttribute( 'view-id' ) ? viewElement.getAttribute( 'view-id' ) : null;
 
 	viewElement._removeAttribute( 'view-priority' );
@@ -1068,7 +1139,7 @@ function _convertElementNameAndInfo( viewElement ) {
 			type: priority !== null ? 'attribute' : null,
 			priority,
 			id
-		};
+		} as const;
 	}
 
 	// Check if type and name: container:div.
@@ -1080,7 +1151,7 @@ function _convertElementNameAndInfo( viewElement ) {
 			type,
 			priority,
 			id
-		};
+		} as const;
 	}
 
 	throw new Error( `Parse error - cannot parse element's name: ${ viewElement.name }.` );
@@ -1090,15 +1161,15 @@ function _convertElementNameAndInfo( viewElement ) {
 //
 // @param {String} type
 // @returns {String|null}
-function _convertType( type ) {
-	return allowedTypes[ type ] ? type : null;
+function _convertType( type: string ): keyof typeof allowedTypes | null {
+	return type in allowedTypes ? type as any : null;
 }
 
 // Checks if a given priority is allowed. Returns null if the priority cannot be converted.
 //
 // @param {String} priorityString
 // returns {Number|null}
-function _convertPriority( priorityString ) {
+function _convertPriority( priorityString: string ) {
 	const priority = parseInt( priorityString, 10 );
 
 	if ( !isNaN( priority ) ) {

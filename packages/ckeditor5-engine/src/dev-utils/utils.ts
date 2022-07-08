@@ -20,7 +20,7 @@
  * @param {Map} map Map to convert.
  * @returns {String} Converted map.
  */
-export function convertMapToTags( map ) {
+export function convertMapToTags( map: Iterable<[ string, unknown ]> ): string {
 	let string = '';
 
 	for ( const entry of map ) {
@@ -37,8 +37,8 @@ export function convertMapToTags( map ) {
  * @param {Map} map Map to convert.
  * @returns {String} Converted map.
  */
-export function convertMapToStringifiedObject( map ) {
-	const obj = {};
+export function convertMapToStringifiedObject( map: Iterable<[ string, unknown ]> ): string {
+	const obj: any = {};
 
 	for ( const entry of map ) {
 		obj[ entry[ 0 ] ] = entry[ 1 ];
@@ -57,7 +57,7 @@ const maxTreeDumpLength = 20;
  * @param {*} document
  * @param {*} version
  */
-export function dumpTrees( document, version ) {
+export function dumpTrees( document: any, version: any ): void {
 	console.log( document, version );
 
 	let string = '';
@@ -81,7 +81,7 @@ export function dumpTrees( document, version ) {
  * @private
  * @param {*} document
  */
-export function initDocumentDumping( document ) {
+export function initDocumentDumping( document: any ): void {
 	document[ treeDump ] = [];
 }
 
@@ -92,7 +92,7 @@ export function initDocumentDumping( document ) {
  * @param {*} document
  * @param {*} version
  */
-export function logDocument( document, version ) {
+export function logDocument( document: any, version: any ): void {
 	console.log( '--------------------' );
 
 	if ( document[ treeDump ][ version ] ) {

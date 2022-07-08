@@ -68,7 +68,7 @@ const UNSAFE_ELEMENT_REPLACEMENT_ATTRIBUTE = 'data-ck-unsafe-element';
 export default class DomConverter {
 	public readonly document: Document;
 	public readonly renderingMode: 'data' | 'editing';
-	public readonly blockFillerMode: BlockFillerMode;
+	public blockFillerMode: BlockFillerMode;
 	public readonly preElements: string[];
 	public readonly blockElements: string[];
 	public readonly inlineObjectElements: string[];

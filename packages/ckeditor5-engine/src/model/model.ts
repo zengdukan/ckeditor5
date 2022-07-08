@@ -25,7 +25,7 @@ import insertContent from './utils/insertcontent';
 import insertObject from './utils/insertobject';
 import modifySelection from './utils/modifyselection';
 
-import type DocumentFragment from './documentfragment';
+import type ModelDocumentFragment from './documentfragment';
 import type DocumentSelection from './documentselection';
 import type Item from './item';
 import type ModelElement from './element';
@@ -477,7 +477,7 @@ class Model {
 	 * at the insertion position.
 	 */
 	public insertContent(
-		content: Item | DocumentFragment,
+		content: Item | ModelDocumentFragment,
 		selectable?: Selectable,
 		placeOrOffset?: number | 'before' | 'end' | 'after' | 'on' | 'in'
 	): ModelRange {
@@ -706,7 +706,7 @@ class Model {
 	 * The selection of which content will be returned.
 	 * @returns {module:engine/model/documentfragment~DocumentFragment}
 	 */
-	public getSelectedContent( selection: ModelSelection | DocumentSelection ): DocumentFragment {
+	public getSelectedContent( selection: ModelSelection | DocumentSelection ): ModelDocumentFragment {
 		return getSelectedContent( this, selection );
 	}
 
@@ -733,7 +733,7 @@ class Model {
 	 * @returns {Boolean}
 	 */
 	public hasContent(
-		rangeOrElement: ModelRange | ModelElement | DocumentFragment,
+		rangeOrElement: ModelRange | ModelElement | ModelDocumentFragment,
 		options: { ignoreWhitespaces?: boolean; ignoreMarkers?: boolean } = {}
 	): boolean {
 		const range = rangeOrElement instanceof ModelRange ? rangeOrElement : ModelRange._createIn( rangeOrElement );
@@ -783,7 +783,7 @@ class Model {
 	 * @returns {module:engine/model/position~Position}
 	 */
 	public createPositionFromPath(
-		root: ModelElement | DocumentFragment,
+		root: ModelElement | ModelDocumentFragment,
 		path: number[],
 		stickiness?: PositionStickiness
 	): ModelPosition {
@@ -812,7 +812,7 @@ class Model {
 	 * first parameter is a {@link module:engine/model/item~Item model item}.
 	 */
 	public createPositionAt(
-		itemOrPosition: Item | ModelPosition | DocumentFragment,
+		itemOrPosition: Item | ModelPosition | ModelDocumentFragment,
 		offset?: number | 'end' | 'before' | 'after'
 	): ModelPosition {
 		return ModelPosition._createAt( itemOrPosition, offset );
@@ -877,7 +877,7 @@ class Model {
 	 * @param {module:engine/model/element~Element} element Element which is a parent for the range.
 	 * @returns {module:engine/model/range~Range}
 	 */
-	public createRangeIn( element: ModelElement ): ModelRange {
+	public createRangeIn( element: ModelElement | ModelDocumentFragment ): ModelRange {
 		return ModelRange._createIn( element );
 	}
 
@@ -894,7 +894,7 @@ class Model {
 	 * @param {module:engine/model/item~Item} item
 	 * @returns {module:engine/model/range~Range}
 	 */
-	public createRangeOn( item: Item | DocumentFragment ): ModelRange {
+	public createRangeOn( item: Item | ModelDocumentFragment ): ModelRange {
 		return ModelRange._createOn( item );
 	}
 

@@ -7,6 +7,10 @@
  * @module engine/dataprocessor/dataprocessor
  */
 
+import type ViewNode from '../view/node';
+import type ViewDocumentFragment from '../view/documentfragment';
+import { type MatcherPattern } from '../view/matcher';
+
 /**
  * The data processor interface. It should be implemented by actual data processors.
  *
@@ -62,3 +66,10 @@
  * @method #useFillerType
  * @param {'default'|'marked'} type Whether to use the default or marked `&nbsp;` block fillers.
  */
+
+export default interface DataProcessor {
+	toData( viewFragment: ViewDocumentFragment ): string;
+	toView( data: string ): ViewNode | ViewDocumentFragment | null;
+	registerRawContentMatcher( pattern: MatcherPattern ): void;
+    useFillerType( type: 'default' | 'marked' ): void;
+}
