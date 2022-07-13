@@ -747,6 +747,13 @@ export interface Observable extends Emitter {
 	 * has a property with the given property name. This prevents from mistakenly overriding existing
 	 * properties and methods, but means that `foo.set( 'bar', 1 )` may be slightly slower than `foo.bar = 1`.
 	 *
+	 * In TypeScript, those properties should be declared in class using `declare` keyword. In example:
+	 *
+	 *		public declare myProp: number;
+	 *		constructor() {
+	 *			this.set( 'myProp', 2 );
+	 *		}
+	 *
 	 * @method #set
 	 * @param {String|Object} name The property's name or object with `name=>value` pairs.
 	 * @param {*} [value] The property's value (if `name` was passed in the first parameter).

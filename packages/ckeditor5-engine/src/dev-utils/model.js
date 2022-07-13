@@ -228,7 +228,7 @@ export function stringify( node, selectionOrPositionOrRange = null, markers = nu
 	viewDocument.roots.add( viewRoot );
 
 	// Create and setup downcast dispatcher.
-	const downcastDispatcher = new DowncastDispatcher( { mapper } );
+	const downcastDispatcher = new DowncastDispatcher( { mapper, schema: model.schema } );
 
 	// Bind root elements.
 	mapper.bindElements( node.root, viewRoot );

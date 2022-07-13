@@ -269,18 +269,18 @@ export default class DowncastWriter {
 	 */
 	public createContainerElement(
 		name: string,
-		attributes: ConstructorParameters<typeof Element>[ 2 ],
-		childrenOrOptions: { renderUnsafeAttributes?: string[] }
+		attributes?: ConstructorParameters<typeof Element>[ 2 ],
+		options?: { renderUnsafeAttributes?: string[] }
 	): ContainerElement;
 	public createContainerElement(
 		name: string,
 		attributes: ConstructorParameters<typeof Element>[ 2 ],
-		childrenOrOptions: Node | Iterable<Node>,
-		options: { renderUnsafeAttributes?: string[] }
+		children: Node | Iterable<Node>,
+		options?: { renderUnsafeAttributes?: string[] }
 	): ContainerElement;
 	public createContainerElement(
 		name: string,
-		attributes: ConstructorParameters<typeof Element>[ 2 ],
+		attributes?: ConstructorParameters<typeof Element>[ 2 ],
 		childrenOrOptions: Node | Iterable<Node> | { renderUnsafeAttributes?: string[] } = {},
 		options: { renderUnsafeAttributes?: string[] } = {}
 	): ContainerElement {
@@ -389,8 +389,8 @@ export default class DowncastWriter {
 	 */
 	public createUIElement(
 		name: string,
-		attributes: ConstructorParameters<typeof Element>[ 2 ],
-		renderFunction: ( domDocument: DomDocument, domConverter?: DomConverter ) => DomElement
+		attributes?: ConstructorParameters<typeof Element>[ 2 ],
+		renderFunction?: ( domDocument: DomDocument, domConverter?: DomConverter ) => DomElement
 	): UIElement {
 		const uiElement = new UIElement( this.document, name, attributes );
 

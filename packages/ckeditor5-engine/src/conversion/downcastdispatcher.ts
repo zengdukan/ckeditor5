@@ -10,8 +10,21 @@
 import Consumable from './modelconsumable';
 import Range from '../model/range';
 
-import EmitterMixin from '@ckeditor/ckeditor5-utils/src/emittermixin';
+import EmitterMixin, { type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
+
+import type { default as Differ, DiffItem } from '../model/differ';
+import type { default as MarkerCollection, Marker } from '../model/markercollection';
+import type { TreeWalkerValue } from '../model/treewalker';
+import type DocumentSelection from '../model/documentselection';
+import type DowncastWriter from '../view/downcastwriter';
+import type Element from '../model/element';
+import type Item from '../model/item';
+import type Mapper from './mapper';
+import type Position from '../model/position';
+import type Schema from '../model/schema';
+import type Selection from '../model/selection';
+import type ViewElement from '../view/element';
 
 /**
  * The downcast dispatcher is a central point of downcasting (conversion from the model to the view), which is a process of reacting
@@ -102,7 +115,12 @@ import mix from '@ckeditor/ckeditor5-utils/src/mix';
  *			conversionApi.writer.insert( viewPosition, viewElement );
  *		} );
  */
-export default class DowncastDispatcher {
+class DowncastDispatcher {
+	/** @internal */
+	public readonly _conversionApi: Pick<DowncastConversionApi, 'dispatcher' | 'mapper' | 'schema'>;
+
+	private readonly _firedEventsMap: WeakMap<DowncastConversionApi, Map<unknown, Set<string>>>;
+
 	/**
 	 * Creates a downcast dispatcher instance.
 	 *
@@ -110,7 +128,7 @@ export default class DowncastDispatcher {
 	 * @param {Object} conversionApi Additional properties for an interface that will be passed to events fired
 	 * by the downcast dispatcher.
 	 */
-	constructor( conversionApi ) {
+	constructor( conversionApi: Pick<DowncastConversionApi, 'mapper' | 'schema'> ) {
 		/**
 		 * A template for an interface passed by the dispatcher to the event callbacks.
 		 *
@@ -142,7 +160,11 @@ export default class DowncastDispatcher {
 	 * @param {module:engine/model/markercollection~MarkerCollection} markers Markers related to the model fragment to convert.
 	 * @param {module:engine/view/downcastwriter~DowncastWriter} writer The view writer that should be used to modify the view document.
 	 */
-	convertChanges( differ, markers, writer ) {
+	public convertChanges(
+		differ: Differ,
+		markers: MarkerCollection,
+		writer: DowncastWriter
+	): void {
 		const conversionApi = this._createConversionApi( writer, differ.getRefreshedItems() );
 
 		// Before the view is updated, remove markers which have changed.
@@ -168,7 +190,7 @@ export default class DowncastDispatcher {
 		}
 
 		for ( const markerName of conversionApi.mapper.flushUnboundMarkerNames() ) {
-			const markerRange = markers.get( markerName ).getRange();
+			const markerRange = markers.get( markerName )!.getRange();
 
 			this._convertMarkerRemove( markerName, markerRange, conversionApi );
 			this._convertMarkerAdd( markerName, markerRange, conversionApi );
@@ -197,7 +219,12 @@ export default class DowncastDispatcher {
 	 * @param {module:engine/view/downcastwriter~DowncastWriter} writer The view writer that should be used to modify the view document.
 	 * @param {Object} [options] Optional options object passed to `convertionApi.options`.
 	 */
-	convert( range, markers, writer, options = {} ) {
+	public convert(
+		range: Range,
+		markers: Map<string, Range>,
+		writer: DowncastWriter,
+		options = {} // TODO
+	): void {
 		const conversionApi = this._createConversionApi( writer, undefined, options );
 
 		this._convertInsert( range, conversionApi );
@@ -222,8 +249,12 @@ export default class DowncastDispatcher {
 	 * @param {module:engine/model/markercollection~MarkerCollection} markers Markers connected with the converted model.
 	 * @param {module:engine/view/downcastwriter~DowncastWriter} writer View writer that should be used to modify the view document.
 	 */
-	convertSelection( selection, markers, writer ) {
-		const markersAtSelection = Array.from( markers.getMarkersAtPosition( selection.getFirstPosition() ) );
+	public convertSelection(
+		selection: Selection,
+		markers: MarkerCollection,
+		writer: DowncastWriter
+	): void {
+		const markersAtSelection = Array.from( markers.getMarkersAtPosition( selection.getFirstPosition()! ) );
 
 		const conversionApi = this._createConversionApi( writer );
 
@@ -238,7 +269,7 @@ export default class DowncastDispatcher {
 		for ( const marker of markersAtSelection ) {
 			const markerRange = marker.getRange();
 
-			if ( !shouldMarkerChangeBeConverted( selection.getFirstPosition(), marker, conversionApi.mapper ) ) {
+			if ( !shouldMarkerChangeBeConverted( selection.getFirstPosition()!, marker, conversionApi.mapper ) ) {
 				continue;
 			}
 
@@ -284,7 +315,11 @@ export default class DowncastDispatcher {
 	 * @param {Boolean} [options.doNotAddConsumables=false] Whether the ModelConsumable should not get populated
 	 * for items in the provided range.
 	 */
-	_convertInsert( range, conversionApi, options = {} ) {
+	private _convertInsert(
+		range: Range,
+		conversionApi: DowncastConversionApi,
+		options: { doNotAddConsumables?: boolean } = {}
+	): void {
 		if ( !options.doNotAddConsumables ) {
 			// Collect a list of things that can be consumed, consisting of nodes and their attributes.
 			this._addConsumablesForInsert( conversionApi.consumable, Array.from( range ) );
@@ -305,7 +340,12 @@ export default class DowncastDispatcher {
 	 * @param {String} name Name of removed node.
 	 * @param {module:engine/conversion/downcastdispatcher~DowncastConversionApi} conversionApi The conversion API object.
 	 */
-	_convertRemove( position, length, name, conversionApi ) {
+	private _convertRemove(
+		position: Position,
+		length: number,
+		name: string,
+		conversionApi: DowncastConversionApi
+	): void {
 		this.fire( 'remove:' + name, { position, length }, conversionApi );
 	}
 
@@ -322,7 +362,13 @@ export default class DowncastDispatcher {
 	 * @param {*} newValue New attribute value or `null` if the attribute has been removed.
 	 * @param {module:engine/conversion/downcastdispatcher~DowncastConversionApi} conversionApi The conversion API object.
 	 */
-	_convertAttribute( range, key, oldValue, newValue, conversionApi ) {
+	private _convertAttribute(
+		range: Range,
+		key: string,
+		oldValue: unknown,
+		newValue: unknown,
+		conversionApi: DowncastConversionApi
+	): void {
 		// Create a list with attributes to consume.
 		this._addConsumablesForRange( conversionApi.consumable, range, `attribute:${ key }` );
 
@@ -330,7 +376,7 @@ export default class DowncastDispatcher {
 		for ( const value of range ) {
 			const data = {
 				item: value.item,
-				range: Range._createFromPositionAndShift( value.previousPosition, value.length ),
+				range: Range._createFromPositionAndShift( value.previousPosition, value.length! ),
 				attributeKey: key,
 				attributeOldValue: oldValue,
 				attributeNewValue: newValue
@@ -353,7 +399,7 @@ export default class DowncastDispatcher {
 	 * @param {module:engine/model/range~Range} range The range to reinsert.
 	 * @param {module:engine/conversion/downcastdispatcher~DowncastConversionApi} conversionApi The conversion API object.
 	 */
-	_convertReinsert( range, conversionApi ) {
+	private _convertReinsert( range: Range, conversionApi: DowncastConversionApi ): void {
 		// Convert the elements - without converting children.
 		const walkerValues = Array.from( range.getWalker( { shallow: true } ) );
 
@@ -376,7 +422,11 @@ export default class DowncastDispatcher {
 	 * @param {module:engine/model/range~Range} markerRange The marker range.
 	 * @param {module:engine/conversion/downcastdispatcher~DowncastConversionApi} conversionApi The conversion API object.
 	 */
-	_convertMarkerAdd( markerName, markerRange, conversionApi ) {
+	private _convertMarkerAdd(
+		markerName: string,
+		markerRange: Range,
+		conversionApi: DowncastConversionApi
+	): void {
 		// Do not convert if range is in graveyard.
 		if ( markerRange.root.rootName == '$graveyard' ) {
 			return;
@@ -426,7 +476,7 @@ export default class DowncastDispatcher {
 	 * @param {module:engine/model/range~Range} markerRange The marker range.
 	 * @param {module:engine/conversion/downcastdispatcher~DowncastConversionApi} conversionApi The conversion API object.
 	 */
-	_convertMarkerRemove( markerName, markerRange, conversionApi ) {
+	private _convertMarkerRemove( markerName: string, markerRange: Range, conversionApi: DowncastConversionApi ) {
 		// Do not convert if range is in graveyard.
 		if ( markerRange.root.rootName == '$graveyard' ) {
 			return;
@@ -447,8 +497,8 @@ export default class DowncastDispatcher {
 	 * @param {Iterable.<module:engine/model/differ~DiffItem>} changes
 	 * @returns {Iterable.<module:engine/model/differ~DiffItem>}
 	 */
-	_reduceChanges( changes ) {
-		const data = { changes };
+	private _reduceChanges( changes: Iterable<DiffItem> ): Iterable<DiffItem | DiffItemReinsert> {
+		const data: { changes: Iterable<DiffItem | DiffItemReinsert> } = { changes };
 
 		this.fire( 'reduceChanges', data );
 
@@ -464,7 +514,10 @@ export default class DowncastDispatcher {
 	 * @param {Iterable.<module:engine/model/treewalker~TreeWalkerValue>} walkerValues The walker values for the inserted range.
 	 * @returns {module:engine/conversion/modelconsumable~ModelConsumable} The values to consume.
 	 */
-	_addConsumablesForInsert( consumable, walkerValues ) {
+	private _addConsumablesForInsert(
+		consumable: Consumable,
+		walkerValues: Iterable<TreeWalkerValue>
+	): Consumable {
 		for ( const value of walkerValues ) {
 			const item = value.item;
 
@@ -490,7 +543,11 @@ export default class DowncastDispatcher {
 	 * @param {String} type Consumable type.
 	 * @returns {module:engine/conversion/modelconsumable~ModelConsumable} The values to consume.
 	 */
-	_addConsumablesForRange( consumable, range, type ) {
+	private _addConsumablesForRange(
+		consumable: Consumable,
+		range: Range,
+		type: string
+	): Consumable {
 		for ( const item of range.getItems() ) {
 			consumable.add( item, type );
 		}
@@ -507,7 +564,11 @@ export default class DowncastDispatcher {
 	 * @param {Iterable.<module:engine/model/markercollection~Marker>} markers Markers that contain the selection.
 	 * @returns {module:engine/conversion/modelconsumable~ModelConsumable} The values to consume.
 	 */
-	_addConsumablesForSelection( consumable, selection, markers ) {
+	private _addConsumablesForSelection(
+		consumable: Consumable,
+		selection: Selection,
+		markers: Iterable<Marker>
+	): Consumable {
 		consumable.add( selection, 'selection' );
 
 		for ( const marker of markers ) {
@@ -531,11 +592,15 @@ export default class DowncastDispatcher {
 	 * @param {Object} data Event data.
 	 * @param {module:engine/conversion/downcastdispatcher~DowncastConversionApi} conversionApi The conversion API object.
 	 */
-	_testAndFire( type, data, conversionApi ) {
+	private _testAndFire(
+		type: string,
+		data: { item: Item | DocumentSelection; reconversion?: boolean },
+		conversionApi: DowncastConversionApi
+	): void {
 		const eventName = getEventName( type, data );
 		const itemKey = data.item.is( '$textProxy' ) ? conversionApi.consumable._getSymbolForTextProxy( data.item ) : data.item;
 
-		const eventsFiredForConversion = this._firedEventsMap.get( conversionApi );
+		const eventsFiredForConversion = this._firedEventsMap.get( conversionApi )!;
 		const eventsFiredForItem = eventsFiredForConversion.get( itemKey );
 
 		if ( !eventsFiredForItem ) {
@@ -556,11 +621,14 @@ export default class DowncastDispatcher {
 	 * @param {module:engine/model/item~Item} item The model item to convert attributes for.
 	 * @param {module:engine/conversion/downcastdispatcher~DowncastConversionApi} conversionApi The conversion API object.
 	 */
-	_testAndFireAddAttributes( item, conversionApi ) {
-		const data = {
+	private _testAndFireAddAttributes(
+		item: Item,
+		conversionApi: DowncastConversionApi
+	): void {
+		const data: AttributeEventData = {
 			item,
 			range: Range._createOn( item )
-		};
+		} as any;
 
 		for ( const key of data.item.getAttributeKeys() ) {
 			data.attributeKey = key;
@@ -582,8 +650,12 @@ export default class DowncastDispatcher {
 	 * @param {Object} [options] Optional options passed to `convertionApi.options`.
 	 * @return {module:engine/conversion/downcastdispatcher~DowncastConversionApi} The conversion API object.
 	 */
-	_createConversionApi( writer, refreshedItems = new Set(), options = {} ) {
-		const conversionApi = {
+	private _createConversionApi(
+		writer: DowncastWriter,
+		refreshedItems: Set<Item> = new Set(),
+		options = {} // TODO
+	): DowncastConversionApi {
+		const conversionApi: DowncastConversionApi = {
 			...this._conversionApi,
 			consumable: new Consumable(),
 			writer,
@@ -591,7 +663,7 @@ export default class DowncastDispatcher {
 			convertItem: item => this._convertInsert( Range._createOn( item ), conversionApi ),
 			convertChildren: element => this._convertInsert( Range._createIn( element ), conversionApi, { doNotAddConsumables: true } ),
 			convertAttributes: item => this._testAndFireAddAttributes( item, conversionApi ),
-			canReuseView: viewElement => !refreshedItems.has( conversionApi.mapper.toModelElement( viewElement ) )
+			canReuseView: viewElement => !refreshedItems.has( conversionApi.mapper.toModelElement( viewElement )! )
 		};
 
 		this._firedEventsMap.set( conversionApi, new Map() );
@@ -737,6 +809,25 @@ export default class DowncastDispatcher {
 
 mix( DowncastDispatcher, EmitterMixin );
 
+interface DowncastDispatcher extends Emitter {}
+
+export default DowncastDispatcher;
+
+export interface AttributeEventData {
+	item: Item | DocumentSelection;
+	range: Range;
+	attributeKey: string;
+	attributeOldValue: unknown;
+	attributeNewValue: unknown;
+}
+
+export interface DiffItemReinsert {
+	type: 'reinsert';
+	name: string;
+	position: Position;
+	length: number;
+}
+
 // Helper function, checks whether change of `marker` at `modelPosition` should be converted. Marker changes are not
 // converted if they happen inside an element with custom conversion method.
 //
@@ -744,15 +835,19 @@ mix( DowncastDispatcher, EmitterMixin );
 // @param {module:engine/model/markercollection~Marker} marker
 // @param {module:engine/conversion/mapper~Mapper} mapper
 // @returns {Boolean}
-function shouldMarkerChangeBeConverted( modelPosition, marker, mapper ) {
+function shouldMarkerChangeBeConverted(
+	modelPosition: Position,
+	marker: Marker,
+	mapper: Mapper
+): boolean {
 	const range = marker.getRange();
 	const ancestors = Array.from( modelPosition.getAncestors() );
 	ancestors.shift(); // Remove root element. It cannot be passed to `model.Range#containsItem`.
 	ancestors.reverse();
 
-	const hasCustomHandling = ancestors.some( element => {
+	const hasCustomHandling = ( ancestors as Element[] ).some( element => {
 		if ( range.containsItem( element ) ) {
-			const viewElement = mapper.toViewElement( element );
+			const viewElement = mapper.toViewElement( element )!;
 
 			return !!viewElement.getCustomProperty( 'addHighlight' );
 		}
@@ -761,15 +856,15 @@ function shouldMarkerChangeBeConverted( modelPosition, marker, mapper ) {
 	return !hasCustomHandling;
 }
 
-function getEventName( type, data ) {
-	const name = data.item.name || '$text';
+function getEventName( type: string, data: { item: Item | DocumentSelection } ) {
+	const name = data.item.is( 'element' ) ? data.item.name : '$text';
 
 	return `${ type }:${ name }`;
 }
 
-function walkerValueToEventData( value ) {
+function walkerValueToEventData( value: TreeWalkerValue ) {
 	const item = value.item;
-	const itemRange = Range._createFromPositionAndShift( value.previousPosition, value.length );
+	const itemRange = Range._createFromPositionAndShift( value.previousPosition, value.length! );
 
 	return {
 		item,
@@ -784,6 +879,20 @@ function walkerValueToEventData( value ) {
  *
  * @interface module:engine/conversion/downcastdispatcher~DowncastConversionApi
  */
+
+export interface DowncastConversionApi {
+	dispatcher: DowncastDispatcher;
+	consumable: Consumable;
+	mapper: Mapper;
+	schema: Schema;
+	writer: DowncastWriter;
+	options: unknown; // TODO
+
+	convertItem( item: Item ): void;
+	convertChildren( element: Element ): void;
+	convertAttributes( item: Item ): void;
+	canReuseView( element: ViewElement ): boolean;
+}
 
 /**
  * The {@link module:engine/conversion/downcastdispatcher~DowncastDispatcher} instance.

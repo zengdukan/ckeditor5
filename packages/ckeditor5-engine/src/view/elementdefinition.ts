@@ -57,10 +57,12 @@
  * attribute name. Value under that key must be a string.
  * @property {Number} [priority] Element's {@link module:engine/view/attributeelement~AttributeElement#priority priority}.
  */
-export default interface ElementDefinition {
+type ElementDefinition = string | {
 	name: string;
 	classes?: string | string[];
 	styles?: Record<string, string>;
 	attributes?: Record<string, string>;
 	priority?: number;
-}
+};
+
+export default ElementDefinition;

@@ -14,9 +14,13 @@ import ViewPosition from '../view/position';
 import ViewRange from '../view/range';
 import ViewText from '../view/text';
 
-import EmitterMixin from '@ckeditor/ckeditor5-utils/src/emittermixin';
+import EmitterMixin, { type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
+
+import type { ViewDocumentFragment, ViewElement } from '..';
+import type ModelElement from '../model/element';
+import type ViewNode from '../view/node';
 
 /**
  * Maps elements, positions and markers between the {@link module:engine/view/document~Document view} and
@@ -38,7 +42,15 @@ import mix from '@ckeditor/ckeditor5-utils/src/mix';
  * stop the event.
  * @mixes module:utils/emittermixin~EmitterMixin
  */
-export default class Mapper {
+class Mapper {
+	private _modelToViewMapping: WeakMap<ModelElement, ViewElement>;
+	private _viewToModelMapping: WeakMap<ViewNode, ModelElement>;
+	private _viewToModelLengthCallbacks: Map<string, ( element: ViewElement ) => number>;
+	private _markerNameToElements: Map<string, Set<ViewElement>>;
+	private _elementToMarkerNames: Map<ViewElement, Set<string>>;
+	private _deferredBindingRemovals: Map<ViewElement, ViewElement | ViewDocumentFragment>;
+	private _unboundMarkerNames: Set<string>;
+
 	/**
 	 * Creates an instance of the mapper.
 	 */
@@ -139,7 +151,7 @@ export default class Mapper {
 			const modelParent = this._viewToModelMapping.get( viewBlock );
 			const modelOffset = this._toModelOffset( data.viewPosition.parent, data.viewPosition.offset, viewBlock );
 
-			data.modelPosition = ModelPosition._createAt( modelParent, modelOffset );
+			data.modelPosition = ModelPosition._createAt( modelParent!, modelOffset );
 		}, { priority: 'low' } );
 	}
 
@@ -152,7 +164,7 @@ export default class Mapper {
 	 * @param {module:engine/model/element~Element} modelElement Model element.
 	 * @param {module:engine/view/element~Element} viewElement View element.
 	 */
-	bindElements( modelElement, viewElement ) {
+	public bindElements( modelElement: ModelElement, viewElement: ViewElement ): void {
 		this._modelToViewMapping.set( modelElement, viewElement );
 		this._viewToModelMapping.set( viewElement, modelElement );
 	}
@@ -171,11 +183,14 @@ export default class Mapper {
 	 * @param {Boolean} [options.defer=false] Controls whether the binding should be removed immediately or deferred until a
 	 * {@link #flushDeferredBindings `flushDeferredBindings()`} call.
 	 */
-	unbindViewElement( viewElement, options = {} ) {
-		const modelElement = this.toModelElement( viewElement );
+	public unbindViewElement(
+		viewElement: ViewElement,
+		options: { defer?: boolean } = {}
+	): void {
+		const modelElement = this.toModelElement( viewElement )!;
 
 		if ( this._elementToMarkerNames.has( viewElement ) ) {
-			for ( const markerName of this._elementToMarkerNames.get( viewElement ) ) {
+			for ( const markerName of this._elementToMarkerNames.get( viewElement )! ) {
 				this._unboundMarkerNames.add( markerName );
 			}
 		}
@@ -202,8 +217,8 @@ export default class Mapper {
 	 *
 	 * @param {module:engine/model/element~Element} modelElement Model element to unbind.
 	 */
-	unbindModelElement( modelElement ) {
-		const viewElement = this.toViewElement( modelElement );
+	public unbindModelElement( modelElement: ModelElement ): void {
+		const viewElement = this.toViewElement( modelElement )!;
 
 		this._modelToViewMapping.delete( modelElement );
 
@@ -219,7 +234,7 @@ export default class Mapper {
 	 * @param {module:engine/view/element~Element} element Element to bind.
 	 * @param {String} name Marker name.
 	 */
-	bindElementToMarker( element, name ) {
+	public bindElementToMarker( element: ViewElement, name: string ): void {
 		const elements = this._markerNameToElements.get( name ) || new Set();
 		elements.add( element );
 
@@ -236,7 +251,7 @@ export default class Mapper {
 	 * @param {module:engine/view/element~Element} element Element to unbind.
 	 * @param {String} name Marker name.
 	 */
-	unbindElementFromMarkerName( element, name ) {
+	public unbindElementFromMarkerName( element: ViewElement, name: string ): void {
 		const nameToElements = this._markerNameToElements.get( name );
 
 		if ( nameToElements ) {
@@ -264,7 +279,7 @@ export default class Mapper {
 	 *
 	 * @returns {Array.<String>}
 	 */
-	flushUnboundMarkerNames() {
+	public flushUnboundMarkerNames(): string[] {
 		const markerNames = Array.from( this._unboundMarkerNames );
 
 		this._unboundMarkerNames.clear();
@@ -277,7 +292,7 @@ export default class Mapper {
 	 *
 	 * See: {@link #unbindViewElement `unbindViewElement()`}.
 	 */
-	flushDeferredBindings() {
+	public flushDeferredBindings(): void {
 		for ( const [ viewElement, root ] of this._deferredBindingRemovals ) {
 			// Unbind it only if it wasn't re-attached to some root or document fragment.
 			if ( viewElement.root == root ) {
@@ -291,7 +306,7 @@ export default class Mapper {
 	/**
 	 * Removes all model to view and view to model bindings.
 	 */
-	clearBindings() {
+	public clearBindings(): void {
 		this._modelToViewMapping = new WeakMap();
 		this._viewToModelMapping = new WeakMap();
 		this._markerNameToElements = new Map();
@@ -308,7 +323,7 @@ export default class Mapper {
 	 * @param {module:engine/view/element~Element} viewElement View element.
 	 * @returns {module:engine/model/element~Element|undefined} Corresponding model element or `undefined` if not found.
 	 */
-	toModelElement( viewElement ) {
+	public toModelElement( viewElement: ViewElement ): ModelElement | undefined {
 		return this._viewToModelMapping.get( viewElement );
 	}
 
@@ -318,7 +333,7 @@ export default class Mapper {
 	 * @param {module:engine/model/element~Element} modelElement Model element.
 	 * @returns {module:engine/view/element~Element|undefined} Corresponding view element or `undefined` if not found.
 	 */
-	toViewElement( modelElement ) {
+	public toViewElement( modelElement: ModelElement ): ViewElement | undefined {
 		return this._modelToViewMapping.get( modelElement );
 	}
 
@@ -328,7 +343,7 @@ export default class Mapper {
 	 * @param {module:engine/view/range~Range} viewRange View range.
 	 * @returns {module:engine/model/range~Range} Corresponding model range.
 	 */
-	toModelRange( viewRange ) {
+	public toModelRange( viewRange: ViewRange ): ModelRange {
 		return new ModelRange( this.toModelPosition( viewRange.start ), this.toModelPosition( viewRange.end ) );
 	}
 
@@ -338,7 +353,7 @@ export default class Mapper {
 	 * @param {module:engine/model/range~Range} modelRange Model range.
 	 * @returns {module:engine/view/range~Range} Corresponding view range.
 	 */
-	toViewRange( modelRange ) {
+	public toViewRange( modelRange: ModelRange ): ViewRange {
 		return new ViewRange( this.toViewPosition( modelRange.start ), this.toViewPosition( modelRange.end ) );
 	}
 
@@ -349,7 +364,7 @@ export default class Mapper {
 	 * @param {module:engine/view/position~Position} viewPosition View position.
 	 * @returns {module:engine/model/position~Position} Corresponding model position.
 	 */
-	toModelPosition( viewPosition ) {
+	public toModelPosition( viewPosition: ViewPosition ): ModelPosition {
 		const data = {
 			viewPosition,
 			mapper: this
@@ -357,7 +372,7 @@ export default class Mapper {
 
 		this.fire( 'viewToModelPosition', data );
 
-		return data.modelPosition;
+		return ( data as any ).modelPosition;
 	}
 
 	/**
@@ -370,7 +385,10 @@ export default class Mapper {
 	 * in model tree which no longer exists. For example, it could be an end of a removed model range.
 	 * @returns {module:engine/view/position~Position} Corresponding view position.
 	 */
-	toViewPosition( modelPosition, options = { isPhantom: false } ) {
+	public toViewPosition(
+		modelPosition: ModelPosition,
+		options: { isPhantom?: boolean } = {}
+	): ViewPosition {
 		const data = {
 			modelPosition,
 			mapper: this,
@@ -379,7 +397,7 @@ export default class Mapper {
 
 		this.fire( 'modelToViewPosition', data );
 
-		return data.viewPosition;
+		return ( data as any ).viewPosition;
 	}
 
 	/**
@@ -389,14 +407,14 @@ export default class Mapper {
 	 * @returns {Set.<module:engine/view/element~Element>|null} View elements bound with the given marker name or `null`
 	 * if no elements are bound to the given marker name.
 	 */
-	markerNameToElements( name ) {
+	public markerNameToElements( name: string ): Set<ViewElement> | null {
 		const boundElements = this._markerNameToElements.get( name );
 
 		if ( !boundElements ) {
 			return null;
 		}
 
-		const elements = new Set();
+		const elements = new Set<ViewElement>();
 
 		for ( const element of boundElements ) {
 			if ( element.is( 'attributeElement' ) ) {
@@ -440,7 +458,10 @@ export default class Mapper {
 	 * @param {String} viewElementName Name of view element for which callback is registered.
 	 * @param {Function} lengthCallback Function return a length of view element instance in model.
 	 */
-	registerViewToModelLength( viewElementName, lengthCallback ) {
+	public registerViewToModelLength(
+		viewElementName: string,
+		lengthCallback: ( element: ViewElement ) => number
+	): void {
 		this._viewToModelLengthCallbacks.set( viewElementName, lengthCallback );
 	}
 
@@ -451,8 +472,8 @@ export default class Mapper {
 	 * @param {module:engine/view/position~Position} viewPosition Position for which a mapped ancestor should be found.
 	 * @returns {module:engine/view/element~Element}
 	 */
-	findMappedViewAncestor( viewPosition ) {
-		let parent = viewPosition.parent;
+	public findMappedViewAncestor( viewPosition: ViewPosition ): ViewElement {
+		let parent: any = viewPosition.parent;
 
 		while ( !this._viewToModelMapping.has( parent ) ) {
 			parent = parent.parent;
@@ -479,10 +500,14 @@ export default class Mapper {
 	 * @param {module:engine/view/element~Element} viewBlock Block used as a base to calculate offset.
 	 * @returns {Number} Offset in the model.
 	 */
-	_toModelOffset( viewParent, viewOffset, viewBlock ) {
+	private _toModelOffset(
+		viewParent: ViewElement,
+		viewOffset: number,
+		viewBlock: ViewElement
+	): number {
 		if ( viewBlock != viewParent ) {
 			// See example.
-			const offsetToParentStart = this._toModelOffset( viewParent.parent, viewParent.index, viewBlock );
+			const offsetToParentStart = this._toModelOffset( viewParent.parent as any, viewParent.index!, viewBlock );
 			const offsetInParent = this._toModelOffset( viewParent, viewOffset, viewParent );
 
 			return offsetToParentStart + offsetInParent;
@@ -499,7 +524,7 @@ export default class Mapper {
 		let modelOffset = 0;
 
 		for ( let i = 0; i < viewOffset; i++ ) {
-			modelOffset += this.getModelLength( viewParent.getChild( i ) );
+			modelOffset += this.getModelLength( viewParent.getChild( i ) as any );
 		}
 
 		return modelOffset;
@@ -527,11 +552,11 @@ export default class Mapper {
 	 * @param {module:engine/view/element~Element} viewNode View node.
 	 * @returns {Number} Length of the node in the tree model.
 	 */
-	getModelLength( viewNode ) {
-		if ( this._viewToModelLengthCallbacks.get( viewNode.name ) ) {
-			const callback = this._viewToModelLengthCallbacks.get( viewNode.name );
+	public getModelLength( viewNode: ViewNode ): number {
+		if ( this._viewToModelLengthCallbacks.get( ( viewNode as any ).name ) ) {
+			const callback = this._viewToModelLengthCallbacks.get( ( viewNode as any ).name )!;
 
-			return callback( viewNode );
+			return callback( viewNode as ViewElement );
 		} else if ( this._viewToModelMapping.has( viewNode ) ) {
 			return 1;
 		} else if ( viewNode.is( '$text' ) ) {
@@ -541,7 +566,7 @@ export default class Mapper {
 		} else {
 			let len = 0;
 
-			for ( const child of viewNode.getChildren() ) {
+			for ( const child of ( viewNode as ViewElement ).getChildren() ) {
 				len += this.getModelLength( child );
 			}
 
@@ -573,9 +598,9 @@ export default class Mapper {
 	 * @param {Number} expectedOffset Expected offset.
 	 * @returns {module:engine/view/position~Position} Found position.
 	 */
-	findPositionIn( viewParent, expectedOffset ) {
+	public findPositionIn( viewParent: ViewNode, expectedOffset: number ): ViewPosition {
 		// Last scanned view node.
-		let viewNode;
+		let viewNode: ViewNode;
 		// Length of the last scanned view node.
 		let lastLength = 0;
 
@@ -591,7 +616,7 @@ export default class Mapper {
 
 		// If it is smaller we add the length.
 		while ( modelOffset < expectedOffset ) {
-			viewNode = viewParent.getChild( viewOffset );
+			viewNode = ( viewParent as ViewElement ).getChild( viewOffset )!;
 			lastLength = this.getModelLength( viewNode );
 			modelOffset += lastLength;
 			viewOffset++;
@@ -605,7 +630,7 @@ export default class Mapper {
 		else {
 			// ( modelOffset - lastLength ) is the offset to the child we enter,
 			// so we subtract it from the expected offset to fine the offset in the child.
-			return this.findPositionIn( viewNode, expectedOffset - ( modelOffset - lastLength ) );
+			return this.findPositionIn( viewNode!, expectedOffset - ( modelOffset - lastLength ) );
 		}
 	}
 
@@ -621,7 +646,7 @@ export default class Mapper {
 	 * @param {module:engine/view/position~Position} viewPosition Position potentially next to the text node.
 	 * @returns {module:engine/view/position~Position} Position in the text node if possible.
 	 */
-	_moveViewPositionToTextNode( viewPosition ) {
+	private _moveViewPositionToTextNode( viewPosition: ViewPosition ): ViewPosition {
 		// If the position is just after a text node, put it at the end of that text node.
 		// If the position is just before a text node, put it at the beginning of that text node.
 		const nodeBefore = viewPosition.nodeBefore;
@@ -739,3 +764,7 @@ export default class Mapper {
 }
 
 mix( Mapper, EmitterMixin );
+
+interface Mapper extends Emitter {}
+
+export default Mapper;

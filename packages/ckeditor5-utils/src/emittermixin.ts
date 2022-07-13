@@ -420,7 +420,7 @@ export interface Emitter {
 	listenTo(
 		emitter: Emitter,
 		event: string,
-		callback: ( this: this, ev: EventInfo, ...args: any[] ) => void,
+		callback: ( this: Emitter, ev: EventInfo, ...args: any[] ) => void,
 		options?: CallbackOptions
 	): void;
 

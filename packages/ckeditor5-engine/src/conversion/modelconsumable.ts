@@ -10,6 +10,10 @@
 import TextProxy from '../model/textproxy';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 
+import type Item from '../model/item';
+import type Selection from '../model/selection';
+import type Range from '../model/range';
+
 /**
  * Manages a list of consumable values for the {@link module:engine/model/item~Item model items}.
  *
@@ -89,6 +93,9 @@ import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
  *		} );
  */
 export default class ModelConsumable {
+	private _consumable: Map<any, Map<string, boolean>>;
+	private _textProxyRegistry: Map<number | null, Map<number | null, Map<unknown, symbol>>>;
+
 	/**
 	 * Creates an empty consumables list.
 	 */
@@ -129,18 +136,21 @@ export default class ModelConsumable {
 	 * @param {String} type Consumable type. Will be normalized to a proper form, that is either `<word>` or `<part>:<part>`.
 	 * Second colon and everything after will be cut. Passing event name is a safe and good practice.
 	 */
-	add( item, type ) {
+	public add(
+		item: Item | Selection | Range,
+		type: string
+	): void {
 		type = _normalizeConsumableType( type );
 
 		if ( item instanceof TextProxy ) {
-			item = this._getSymbolForTextProxy( item );
+			item = this._getSymbolForTextProxy( item ) as any;
 		}
 
 		if ( !this._consumable.has( item ) ) {
 			this._consumable.set( item, new Map() );
 		}
 
-		this._consumable.get( item ).set( type, true );
+		this._consumable.get( item )!.set( type, true );
 	}
 
 	/**
@@ -158,15 +168,18 @@ export default class ModelConsumable {
 	 * Second colon and everything after will be cut. Passing event name is a safe and good practice.
 	 * @returns {Boolean} `true` if consumable value was available and was consumed, `false` otherwise.
 	 */
-	consume( item, type ) {
+	public consume(
+		item: Item | Selection | Range,
+		type: string
+	): boolean {
 		type = _normalizeConsumableType( type );
 
 		if ( item instanceof TextProxy ) {
-			item = this._getSymbolForTextProxy( item );
+			item = this._getSymbolForTextProxy( item ) as any;
 		}
 
 		if ( this.test( item, type ) ) {
-			this._consumable.get( item ).set( type, false );
+			this._consumable.get( item )!.set( type, false );
 
 			return true;
 		} else {
@@ -190,11 +203,14 @@ export default class ModelConsumable {
 	 * @returns {null|Boolean} `null` if such consumable was never added, `false` if the consumable values was
 	 * already consumed or `true` if it was added and not consumed yet.
 	 */
-	test( item, type ) {
+	public test(
+		item: Item | Selection | Range,
+		type: string
+	): boolean | null {
 		type = _normalizeConsumableType( type );
 
 		if ( item instanceof TextProxy ) {
-			item = this._getSymbolForTextProxy( item );
+			item = this._getSymbolForTextProxy( item ) as any;
 		}
 
 		const itemConsumables = this._consumable.get( item );
@@ -227,17 +243,20 @@ export default class ModelConsumable {
 	 * @returns {null|Boolean} `true` if consumable has been reversed, `false` otherwise. `null` if the consumable has
 	 * never been added.
 	 */
-	revert( item, type ) {
+	public revert(
+		item: Item | Selection | Range,
+		type: string
+	): boolean | null {
 		type = _normalizeConsumableType( type );
 
 		if ( item instanceof TextProxy ) {
-			item = this._getSymbolForTextProxy( item );
+			item = this._getSymbolForTextProxy( item ) as any;
 		}
 
 		const test = this.test( item, type );
 
 		if ( test === false ) {
-			this._consumable.get( item ).set( type, true );
+			this._consumable.get( item )!.set( type, true );
 
 			return true;
 		} else if ( test === true ) {
@@ -252,7 +271,7 @@ export default class ModelConsumable {
 	 *
 	 * @param {String} eventGroup The events group to verify.
 	 */
-	verifyAllConsumed( eventGroup ) {
+	public verifyAllConsumed( eventGroup: string ): void {
 		const items = [];
 
 		for ( const [ item, consumables ] of this._consumable ) {
@@ -295,11 +314,12 @@ export default class ModelConsumable {
 	 *
 	 * Used internally to correctly consume `TextProxy` instances.
 	 *
+	 * @internal
 	 * @protected
 	 * @param {module:engine/model/textproxy~TextProxy} textProxy `TextProxy` instance to get a symbol for.
 	 * @returns {Symbol} Symbol representing all equal instances of `TextProxy`.
 	 */
-	_getSymbolForTextProxy( textProxy ) {
+	public _getSymbolForTextProxy( textProxy: TextProxy ): symbol {
 		let symbol = null;
 
 		const startMap = this._textProxyRegistry.get( textProxy.startOffset );
@@ -328,13 +348,14 @@ export default class ModelConsumable {
 	 * @param {module:engine/model/textproxy~TextProxy} textProxy Text proxy instance.
 	 * @returns {Symbol} Symbol generated for given `TextProxy`.
 	 */
-	_addSymbolForTextProxy( textProxy ) {
+	private _addSymbolForTextProxy( textProxy: TextProxy ): symbol {
 		const start = textProxy.startOffset;
 		const end = textProxy.endOffset;
 		const parent = textProxy.parent;
 
 		const symbol = Symbol( '$textProxy:' + textProxy.data );
-		let startMap, endMap;
+		let startMap: Map<number | null, Map<unknown, symbol>> | undefined;
+		let endMap: Map<unknown, symbol> | undefined;
 
 		startMap = this._textProxyRegistry.get( start );
 
@@ -362,7 +383,7 @@ export default class ModelConsumable {
 //
 // @param {String} type Consumable type.
 // @returns {String} Normalized consumable type.
-function _normalizeConsumableType( type ) {
+function _normalizeConsumableType( type: string ) {
 	const parts = type.split( ':' );
 
 	// For inserts allow passing event name, it's stored in the context of a specified element so the element name is not needed.

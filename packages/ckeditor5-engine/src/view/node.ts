@@ -120,7 +120,7 @@ abstract class Node extends TypeCheckable {
 	 * @readonly
 	 * @type {module:engine/view/node~Node|module:engine/view/documentfragment~DocumentFragment}
 	 */
-	public get root(): Node | DocumentFragment {
+	public get root(): Element | DocumentFragment {
 		// eslint-disable-next-line @typescript-eslint/no-this-alias, consistent-this
 		let root: Node | DocumentFragment = this;
 
@@ -128,7 +128,7 @@ abstract class Node extends TypeCheckable {
 			root = root.parent;
 		}
 
-		return root;
+		return root as any;
 	}
 
 	/**

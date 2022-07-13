@@ -10,14 +10,16 @@
 /**
  * Base class for conversion helpers.
  */
-export default class ConversionHelpers {
+export default class ConversionHelpers<TDispatcher> {
+	private _dispatchers: TDispatcher[];
+
 	/**
 	 * Creates a conversion helpers instance.
 	 *
 	 * @param {Array.<module:engine/conversion/downcastdispatcher~DowncastDispatcher|
 	 * module:engine/conversion/upcastdispatcher~UpcastDispatcher>} dispatchers
 	 */
-	constructor( dispatchers ) {
+	constructor( dispatchers: TDispatcher[] ) {
 		this._dispatchers = dispatchers;
 	}
 
@@ -30,7 +32,7 @@ export default class ConversionHelpers {
 	 * @param {Function} conversionHelper The function to be called on event.
 	 * @returns {module:engine/conversion/downcasthelpers~DowncastHelpers|module:engine/conversion/upcasthelpers~UpcastHelpers}
 	 */
-	add( conversionHelper ) {
+	public add( conversionHelper: ( dispatcher: TDispatcher ) => void ): this {
 		for ( const dispatcher of this._dispatchers ) {
 			conversionHelper( dispatcher );
 		}

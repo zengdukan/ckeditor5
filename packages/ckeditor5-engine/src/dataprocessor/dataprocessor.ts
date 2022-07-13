@@ -69,7 +69,7 @@ import { type MatcherPattern } from '../view/matcher';
 
 export default interface DataProcessor {
 	toData( viewFragment: ViewDocumentFragment ): string;
-	toView( data: string ): ViewNode | ViewDocumentFragment | null;
+	toView( data: string ): ViewDocumentFragment;
 	registerRawContentMatcher( pattern: MatcherPattern ): void;
     useFillerType( type: 'default' | 'marked' ): void;
 }

@@ -10,6 +10,11 @@
 import { isArray } from 'lodash-es';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 
+import type Element from '../view/element';
+import type Node from '../view/node';
+import type Text from '../view/text';
+import type DocumentFragment from '../view/documentfragment';
+
 /**
  * Class used for handling consumption of view {@link module:engine/view/element~Element elements},
  * {@link module:engine/view/text~Text text nodes} and {@link module:engine/view/documentfragment~DocumentFragment document fragments}.
@@ -34,6 +39,8 @@ import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
  *		viewConsumable.revert( docFragment ); // Revert already consumed document fragment.
  */
 export default class ViewConsumable {
+	private _consumables: Map<Node | DocumentFragment, ViewElementConsumables | boolean>;
+
 	/**
 	 * Creates new ViewConsumable.
 	 */
@@ -49,6 +56,14 @@ export default class ViewConsumable {
 		*/
 		this._consumables = new Map();
 	}
+
+	public add(
+		element: Text | DocumentFragment
+	): void;
+	public add(
+		element: Element,
+		consumables: Consumables
+	): void;
 
 	/**
 	 * Adds {@link module:engine/view/element~Element view element}, {@link module:engine/view/text~Text text node} or
@@ -76,8 +91,11 @@ export default class ViewConsumable {
 	 * @param {String|Array.<String>} consumables.classes Class name or array of class names.
 	 * @param {String|Array.<String>} consumables.styles Style name or array of style names.
 	 */
-	add( element, consumables ) {
-		let elementConsumables;
+	public add(
+		element: Node | DocumentFragment,
+		consumables?: Consumables
+	): void {
+		let elementConsumables: ViewElementConsumables;
 
 		// For text nodes and document fragments just mark them as consumable.
 		if ( element.is( '$text' ) || element.is( 'documentFragment' ) ) {
@@ -91,10 +109,10 @@ export default class ViewConsumable {
 			elementConsumables = new ViewElementConsumables( element );
 			this._consumables.set( element, elementConsumables );
 		} else {
-			elementConsumables = this._consumables.get( element );
+			elementConsumables = this._consumables.get( element ) as any;
 		}
 
-		elementConsumables.add( consumables );
+		elementConsumables.add( consumables! );
 	}
 
 	/**
@@ -126,7 +144,7 @@ export default class ViewConsumable {
 	 * @returns {Boolean|null} Returns `true` when all items included in method's call can be consumed. Returns `false`
 	 * when first already consumed item is found and `null` when first non-consumable item is found.
 	 */
-	test( element, consumables ) {
+	public test( element: Node | DocumentFragment, consumables: Consumables ): boolean | null {
 		const elementConsumables = this._consumables.get( element );
 
 		if ( elementConsumables === undefined ) {
@@ -135,11 +153,11 @@ export default class ViewConsumable {
 
 		// For text nodes and document fragments return stored boolean value.
 		if ( element.is( '$text' ) || element.is( 'documentFragment' ) ) {
-			return elementConsumables;
+			return elementConsumables as boolean;
 		}
 
 		// For elements test consumables object.
-		return elementConsumables.test( consumables );
+		return ( elementConsumables as ViewElementConsumables ).test( consumables );
 	}
 
 	/**
@@ -170,14 +188,14 @@ export default class ViewConsumable {
 	 * @returns {Boolean} Returns `true` when all items included in method's call can be consumed,
 	 * otherwise returns `false`.
 	 */
-	consume( element, consumables ) {
+	public consume( element: Node | DocumentFragment, consumables: Consumables ): boolean {
 		if ( this.test( element, consumables ) ) {
 			if ( element.is( '$text' ) || element.is( 'documentFragment' ) ) {
 				// For text nodes and document fragments set value to false.
 				this._consumables.set( element, false );
 			} else {
 				// For elements - consume consumables object.
-				this._consumables.get( element ).consume( consumables );
+				( this._consumables.get( element ) as ViewElementConsumables ).consume( consumables );
 			}
 
 			return true;
@@ -214,7 +232,7 @@ export default class ViewConsumable {
 	 * @param {String|Array.<String>} consumables.classes Class name or array of class names.
 	 * @param {String|Array.<String>} consumables.styles Style name or array of style names.
 	 */
-	revert( element, consumables ) {
+	public revert( element: Node, consumables: Consumables ): void {
 		const elementConsumables = this._consumables.get( element );
 
 		if ( elementConsumables !== undefined ) {
@@ -223,7 +241,7 @@ export default class ViewConsumable {
 				this._consumables.set( element, true );
 			} else {
 				// For elements - revert items from consumables object.
-				elementConsumables.revert( consumables );
+				( elementConsumables as ViewElementConsumables ).revert( consumables );
 			}
 		}
 	}
@@ -236,13 +254,13 @@ export default class ViewConsumable {
 	 * @param {module:engine/view/element~Element} element
 	 * @returns {Object} consumables
 	 */
-	static consumablesFromElement( element ) {
+	public static consumablesFromElement( element: Element ): Consumables & { element: Element } {
 		const consumables = {
 			element,
 			name: true,
-			attributes: [],
-			classes: [],
-			styles: []
+			attributes: [] as string[],
+			classes: [] as string[],
+			styles: [] as string[]
 		};
 
 		const attributes = element.getAttributeKeys();
@@ -282,9 +300,9 @@ export default class ViewConsumable {
 	 * @param {module:engine/conversion/viewconsumable~ViewConsumable} [instance] If provided, given `ViewConsumable` instance will be used
 	 * to add all consumables. It will be returned instead of a new instance.
 	 */
-	static createFrom( from, instance ) {
+	public static createFrom( from: Node | DocumentFragment, instance?: ViewConsumable ): ViewConsumable {
 		if ( !instance ) {
-			instance = new ViewConsumable( from );
+			instance = new ViewConsumable();
 		}
 
 		if ( from.is( '$text' ) ) {
@@ -302,13 +320,24 @@ export default class ViewConsumable {
 			instance.add( from );
 		}
 
-		for ( const child of from.getChildren() ) {
+		for ( const child of ( from as Element | DocumentFragment ).getChildren() ) {
 			instance = ViewConsumable.createFrom( child, instance );
 		}
 
 		return instance;
 	}
 }
+
+export interface Consumables {
+	name: boolean;
+	attributes?: string | string[];
+	classes?: string | string[];
+	styles?: string | string[];
+}
+
+const CONSUMABLE_TYPES = [ 'attributes', 'classes', 'styles' ] as const;
+
+type ConsumableType = ( typeof CONSUMABLE_TYPES )[ number ];
 
 /**
  * This is a private helper-class for {@link module:engine/conversion/viewconsumable~ViewConsumable}.
@@ -317,13 +346,17 @@ export default class ViewConsumable {
  * @private
  */
 class ViewElementConsumables {
+	public element: Node | DocumentFragment;
+	private _canConsumeName: boolean | null;
+	private readonly _consumables: Record<ConsumableType, Map<string, boolean>>;
+
 	/**
 	 * Creates ViewElementConsumables instance.
 	 *
 	 * @param {module:engine/view/node~Node|module:engine/view/documentfragment~DocumentFragment} from View node or document fragment
 	 * from which `ViewElementConsumables` is being created.
 	 */
-	constructor( from ) {
+	constructor( from: Node | DocumentFragment ) {
 		/**
 		 * @readonly
 		 * @member {module:engine/view/node~Node|module:engine/view/documentfragment~DocumentFragment}
@@ -372,14 +405,14 @@ class ViewElementConsumables {
 	 * @param {String|Array.<String>} consumables.classes Class name or array of class names to add as consumable.
 	 * @param {String|Array.<String>} consumables.styles Style name or array of style names to add as consumable.
 	 */
-	add( consumables ) {
+	public add( consumables: Consumables ): void {
 		if ( consumables.name ) {
 			this._canConsumeName = true;
 		}
 
-		for ( const type in this._consumables ) {
+		for ( const type of CONSUMABLE_TYPES ) {
 			if ( type in consumables ) {
-				this._add( type, consumables[ type ] );
+				this._add( type, consumables[ type ]! );
 			}
 		}
 	}
@@ -404,15 +437,15 @@ class ViewElementConsumables {
 	 * @returns {Boolean|null} `true` when all tested items can be consumed, `null` when even one of the items
 	 * was never marked for consumption and `false` when even one of the items was already consumed.
 	 */
-	test( consumables ) {
+	public test( consumables: Consumables ): boolean | null {
 		// Check if name can be consumed.
 		if ( consumables.name && !this._canConsumeName ) {
 			return this._canConsumeName;
 		}
 
-		for ( const type in this._consumables ) {
+		for ( const type of CONSUMABLE_TYPES ) {
 			if ( type in consumables ) {
-				const value = this._test( type, consumables[ type ] );
+				const value = this._test( type, consumables[ type ]! );
 
 				if ( value !== true ) {
 					return value;
@@ -442,14 +475,14 @@ class ViewElementConsumables {
 	 * @param {String|Array.<String>} consumables.classes Class name or array of class names to consume.
 	 * @param {String|Array.<String>} consumables.styles Style name or array of style names to consume.
 	 */
-	consume( consumables ) {
+	public consume( consumables: Consumables ): void {
 		if ( consumables.name ) {
 			this._canConsumeName = false;
 		}
 
-		for ( const type in this._consumables ) {
+		for ( const type of CONSUMABLE_TYPES ) {
 			if ( type in consumables ) {
-				this._consume( type, consumables[ type ] );
+				this._consume( type, consumables[ type ]! );
 			}
 		}
 	}
@@ -471,14 +504,14 @@ class ViewElementConsumables {
 	 * @param {String|Array.<String>} consumables.classes Class name or array of class names to revert.
 	 * @param {String|Array.<String>} consumables.styles Style name or array of style names to revert.
 	 */
-	revert( consumables ) {
+	public revert( consumables: Consumables ): void {
 		if ( consumables.name ) {
 			this._canConsumeName = true;
 		}
 
-		for ( const type in this._consumables ) {
+		for ( const type of CONSUMABLE_TYPES ) {
 			if ( type in consumables ) {
-				this._revert( type, consumables[ type ] );
+				this._revert( type, consumables[ type ]! );
 			}
 		}
 	}
@@ -493,7 +526,7 @@ class ViewElementConsumables {
 	 * @param {String} type Type of the consumable item: `attributes`, `classes` or `styles`.
 	 * @param {String|Array.<String>} item Consumable item or array of items.
 	 */
-	_add( type, item ) {
+	private _add( type: ConsumableType, item: string | string[] ) {
 		const items = isArray( item ) ? item : [ item ];
 		const consumables = this._consumables[ type ];
 
@@ -535,7 +568,7 @@ class ViewElementConsumables {
 	 * @returns {Boolean|null} Returns `true` if all items can be consumed, `null` when one of the items cannot be
 	 * consumed and `false` when one of the items is already consumed.
 	 */
-	_test( type, item ) {
+	private _test( type: ConsumableType, item: string | string[] ): boolean | null {
 		const items = isArray( item ) ? item : [ item ];
 		const consumables = this._consumables[ type ];
 
@@ -572,7 +605,7 @@ class ViewElementConsumables {
 	 * @param {String} type Type of the consumable item: `attributes`, `classes` or `styles`.
 	 * @param {String|Array.<String>} item Consumable item or array of items.
 	 */
-	_consume( type, item ) {
+	private _consume( type: ConsumableType, item: string | string[] ) {
 		const items = isArray( item ) ? item : [ item ];
 		const consumables = this._consumables[ type ];
 
@@ -601,7 +634,7 @@ class ViewElementConsumables {
 	 * @param {String} type Type of the consumable item: `attributes`, `classes` or , `styles`.
 	 * @param {String|Array.<String>} item Consumable item or array of items.
 	 */
-	_revert( type, item ) {
+	private _revert( type: ConsumableType, item: string | string[] ) {
 		const items = isArray( item ) ? item : [ item ];
 		const consumables = this._consumables[ type ];
 

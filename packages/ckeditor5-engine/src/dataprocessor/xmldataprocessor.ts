@@ -14,7 +14,6 @@ import DomConverter from '../view/domconverter';
 
 import type DataProcessor from './dataprocessor';
 import type HtmlWriter from './htmlwriter';
-import type ViewNode from '../view/node';
 import type ViewDocument from '../view/document';
 import type ViewDocumentFragment from '../view/documentfragment';
 import { type MatcherPattern } from '../view/matcher';
@@ -96,12 +95,12 @@ export default class XmlDataProcessor implements DataProcessor {
 	 * @param {String} data An XML string.
 	 * @returns {module:engine/view/node~Node|module:engine/view/documentfragment~DocumentFragment|null} A converted view element.
 	 */
-	public toView( data: string ): ViewNode | ViewDocumentFragment | null {
+	public toView( data: string ): ViewDocumentFragment {
 		// Convert input XML data to DOM DocumentFragment.
 		const domFragment = this._toDom( data );
 
 		// Convert DOM DocumentFragment to view DocumentFragment.
-		return this.domConverter.domToView( domFragment, { keepOriginalCase: true } );
+		return this.domConverter.domToView( domFragment, { keepOriginalCase: true } ) as ViewDocumentFragment;
 	}
 
 	/**
