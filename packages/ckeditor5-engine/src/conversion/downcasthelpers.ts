@@ -22,6 +22,21 @@ import { cloneDeep } from 'lodash-es';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 import toArray from '@ckeditor/ckeditor5-utils/src/toarray';
 
+import type DowncastDispatcher from './downcastdispatcher';
+import type ElementDefinition from '../view/elementdefinition';
+import { ViewElement } from '..';
+import { ModelNode } from '../model/node';
+import ModelItem from '../model/item'
+import { PriorityString } from '@ckeditor/ckeditor5-utils/src/priorities';
+import { DiffItemReinsert, DowncastConversionApi } from './downcastdispatcher';
+import ModelConsumable from './modelconsumable';
+import DocumentFragment from '../view/documentfragment';
+import { DiffItem } from '../model/differ';
+import DowncastWriter from '../view/downcastwriter';
+import AttributeElement from '../view/attributeelement';
+import UIElement from '../view/uielement';
+import EventInfo from '@ckeditor/ckeditor5-utils/src/eventinfo';
+
 /**
  * Downcast conversion helper functions.
  *
@@ -29,7 +44,7 @@ import toArray from '@ckeditor/ckeditor5-utils/src/toarray';
  *
  * @extends module:engine/conversion/conversionhelpers~ConversionHelpers
  */
-export default class DowncastHelpers extends ConversionHelpers {
+export default class DowncastHelpers extends ConversionHelpers<DowncastDispatcher> {
 	/**
 	 * Model element to view element conversion helper.
 	 *
@@ -157,7 +172,14 @@ export default class DowncastHelpers extends ConversionHelpers {
 	 * as parameters and returns a view container element.
 	 * @returns {module:engine/conversion/downcasthelpers~DowncastHelpers}
 	 */
-	elementToElement( config ) {
+	public elementToElement( config: {
+		model: string | {
+			name: string;
+			attributes?: string | string[];
+			children?: boolean;
+		};
+		view: ElementDefinition | ElementCreatorFunction;
+	} ): this {
 		return this.add( downcastElementToElement( config ) );
 	}
 
@@ -296,7 +318,14 @@ export default class DowncastHelpers extends ConversionHelpers {
 	 * conversion API} as parameters and returns a view container element with slots for model child nodes to be converted into.
 	 * @returns {module:engine/conversion/downcasthelpers~DowncastHelpers}
 	 */
-	elementToStructure( config ) {
+	public elementToStructure( config: {
+		model: string | {
+			name: string;
+			attributes?: string | string[];
+			children?: boolean;
+		};
+		view: ElementDefinition | ElementCreatorFunction;
+	} ): this {
 		return this.add( downcastElementToStructure( config ) );
 	}
 
@@ -387,7 +416,25 @@ export default class DowncastHelpers extends ConversionHelpers {
 	 * @param {module:utils/priorities~PriorityString} [config.converterPriority='normal'] Converter priority.
 	 * @returns {module:engine/conversion/downcasthelpers~DowncastHelpers}
 	 */
-	attributeToElement( config ) {
+	public attributeToElement(
+		config: {
+			model: string | {
+				key: string;
+				name?: string;
+				values?: undefined;
+			};
+			view: ElementDefinition | AttributeElementCreatorFunction;
+			converterPriority?: PriorityString | number;
+		} | {
+			model: string | {
+				key: string;
+				name?: string;
+				values: string[];
+			};
+			view: Record<string, ElementDefinition | AttributeElementCreatorFunction>;
+			converterPriority?: PriorityString | number;
+		}
+	): this {
 		return this.add( downcastAttributeToElement( config ) );
 	}
 
@@ -471,7 +518,25 @@ export default class DowncastHelpers extends ConversionHelpers {
 	 * @param {module:utils/priorities~PriorityString} [config.converterPriority='normal'] Converter priority.
 	 * @returns {module:engine/conversion/downcasthelpers~DowncastHelpers}
 	 */
-	attributeToAttribute( config ) {
+	public attributeToAttribute(
+		config: {
+			model: string | {
+				key: string;
+				name?: string;
+				values?: undefined;
+			};
+			view: ElementDefinition | AttributeElementCreatorFunction;
+			converterPriority?: PriorityString | number;
+		} | {
+			model: string | {
+				key: string;
+				name?: string;
+				values: string[];
+			};
+			view: Record<string, ElementDefinition | AttributeElementCreatorFunction>;
+			converterPriority?: PriorityString | number;
+		}
+	): this {
 		return this.add( downcastAttributeToAttribute( config ) );
 	}
 
@@ -542,7 +607,11 @@ export default class DowncastHelpers extends ConversionHelpers {
 	 * @param {module:utils/priorities~PriorityString} [config.converterPriority='normal'] Converter priority.
 	 * @returns {module:engine/conversion/downcasthelpers~DowncastHelpers}
 	 */
-	markerToElement( config ) {
+	public markerToElement( config: {
+		model: string;
+		view: ElementDefinition | MarkerElementCreatorFunction;
+		converterPriority: PriorityString | number;
+	} ): this {
 		return this.add( downcastMarkerToElement( config ) );
 	}
 
@@ -605,7 +674,11 @@ export default class DowncastHelpers extends ConversionHelpers {
 	 * @param {module:utils/priorities~PriorityString} [config.converterPriority='normal'] Converter priority.
 	 * @returns {module:engine/conversion/downcasthelpers~DowncastHelpers}
 	 */
-	markerToHighlight( config ) {
+	public markerToHighlight( config: {
+		model: string;
+		view: HighlightDescriptor | HighlightDescriptorCreatorFunction;
+		converterPriority?: PriorityString | number;
+	} ): this {
 		return this.add( downcastMarkerToHighlight( config ) );
 	}
 
@@ -719,7 +792,13 @@ export default class DowncastHelpers extends ConversionHelpers {
 	 * @param {module:utils/priorities~PriorityString} [config.converterPriority='normal'] Converter priority.
 	 * @returns {module:engine/conversion/downcasthelpers~DowncastHelpers}
 	 */
-	markerToData( config ) {
+	public markerToData(
+		config: {
+			model: string;
+			view?: MarkerDataCreatorFunction;
+			converterPriority?: PriorityString | number;
+		}
+	): this {
 		return this.add( downcastMarkerToData( config ) );
 	}
 }
@@ -966,7 +1045,7 @@ export function clearAttributes() {
  * @param {Function} elementCreator Function returning a view element that will be used for wrapping.
  * @returns {Function} Set/change attribute converter.
  */
-export function wrap( elementCreator ) {
+export function wrap( elementCreator: AttributeElementCreatorFunction ) {
 	return ( evt, data, conversionApi ) => {
 		if ( !conversionApi.consumable.test( data.item, evt.name ) ) {
 			return;
@@ -1034,8 +1113,12 @@ export function wrap( elementCreator ) {
  * By default this function just consume passed item insertion.
  * @returns {Function} Insert element event converter.
  */
-export function insertElement( elementCreator, consumer = defaultConsumer ) {
-	return ( evt, data, conversionApi ) => {
+export function insertElement( elementCreator: ElementCreatorFunction, consumer: ConsumerFunction = defaultConsumer ) {
+	return (
+		evt: unknown,
+		data: { item: ModelElement; range: ModelRange; reconversion?: boolean },
+		conversionApi: DowncastConversionApi
+	): void => {
 		if ( !consumer( data.item, conversionApi.consumable, { preflight: true } ) ) {
 			return;
 		}
@@ -1077,8 +1160,12 @@ export function insertElement( elementCreator, consumer = defaultConsumer ) {
  * that were used by the element creator.
  * @returns {Function} Insert element event converter.
 */
-export function insertStructure( elementCreator, consumer ) {
-	return ( evt, data, conversionApi ) => {
+export function insertStructure( elementCreator: ElementCreatorFunction, consumer: ConsumerFunction ) {
+	return (
+		evt: unknown,
+		data: { item: ModelElement; range: ModelRange; reconversion?: boolean },
+		conversionApi: DowncastConversionApi
+	): void => {
 		if ( !consumer( data.item, conversionApi.consumable, { preflight: true } ) ) {
 			return;
 		}
@@ -1130,8 +1217,8 @@ export function insertStructure( elementCreator, consumer ) {
  * that will be inserted.
  * @returns {Function} Insert element event converter.
  */
-export function insertUIElement( elementCreator ) {
-	return ( evt, data, conversionApi ) => {
+export function insertUIElement( elementCreator: MarkerElementCreatorFunction ) {
+	return ( evt: EventInfo, data: any, conversionApi: DowncastConversionApi ): void => {
 		// Create two view elements. One will be inserted at the beginning of marker, one at the end.
 		// If marker is collapsed, only "opening" element will be inserted.
 		data.isOpening = true;
@@ -1184,7 +1271,7 @@ export function insertUIElement( elementCreator ) {
 //
 // @returns {Function} Removed UI element converter.
 function removeUIElement() {
-	return ( evt, data, conversionApi ) => {
+	return ( evt: EventInfo, data: any, conversionApi: DowncastConversionApi ) => {
 		const elements = conversionApi.mapper.markerNameToElements( data.markerName );
 
 		if ( !elements ) {
@@ -1659,27 +1746,33 @@ function removeHighlight( highlightDescriptor ) {
 // @param {module:engine/view/elementdefinition~ElementDefinition|module:engine/conversion/downcasthelpers~ElementCreatorFunction}
 // config.view
 // @returns {Function} Conversion helper.
-function downcastElementToElement( config ) {
-	config = cloneDeep( config );
-
-	config.model = normalizeModelElementConfig( config.model );
-	config.view = normalizeToElementConfig( config.view, 'container' );
+function downcastElementToElement( config: {
+	model: string | {
+		name: string;
+		attributes?: string | string[];
+		children?: boolean;
+	};
+	view: ElementDefinition | ElementCreatorFunction;
+	converterPriority?: PriorityString | number;
+} ) {
+	const model = normalizeModelElementConfig( config.model );
+	const view = normalizeToElementConfig( config.view, 'container' );
 
 	// Trigger reconversion on children list change if element is a subject to any reconversion.
 	// This is required to be able to trigger Differ#refreshItem() on a direct child of the reconverted element.
-	if ( config.model.attributes.length ) {
-		config.model.children = true;
+	if ( model.attributes.length ) {
+		model.children = true;
 	}
 
-	return dispatcher => {
+	return ( dispatcher: DowncastDispatcher ) => {
 		dispatcher.on(
-			'insert:' + config.model.name,
-			insertElement( config.view, createConsumer( config.model ) ),
+			'insert:' + model.name,
+			insertElement( view, createConsumer( model ) ),
 			{ priority: config.converterPriority || 'normal' }
 		);
 
-		if ( config.model.children || config.model.attributes.length ) {
-			dispatcher.on( 'reduceChanges', createChangeReducer( config.model ), { priority: 'low' } );
+		if ( model.children || model.attributes.length ) {
+			dispatcher.on( 'reduceChanges', createChangeReducer( model ), { priority: 'low' } );
 		}
 	};
 }
@@ -1694,18 +1787,26 @@ function downcastElementToElement( config ) {
 // @param {Array.<String>} [config.model.attributes]
 // @param {module:engine/conversion/downcasthelpers~StructureCreatorFunction} config.view
 // @returns {Function} Conversion helper.
-function downcastElementToStructure( config ) {
-	config = cloneDeep( config );
-
-	config.model = normalizeModelElementConfig( config.model );
-	config.view = normalizeToElementConfig( config.view, 'container' );
+function downcastElementToStructure(
+	config: {
+		model: string | {
+			name: string;
+			attributes?: string | string[];
+			children?: boolean;
+		};
+		view: ElementDefinition | ElementCreatorFunction;
+		converterPriority?: PriorityString | number;
+	}
+) {
+	const model = normalizeModelElementConfig( config.model );
+	const view = normalizeToElementConfig( config.view, 'container' );
 
 	// Trigger reconversion on children list change because it always needs to use slots to put children in proper places.
 	// This is required to be able to trigger Differ#refreshItem() on a direct child of the reconverted element.
-	config.model.children = true;
+	model.children = true;
 
-	return dispatcher => {
-		if ( dispatcher._conversionApi.schema.checkChild( config.model.name, '$text' ) ) {
+	return ( dispatcher: DowncastDispatcher ) => {
+		if ( dispatcher._conversionApi.schema.checkChild( model.name, '$text' ) ) {
 			/**
 			 * This error occurs when a {@link module:engine/model/element~Element model element} is downcasted
 			 * via {@link module:engine/conversion/downcasthelpers~DowncastHelpers#elementToStructure} helper but the element was
@@ -1744,16 +1845,16 @@ function downcastElementToStructure( config ) {
 			 * @error conversion-element-to-structure-disallowed-text
 			 * @param {String} elementName The name of the element the structure is to be created for.
 			 */
-			throw new CKEditorError( 'conversion-element-to-structure-disallowed-text', dispatcher, { elementName: config.model.name } );
+			throw new CKEditorError( 'conversion-element-to-structure-disallowed-text', dispatcher, { elementName: model.name } );
 		}
 
 		dispatcher.on(
-			'insert:' + config.model.name,
-			insertStructure( config.view, createConsumer( config.model ) ),
+			'insert:' + model.name,
+			insertStructure( view, createConsumer( model ) ),
 			{ priority: config.converterPriority || 'normal' }
 		);
 
-		dispatcher.on( 'reduceChanges', createChangeReducer( config.model ), { priority: 'low' } );
+		dispatcher.on( 'reduceChanges', createChangeReducer( model ), { priority: 'low' } );
 	};
 }
 
@@ -1771,27 +1872,42 @@ function downcastElementToStructure( config ) {
 // definitions or functions.
 // @param {module:utils/priorities~PriorityString} [config.converterPriority='normal'] Converter priority.
 // @returns {Function} Conversion helper.
-function downcastAttributeToElement( config ) {
+function downcastAttributeToElement(
+	config: {
+		model: string | {
+			key: string;
+			name?: string;
+			values?: string[];
+		};
+		view: ElementDefinition | AttributeElementCreatorFunction | Record<string, ElementDefinition | AttributeElementCreatorFunction>;
+		converterPriority?: PriorityString | number;
+	}
+) {
 	config = cloneDeep( config );
 
-	const modelKey = config.model.key ? config.model.key : config.model;
-	let eventName = 'attribute:' + modelKey;
+	let model = config.model;
 
-	if ( config.model.name ) {
-		eventName += ':' + config.model.name;
+	if ( typeof model == 'string' ) {
+		model = { key: model };
 	}
 
-	if ( config.model.values ) {
-		for ( const modelValue of config.model.values ) {
-			config.view[ modelValue ] = normalizeToElementConfig( config.view[ modelValue ], 'attribute' );
+	let eventName = 'attribute:' + model.key;
+
+	if ( model.name ) {
+		eventName += ':' + model.name;
+	}
+
+	if ( model.values ) {
+		for ( const modelValue of model.values ) {
+			( config.view as any )[ modelValue ] = normalizeToElementConfig( ( config.view as any )[ modelValue ], 'attribute' );
 		}
 	} else {
-		config.view = normalizeToElementConfig( config.view, 'attribute' );
+		config.view = normalizeToElementConfig( config.view as any, 'attribute' );
 	}
 
 	const elementCreator = getFromAttributeCreator( config );
 
-	return dispatcher => {
+	return ( dispatcher: DowncastDispatcher ) => {
 		dispatcher.on( eventName, wrap( elementCreator ), { priority: config.converterPriority || 'normal' } );
 	};
 }
@@ -1811,19 +1927,34 @@ function downcastAttributeToElement( config ) {
 // `{ key, value }` objects or a functions.
 // @param {module:utils/priorities~PriorityString} [config.converterPriority='normal'] Converter priority.
 // @returns {Function} Conversion helper.
-function downcastAttributeToAttribute( config ) {
+function downcastAttributeToAttribute(
+	config: {
+		model: string | {
+			key: string;
+			name?: string;
+			values?: string[];
+		};
+		view: ElementDefinition | AttributeElementCreatorFunction | Record<string, ElementDefinition | AttributeElementCreatorFunction>;
+		converterPriority?: PriorityString | number;
+	}
+) {
 	config = cloneDeep( config );
 
-	const modelKey = config.model.key ? config.model.key : config.model;
-	let eventName = 'attribute:' + modelKey;
+	let model = config.model;
 
-	if ( config.model.name ) {
-		eventName += ':' + config.model.name;
+	if ( typeof model == 'string' ) {
+		model = { key: model };
 	}
 
-	if ( config.model.values ) {
-		for ( const modelValue of config.model.values ) {
-			config.view[ modelValue ] = normalizeToAttributeConfig( config.view[ modelValue ] );
+	let eventName = 'attribute:' + model.key;
+
+	if ( model.name ) {
+		eventName += ':' + model.name;
+	}
+
+	if ( model.values ) {
+		for ( const modelValue of model.values ) {
+			( config.view as any )[ modelValue ] = normalizeToAttributeConfig( ( config.view as any )[ modelValue ] );
 		}
 	} else {
 		config.view = normalizeToAttributeConfig( config.view );
@@ -1831,7 +1962,7 @@ function downcastAttributeToAttribute( config ) {
 
 	const elementCreator = getFromAttributeCreator( config );
 
-	return dispatcher => {
+	return ( dispatcher: DowncastDispatcher ) => {
 		dispatcher.on( eventName, changeAttribute( elementCreator ), { priority: config.converterPriority || 'normal' } );
 	};
 }
@@ -1846,14 +1977,14 @@ function downcastAttributeToAttribute( config ) {
 // that takes the model marker data as a parameter and returns a view UI element.
 // @param {module:utils/priorities~PriorityString} [config.converterPriority='normal'] Converter priority.
 // @returns {Function} Conversion helper.
-function downcastMarkerToElement( config ) {
+function downcastMarkerToElement( config: any ) {
 	config = cloneDeep( config );
 
 	config.view = normalizeToElementConfig( config.view, 'ui' );
 
-	return dispatcher => {
+	return ( dispatcher: DowncastDispatcher ) => {
 		dispatcher.on( 'addMarker:' + config.model, insertUIElement( config.view ), { priority: config.converterPriority || 'normal' } );
-		dispatcher.on( 'removeMarker:' + config.model, removeUIElement( config.view ), { priority: config.converterPriority || 'normal' } );
+		dispatcher.on( 'removeMarker:' + config.model, removeUIElement(), { priority: config.converterPriority || 'normal' } );
 	};
 }
 
@@ -1896,7 +2027,7 @@ function downcastMarkerToData( config ) {
 // @param {module:utils/priorities~PriorityString} [config.converterPriority='normal'] Converter priority.
 // @returns {Function} Conversion helper.
 function downcastMarkerToHighlight( config ) {
-	return dispatcher => {
+	return ( dispatcher: DowncastDispatcher ) => {
 		dispatcher.on( 'addMarker:' + config.model, highlightText( config.view ), { priority: config.converterPriority || 'normal' } );
 		dispatcher.on( 'addMarker:' + config.model, highlightElement( config.view ), { priority: config.converterPriority || 'normal' } );
 		dispatcher.on( 'removeMarker:' + config.model, removeHighlight( config.view ), { priority: config.converterPriority || 'normal' } );
@@ -1910,7 +2041,11 @@ function downcastMarkerToHighlight( config ) {
 // @param {Array.<String>} [model.attributes]
 // @param {Boolean} [model.children]
 // @returns {Object}
-function normalizeModelElementConfig( model ) {
+function normalizeModelElementConfig( model: string | {
+	name: string;
+	attributes?: string | string[];
+	children?: boolean;
+} ): NormalizedModelElementConfig {
 	if ( typeof model == 'string' ) {
 		model = { name: model };
 	}
@@ -1925,7 +2060,13 @@ function normalizeModelElementConfig( model ) {
 	// Whether a children insertion/deletion should trigger reconversion.
 	model.children = !!model.children;
 
-	return model;
+	return model as any;
+}
+
+interface NormalizedModelElementConfig {
+	name: string;
+	attributes: string[];
+	children: boolean;
 }
 
 // Takes `config.view`, and if it is an {@link module:engine/view/elementdefinition~ElementDefinition}, converts it
@@ -1934,13 +2075,17 @@ function normalizeModelElementConfig( model ) {
 // @param {module:engine/view/elementdefinition~ElementDefinition|Function} view View configuration.
 // @param {'container'|'attribute'|'ui'} viewElementType View element type to create.
 // @returns {Function} Element creator function to use in lower level converters.
-function normalizeToElementConfig( view, viewElementType ) {
+function normalizeToElementConfig(
+	view: any,
+	viewElementType: 'container' | 'attribute' | 'ui'
+): any {
 	if ( typeof view == 'function' ) {
 		// If `view` is already a function, don't do anything.
 		return view;
 	}
 
-	return ( modelData, conversionApi ) => createViewElementFromDefinition( view, conversionApi, viewElementType );
+	return ( modelData: unknown, conversionApi: DowncastConversionApi ) =>
+		createViewElementFromDefinition( view, conversionApi, viewElementType );
 }
 
 // Creates a view element instance from the provided {@link module:engine/view/elementdefinition~ElementDefinition} and class.
@@ -1949,13 +2094,17 @@ function normalizeToElementConfig( view, viewElementType ) {
 // @param {module:engine/view/downcastwriter~DowncastWriter} viewWriter
 // @param {'container'|'attribute'|'ui'} viewElementType
 // @returns {module:engine/view/element~Element}
-function createViewElementFromDefinition( viewElementDefinition, conversionApi, viewElementType ) {
+function createViewElementFromDefinition(
+	viewElementDefinition: ElementDefinition,
+	conversionApi: DowncastConversionApi,
+	viewElementType: 'container' | 'attribute' | 'ui'
+): ViewElement {
 	if ( typeof viewElementDefinition == 'string' ) {
 		// If `viewElementDefinition` is given as a `String`, normalize it to an object with `name` property.
 		viewElementDefinition = { name: viewElementDefinition };
 	}
 
-	let element;
+	let element: ViewElement;
 	const viewWriter = conversionApi.writer;
 	const attributes = Object.assign( {}, viewElementDefinition.attributes );
 
@@ -1995,9 +2144,9 @@ function createViewElementFromDefinition( viewElementDefinition, conversionApi, 
 	return element;
 }
 
-function getFromAttributeCreator( config ) {
+function getFromAttributeCreator( config: any ): AttributeElementCreatorFunction {
 	if ( config.model.values ) {
-		return ( modelAttributeValue, conversionApi ) => {
+		return ( modelAttributeValue: any, conversionApi: DowncastConversionApi ) => {
 			const view = config.view[ modelAttributeValue ];
 
 			if ( view ) {
@@ -2064,7 +2213,7 @@ function prepareDescriptor( highlightDescriptor, data, conversionApi ) {
 // @param {Array.<String>} model.attributes The list of attribute names that should trigger reconversion.
 // @param {Boolean} [model.children] Whether the child list change should trigger reconversion.
 // @returns {Function}
-function createChangeReducerCallback( model ) {
+function createChangeReducerCallback( model: NormalizedModelElementConfig ) {
 	return ( node, change ) => {
 		if ( !node.is( 'element', model.name ) ) {
 			return false;
@@ -2092,11 +2241,14 @@ function createChangeReducerCallback( model ) {
 // @param {Array.<String>} model.attributes The list of attribute names that should trigger reconversion.
 // @param {Boolean} [model.children] Whether the child list change should trigger reconversion.
 // @returns {Function}
-function createChangeReducer( model ) {
+function createChangeReducer( model: NormalizedModelElementConfig ) {
 	const shouldReplace = createChangeReducerCallback( model );
 
-	return ( evt, data ) => {
-		const reducedChanges = [];
+	return (
+		evt: unknown,
+		data: { changes: Iterable<DiffItem | DiffItemReinsert>; reconvertedElements: Set<ModelNode> }
+	) => {
+		const reducedChanges: ( DiffItem | DiffItemReinsert )[] = [];
 
 		if ( !data.reconvertedElements ) {
 			data.reconvertedElements = new Set();
@@ -2105,7 +2257,7 @@ function createChangeReducer( model ) {
 		for ( const change of data.changes ) {
 			// For attribute use node affected by the change.
 			// For insert or remove use parent element because we need to check if it's added/removed child.
-			const node = change.position ? change.position.parent : change.range.start.nodeAfter;
+			const node = ( change.type == 'attribute' ? change.range.start.nodeAfter : change.position.parent ) as ModelNode;
 
 			if ( !node || !shouldReplace( node, change ) ) {
 				reducedChanges.push( change );
@@ -2124,7 +2276,7 @@ function createChangeReducer( model ) {
 					name: node.name,
 					position,
 					length: 1
-				}, {
+				} as any, {
 					type: 'reinsert',
 					name: node.name,
 					position,
@@ -2144,7 +2296,7 @@ function createChangeReducer( model ) {
 // @param {Array.<String>} model.attributes The list of attribute names that should trigger reconversion.
 // @param {Boolean} [model.children] Whether the child list change should trigger reconversion.
 // @returns {module:engine/conversion/downcasthelpers~ConsumerFunction}
-function createConsumer( model ) {
+function createConsumer( model: NormalizedModelElementConfig ): ConsumerFunction {
 	return ( node, consumable, options = {} ) => {
 		const events = [ 'insert' ];
 
@@ -2173,8 +2325,8 @@ function createConsumer( model ) {
 // @param {Map.<module:engine/view/element~Element,Array.<module:engine/model/node~Node>>} slotsMap
 // @param {module:engine/conversion/downcastdispatcher~DowncastConversionApi} conversionApi
 // @returns {Function} Exposed by writer as createSlot().
-function createSlotFactory( element, slotsMap, conversionApi ) {
-	return ( writer, modeOrFilter = 'children' ) => {
+function createSlotFactory( element: ModelElement, slotsMap: Map<ViewElement, ModelNode[]>, conversionApi: DowncastConversionApi ) {
+	return ( writer: DowncastWriter, modeOrFilter = 'children' ) => {
 		const slot = writer.createContainerElement( '$slot' );
 
 		let children = null;
@@ -2280,7 +2432,12 @@ function fillSlots( viewElement, slotsMap, conversionApi, options ) {
 // @param {module:engine/conversion/downcastdispatcher~DowncastConversionApi} conversionApi
 // @param {Object} options
 // @param {Boolean} [options.reconversion]
-function reinsertOrConvertNodes( viewElement, modelNodes, conversionApi, options ) {
+function reinsertOrConvertNodes(
+	viewElement: ViewElement,
+	modelNodes: Iterable<ModelNode>,
+	conversionApi: DowncastConversionApi,
+	options: { reconversion?: boolean }
+) {
 	// Fill with nested view nodes.
 	for ( const modelChildNode of modelNodes ) {
 		// Try reinserting the view node for the specified model node...
@@ -2299,7 +2456,12 @@ function reinsertOrConvertNodes( viewElement, modelNodes, conversionApi, options
 // @param {Object} options
 // @param {Boolean} [options.reconversion]
 // @returns {Boolean} `false` if view element can't be reused.
-function reinsertNode( viewRoot, modelElement, conversionApi, options ) {
+function reinsertNode(
+	viewRoot: ViewElement | DocumentFragment,
+	modelNode: ModelNode,
+	conversionApi: DowncastConversionApi,
+	options: { reconversion?: boolean }
+): boolean {
 	const { writer, mapper } = conversionApi;
 
 	// Don't reinsert if this is not a reconversion...
@@ -2307,7 +2469,7 @@ function reinsertNode( viewRoot, modelElement, conversionApi, options ) {
 		return false;
 	}
 
-	const viewChildNode = mapper.toViewElement( modelElement );
+	const viewChildNode = mapper.toViewElement( modelNode );
 
 	// ...or there is no view to reinsert or it was already inserted to the view structure...
 	if ( !viewChildNode || viewChildNode.root == viewRoot ) {
@@ -2322,7 +2484,7 @@ function reinsertNode( viewRoot, modelElement, conversionApi, options ) {
 	// Otherwise reinsert the view node.
 	writer.move(
 		writer.createRangeOn( viewChildNode ),
-		mapper.toViewPosition( ModelPosition._createBefore( modelElement ) )
+		mapper.toViewPosition( ModelPosition._createBefore( modelNode ) )
 	);
 
 	return true;
@@ -2334,7 +2496,11 @@ function reinsertNode( viewRoot, modelElement, conversionApi, options ) {
 // @param {Object} [options]
 // @param {Boolean} [options.preflight=false] Whether should consume or just check if can be consumed.
 // @returns {Boolean}
-function defaultConsumer( item, consumable, { preflight } = {} ) {
+function defaultConsumer(
+	item: ModelItem,
+	consumable: ModelConsumable,
+	{ preflight }: { preflight?: boolean } = {}
+): boolean | null {
 	if ( preflight ) {
 		return consumable.test( item, 'insert' );
 	} else {
@@ -2376,6 +2542,12 @@ function defaultConsumer( item, consumable, { preflight } = {} ) {
  * attribute element. If the descriptor is applied to an element, usually these attributes will be set on that element, however,
  * this depends on how the element converts the descriptor.
  */
+interface HighlightDescriptor {
+	classes: string | string[];
+	id?: string;
+	priority?: number;
+	attributes?: Record<string, string>;
+}
 
 /**
  * A filtering function used to choose model child nodes to be downcasted into the specific view
@@ -2408,6 +2580,15 @@ function defaultConsumer( item, consumable, { preflight } = {} ) {
  * @see module:engine/conversion/downcasthelpers~DowncastHelpers#elementToElement
  * @see module:engine/conversion/downcasthelpers~insertElement
  */
+
+export type ElementCreatorFunction = (
+	element: ModelElement,
+	conversionApi: DowncastConversionApi,
+	data: {
+		item: ModelItem;
+		range: ModelRange;
+	}
+) => ViewElement;
 
 /**
  * A function that takes the model element and {@link module:engine/conversion/downcastdispatcher~DowncastConversionApi downcast
@@ -2447,6 +2628,32 @@ function defaultConsumer( item, consumable, { preflight } = {} ) {
  * @see module:engine/conversion/downcasthelpers~DowncastHelpers#attributeToElement
  * @see module:engine/conversion/downcasthelpers~wrap
  */
+export type AttributeElementCreatorFunction = (
+	attributeValue: any,
+	conversionApi: DowncastConversionApi,
+	data: {
+		item: ModelItem | DocumentSelection;
+		range: ModelRange;
+		attributeKey: string;
+		attributeOldValue: unknown;
+		attributeNewValue: unknown;
+	}
+) => AttributeElement;
+
+export type MarkerElementCreatorFunction = (
+	data: { markerRange: ModelRange; markerName: string; isOpening: boolean },
+	conversionApi: DowncastConversionApi
+) => UIElement;
+
+export type HighlightDescriptorCreatorFunction = (
+	data: { markerRange: ModelRange; markerName: string },
+	conversionApi: DowncastConversionApi
+) => HighlightDescriptor;
+
+export type MarkerDataCreatorFunction = (
+	markerName: string,
+	conversionApi: DowncastConversionApi
+) => { name: string; group: string };
 
 /**
  * A function that takes the model attribute value and
@@ -2483,3 +2690,5 @@ function defaultConsumer( item, consumable, { preflight } = {} ) {
  *
  * @see module:engine/conversion/downcasthelpers~insertStructure
  */
+
+export type ConsumerFunction = ( element: ModelElement, consumable: ModelConsumable, options?: { preflight?: boolean } ) => boolean | null;
