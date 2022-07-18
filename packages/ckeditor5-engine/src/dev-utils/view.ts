@@ -401,7 +401,7 @@ export function parse(
 	} );
 
 	// Convert data to view.
-	let view = processor.toView( data )!;
+	let view: ViewDocumentFragment | ViewNode = processor.toView( data )!;
 
 	// At this point we have a view tree with Elements that could have names like `attribute:b:1`. In the next step
 	// we need to parse Element's names and convert them to AttributeElements and ContainerElements.
