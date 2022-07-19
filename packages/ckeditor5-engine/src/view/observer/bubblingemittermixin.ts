@@ -10,7 +10,12 @@
 import EventInfo from '@ckeditor/ckeditor5-utils/src/eventinfo';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 
-import EmitterMixin, { type Emitter, type CallbackOptions } from '@ckeditor/ckeditor5-utils/src/emittermixin';
+import EmitterMixin, {
+	type BaseEvent,
+	type CallbackOptions,
+	type Emitter,
+	type GetCallback
+} from '@ckeditor/ckeditor5-utils/src/emittermixin';
 import toArray from '@ckeditor/ckeditor5-utils/src/toarray';
 
 import BubblingEventInfo from './bubblingeventinfo';
@@ -333,22 +338,22 @@ export type BubblingCallbackOptions = CallbackOptions & {
 };
 
 export interface BubblingEmitter extends Emitter {
-	on(
-		event: string,
-		callback: ( this: this, ev: BubblingEventInfo, ...args: any[] ) => void,
+	on<TEvent extends BaseEvent>(
+		event: TEvent[ 'name' ],
+		callback: GetCallback<TEvent>,
 		options?: BubblingCallbackOptions
 	): void;
 
-	once(
-		event: string,
-		callback: ( this: this, ev: BubblingEventInfo, ...args: any[] ) => void,
+	once<TEvent extends BaseEvent>(
+		event: TEvent[ 'name' ],
+		callback: GetCallback<TEvent>,
 		options?: BubblingCallbackOptions
 	): void;
 
-	listenTo(
+	listenTo<TEvent extends BaseEvent>(
 		emitter: Emitter,
-		event: string,
-		callback: ( this: this, ev: BubblingEventInfo, ...args: any[] ) => void,
+		event: TEvent[ 'name' ],
+		callback: GetCallback<TEvent>,
 		options?: BubblingCallbackOptions
 	): void;
 }

@@ -18,7 +18,7 @@ import type Range from '../range';
  *
  * @extends module:utils/eventinfo~EventInfo
  */
-export default class BubblingEventInfo extends EventInfo {
+export default class BubblingEventInfo<TName extends string = string, TReturn = unknown> extends EventInfo<TName, TReturn> {
 	public readonly startRange: Range;
 
 	/** @internal */
@@ -32,7 +32,7 @@ export default class BubblingEventInfo extends EventInfo {
 	 * @param {String} name The event name.
 	 * @param {module:engine/view/range~Range} startRange The view range that the bubbling should start from.
 	 */
-	constructor( source: object, name: string, startRange: Range ) {
+	constructor( source: object, name: TName, startRange: Range ) {
 		super( source, name );
 
 		/**

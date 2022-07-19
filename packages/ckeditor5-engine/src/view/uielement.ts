@@ -11,7 +11,6 @@ import Element from './element';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 import { keyCodes } from '@ckeditor/ckeditor5-utils/src/keyboard';
 
-import type BubblingEventInfo from './observer/bubblingeventinfo';
 import type View from './view';
 import type DomConverter from './domconverter';
 
@@ -178,7 +177,7 @@ UIElement.prototype.is = function( type: string, name?: string ): boolean {
  * @param {module:engine/view/view~View} view View controller to which the quirks handling will be injected.
  */
 export function injectUiElementHandling( view: View ): void {
-	view.document.on( 'arrowKey', ( evt: BubblingEventInfo, data: any ) =>
+	view.document.on( 'arrowKey', ( evt: unknown, data: any ) =>
 		jumpOverUiElement( evt, data, view.domConverter ), { priority: 'low' } );
 }
 
@@ -192,7 +191,7 @@ function getFillerOffset() {
 // Selection cannot be placed in a `UIElement`. Whenever it is placed there, it is moved before it. This
 // causes a situation when it is impossible to jump over `UIElement` using right arrow key, because the selection
 // ends up in ui element (in DOM) and is moved back to the left. This handler fixes this situation.
-function jumpOverUiElement( evt: BubblingEventInfo, data: any, domConverter: DomConverter ) {
+function jumpOverUiElement( evt: unknown, data: any, domConverter: DomConverter ) {
 	if ( data.keyCode == keyCodes.arrowright ) {
 		const domSelection = data.domTarget.ownerDocument.defaultView.getSelection();
 		const domSelectionCollapsed = domSelection.rangeCount == 1 && domSelection.getRangeAt( 0 ).collapsed;
