@@ -9,16 +9,19 @@
 
 import TypeCheckable from './typecheckable';
 import LiveRange from './liverange';
-import Selection from './selection';
+import Selection, {
+	type ChangeAttributeEvent as SelectionChangeAttributeEvent,
+	type ChangeRangeEvent as SelectionChangeRangeEvent
+} from './selection';
 import Text from './text';
 import TextProxy from './textproxy';
 
-import type { Marker } from './markercollection';
+import type { default as Document, ChangeEvent as DocumentChangeEvent } from './document';
+import type { default as Model, ApplyOperationEvent } from './model';
+import type { Marker, UpdateEvent as MarkerUpdateEvent } from './markercollection';
 import type Batch from './batch';
-import type Document from './document';
 import type Element from './element';
 import type Item from './item';
-import type Model from './model';
 import type Position from './position';
 import type Range from './range';
 
@@ -569,6 +572,8 @@ export default DocumentSelection;
  * which mean that they are not updated once the document changes.
  */
 
+export type ChangeRangeEvent = SelectionChangeRangeEvent;
+
 /**
  * Fired when selection attribute changed.
  *
@@ -581,7 +586,9 @@ export default DocumentSelection;
  * The indirect change does not occur in case of normal (detached) selections because they are "static" (as "not live")
  * which mean that they are not updated once the document changes.
  * @param {Array.<String>} attributeKeys Array containing keys of attributes that changed.
- */
+*/
+
+export type ChangeAttributeEvent = SelectionChangeAttributeEvent;
 
 /**
  * Fired when selection marker(s) changed.
@@ -593,6 +600,23 @@ export default DocumentSelection;
  * {@link module:engine/model/documentselection~DocumentSelection#event:change:attribute}.
  * @param {Array.<module:engine/model/markercollection~Marker>} oldMarkers Markers in which the selection was before the change.
  */
+
+export type ChangeMarkerEvent = {
+	name: 'change:marker';
+	args: [ {
+		directChange: boolean;
+		oldMarkers: Marker[];
+	} ];
+};
+
+export type ChangeEvent = {
+	name: 'change' | 'change:attribute' | 'change:marker' | 'change:range';
+	args: [ {
+		directChange: boolean;
+		attributeKeys?: string[];
+		oldMarkers?: Marker[];
+	} ];
+};
 
 // `LiveSelection` is used internally by {@link module:engine/model/documentselection~DocumentSelection} and shouldn't be used directly.
 //
@@ -679,7 +703,7 @@ class LiveSelection extends Selection {
 		this._observedMarkers = new Set();
 
 		// Ensure selection is correct after each operation.
-		this.listenTo( this._model, 'applyOperation', ( evt, args ) => {
+		this.listenTo<ApplyOperationEvent>( this._model, 'applyOperation', ( evt, args ) => {
 			const operation = args[ 0 ];
 
 			if ( !operation.isDocumentOperation || operation.type == 'marker' || operation.type == 'rename' || operation.type == 'noop' ) {
@@ -696,12 +720,12 @@ class LiveSelection extends Selection {
 
 			if ( this._hasChangedRange ) {
 				this._hasChangedRange = false;
-				this.fire( 'change:range', { directChange: false } );
+				this.fire<ChangeRangeEvent>( 'change:range', { directChange: false } );
 			}
 		}, { priority: 'lowest' } );
 
 		// Ensure selection is correct and up to date after each range change.
-		this.on( 'change:range', () => {
+		this.on<ChangeRangeEvent>( 'change:range', () => {
 			for ( const range of this.getRanges() ) {
 				if ( !this._document._validateSelectionRange( range ) ) {
 					/**
@@ -722,12 +746,12 @@ class LiveSelection extends Selection {
 
 		// Update markers data stored by the selection after each marker change.
 		// This handles only marker changes done through marker operations (not model tree changes).
-		this.listenTo( this._model.markers, 'update', ( evt, marker, oldRange, newRange ) => {
+		this.listenTo<MarkerUpdateEvent>( this._model.markers, 'update', ( evt, marker, oldRange, newRange ) => {
 			this._updateMarker( marker, newRange );
 		} );
 
 		// Ensure selection is up to date after each change block.
-		this.listenTo( this._document, 'change', ( evt, batch ) => {
+		this.listenTo<DocumentChangeEvent>( this._document, 'change', ( evt, batch ) => {
 			clearAttributesStoredInElement( this._model, batch );
 		} );
 	}
@@ -809,7 +833,7 @@ class LiveSelection extends Selection {
 		if ( this._setAttribute( key, value ) ) {
 			// Fire event with exact data.
 			const attributeKeys = [ key ];
-			this.fire( 'change:attribute', { attributeKeys, directChange: true } );
+			this.fire<ChangeAttributeEvent>( 'change:attribute', { attributeKeys, directChange: true } );
 		}
 	}
 
@@ -817,7 +841,7 @@ class LiveSelection extends Selection {
 		if ( this._removeAttribute( key ) ) {
 			// Fire event with exact data.
 			const attributeKeys = [ key ];
-			this.fire( 'change:attribute', { attributeKeys, directChange: true } );
+			this.fire<ChangeAttributeEvent>( 'change:attribute', { attributeKeys, directChange: true } );
 		}
 	}
 
@@ -955,11 +979,11 @@ class LiveSelection extends Selection {
 		}
 
 		if ( changed ) {
-			this.fire( 'change:marker', { oldMarkers, directChange: false } );
+			this.fire<ChangeMarkerEvent>( 'change:marker', { oldMarkers, directChange: false } );
 		}
 	}
 
-	private _updateMarker( marker: Marker, markerRange: Range ): void {
+	private _updateMarker( marker: Marker, markerRange: Range | null ): void {
 		const markerGroup = marker.name.split( ':', 1 )[ 0 ];
 
 		if ( !this._observedMarkers.has( markerGroup ) ) {
@@ -999,7 +1023,7 @@ class LiveSelection extends Selection {
 		}
 
 		if ( changed ) {
-			this.fire( 'change:marker', { oldMarkers, directChange: false } );
+			this.fire<ChangeMarkerEvent>( 'change:marker', { oldMarkers, directChange: false } );
 		}
 	}
 
@@ -1048,7 +1072,7 @@ class LiveSelection extends Selection {
 
 		// Fire event with exact data (fire only if anything changed).
 		if ( changed.length > 0 ) {
-			this.fire( 'change:attribute', { attributeKeys: changed, directChange: false } );
+			this.fire<ChangeAttributeEvent>( 'change:attribute', { attributeKeys: changed, directChange: false } );
 		}
 	}
 

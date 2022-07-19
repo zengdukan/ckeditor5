@@ -287,7 +287,7 @@ abstract class Node extends TypeCheckable {
 	 * @fires change
 	 */
 	public _fireChange( type: ChangeType, node: Node ): void {
-		this.fire( 'change:' + type, node );
+		this.fire<ChangeEvent>( `change:${ type }`, node );
 
 		if ( this.parent ) {
 			this.parent._fireChange( type, node );
@@ -410,3 +410,8 @@ mix( Node, EmitterMixin );
 interface Node extends Emitter {}
 
 export default Node;
+
+export type ChangeEvent = {
+	name: 'change' | `change:${ ChangeType }`;
+	args: [ changedNode: Node ];
+};

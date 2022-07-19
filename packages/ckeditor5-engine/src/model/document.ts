@@ -12,7 +12,10 @@ import DocumentSelection from './documentselection';
 import History from './history';
 import RootElement from './rootelement';
 
-import type Model from './model';
+import type { ChangeEvent as SelectionChangeEvent } from './selection';
+import type { default as Model, ApplyOperationEvent } from './model';
+import type { UpdateEvent as MarkerUpdateEvent, ChangeEvent as MarkerChangeEvent } from './markercollection';
+import type Batch from './batch';
 import type Position from './position';
 import type Range from './range';
 import type Writer from './writer';
@@ -121,7 +124,7 @@ class Document {
 		this.createRoot( '$root', graveyardName );
 
 		// Then, still before an operation is applied on model, buffer the change in differ.
-		this.listenTo( model, 'applyOperation', ( evt, args ) => {
+		this.listenTo<ApplyOperationEvent>( model, 'applyOperation', ( evt, args ) => {
 			const operation = args[ 0 ];
 
 			if ( operation.isDocumentOperation ) {
@@ -130,7 +133,7 @@ class Document {
 		}, { priority: 'high' } );
 
 		// After the operation is applied, bump document's version and add the operation to the history.
-		this.listenTo( model, 'applyOperation', ( evt, args ) => {
+		this.listenTo<ApplyOperationEvent>( model, 'applyOperation', ( evt, args ) => {
 			const operation = args[ 0 ];
 
 			if ( operation.isDocumentOperation ) {
@@ -139,14 +142,14 @@ class Document {
 		}, { priority: 'low' } );
 
 		// Listen to selection changes. If selection changed, mark it.
-		this.listenTo( this.selection, 'change', () => {
+		this.listenTo<SelectionChangeEvent>( this.selection, 'change', () => {
 			this._hasSelectionChangedFromTheLastChangeBlock = true;
 		} );
 
 		// Buffer marker changes.
 		// This is not covered in buffering operations because markers may change outside of them (when they
 		// are modified using `model.markers` collection, not through `MarkerOperation`).
-		this.listenTo( model.markers, 'update', ( evt, marker, oldRange, newRange, oldMarkerData ) => {
+		this.listenTo<MarkerUpdateEvent>( model.markers, 'update', ( evt, marker, oldRange, newRange, oldMarkerData ) => {
 			// Copy the `newRange` to the new marker data as during the marker removal the range is not updated.
 			const newMarkerData = { ...marker.getData(), range: newRange };
 
@@ -155,7 +158,7 @@ class Document {
 
 			if ( oldRange === null ) {
 				// If this is a new marker, add a listener that will buffer change whenever marker changes.
-				marker.on( 'change', ( evt: unknown, oldRange: Range ) => {
+				marker.on<MarkerChangeEvent>( 'change', ( evt, oldRange ) => {
 					const markerData = marker.getData();
 
 					this.differ.bufferMarkerChange(
@@ -326,9 +329,9 @@ class Document {
 			this.selection.refresh();
 
 			if ( this.differ.hasDataChanges() ) {
-				this.fire( 'change:data', writer.batch );
+				this.fire<ChangeEvent>( 'change:data', writer.batch );
 			} else {
-				this.fire( 'change', writer.batch );
+				this.fire<ChangeEvent>( 'change', writer.batch );
 			}
 
 			// Theoretically, it is not necessary to refresh selection after change event because
@@ -492,6 +495,11 @@ mix( Document, EmitterMixin );
 interface Document extends Emitter {}
 
 export default Document;
+
+export type ChangeEvent = {
+	name: 'change' | 'change:data';
+	args: [ batch: Batch ];
+};
 
 // Checks whether given range boundary position is valid for document selection, meaning that is not between
 // unicode surrogate pairs or base character and combining marks.

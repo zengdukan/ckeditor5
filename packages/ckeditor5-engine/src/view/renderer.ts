@@ -15,7 +15,11 @@ import mix from '@ckeditor/ckeditor5-utils/src/mix';
 import { default as diff, type DiffResult } from '@ckeditor/ckeditor5-utils/src/diff';
 import insertAt from '@ckeditor/ckeditor5-utils/src/dom/insertat';
 import remove from '@ckeditor/ckeditor5-utils/src/dom/remove';
-import { default as ObservableMixin, type Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
+import {
+	default as ObservableMixin,
+	type Observable,
+	type ChangeEvent as ObservableChangeEvent
+} from '@ckeditor/ckeditor5-utils/src/observablemixin';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 import isText from '@ckeditor/ckeditor5-utils/src/dom/istext';
 import isComment from '@ckeditor/ckeditor5-utils/src/dom/iscomment';
@@ -147,7 +151,7 @@ class Renderer {
 		// (https://github.com/ckeditor/ckeditor5/issues/10562, https://github.com/ckeditor/ckeditor5/issues/10723).
 		// When the user stops selecting, all pending changes should be rendered ASAP, though.
 		if ( env.isBlink && !env.isAndroid ) {
-			this.on( 'change:isSelecting', () => {
+			this.on<ObservableChangeEvent>( 'change:isSelecting', () => {
 				if ( !this.isSelecting ) {
 					this.render();
 				}

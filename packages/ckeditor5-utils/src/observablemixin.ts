@@ -979,6 +979,15 @@ export type SetEvent<TValue = any> = {
 	return: TValue;
 };
 
+export type DecoratedMethodEvent<
+	TObservable extends Observable & { [ N in TName ]: ( ...args: any[] ) => any },
+	TName extends keyof TObservable & string
+> = {
+	name: TName;
+	args: [ Parameters<TObservable[ TName ]> ];
+	return: ReturnType<TObservable[ TName ]>;
+};
+
 interface SingleBindChain<TKey extends string, TVal> {
 	toMany<O extends Observable, K extends keyof O>(
 		observables: readonly O[],

@@ -119,12 +119,12 @@ class Mapper {
 		this._unboundMarkerNames = new Set();
 
 		// Default mapper algorithm for mapping model position to view position.
-		this.on( 'modelToViewPosition', ( evt, data ) => {
+		this.on<ModelToViewPositionEvent>( 'modelToViewPosition', ( evt, data ) => {
 			if ( data.viewPosition ) {
 				return;
 			}
 
-			const viewContainer = this._modelToViewMapping.get( data.modelPosition.parent );
+			const viewContainer = this._modelToViewMapping.get( data.modelPosition.parent as ModelElement );
 
 			if ( !viewContainer ) {
 				/**
@@ -142,14 +142,14 @@ class Mapper {
 		}, { priority: 'low' } );
 
 		// Default mapper algorithm for mapping view position to model position.
-		this.on( 'viewToModelPosition', ( evt, data ) => {
+		this.on<ViewToModelPositionEvent>( 'viewToModelPosition', ( evt, data ) => {
 			if ( data.modelPosition ) {
 				return;
 			}
 
 			const viewBlock = this.findMappedViewAncestor( data.viewPosition );
 			const modelParent = this._viewToModelMapping.get( viewBlock );
-			const modelOffset = this._toModelOffset( data.viewPosition.parent, data.viewPosition.offset, viewBlock );
+			const modelOffset = this._toModelOffset( data.viewPosition.parent as ViewElement, data.viewPosition.offset, viewBlock );
 
 			data.modelPosition = ModelPosition._createAt( modelParent!, modelOffset );
 		}, { priority: 'low' } );
@@ -365,14 +365,14 @@ class Mapper {
 	 * @returns {module:engine/model/position~Position} Corresponding model position.
 	 */
 	public toModelPosition( viewPosition: ViewPosition ): ModelPosition {
-		const data = {
+		const data: ViewToModelPositionEvent[ 'args' ][ 0 ] = {
 			viewPosition,
 			mapper: this
 		};
 
-		this.fire( 'viewToModelPosition', data );
+		this.fire<ViewToModelPositionEvent>( 'viewToModelPosition', data );
 
-		return ( data as any ).modelPosition;
+		return data.modelPosition!;
 	}
 
 	/**
@@ -389,15 +389,15 @@ class Mapper {
 		modelPosition: ModelPosition,
 		options: { isPhantom?: boolean } = {}
 	): ViewPosition {
-		const data = {
+		const data: ModelToViewPositionEvent[ 'args' ][ 0 ] = {
 			modelPosition,
 			mapper: this,
 			isPhantom: options.isPhantom
 		};
 
-		this.fire( 'modelToViewPosition', data );
+		this.fire<ModelToViewPositionEvent>( 'modelToViewPosition', data );
 
-		return ( data as any ).viewPosition;
+		return data.viewPosition!;
 	}
 
 	/**
@@ -768,3 +768,22 @@ mix( Mapper, EmitterMixin );
 interface Mapper extends Emitter {}
 
 export default Mapper;
+
+export type ModelToViewPositionEvent = {
+	name: 'modelToViewPosition';
+	args: [ {
+		mapper: Mapper;
+		modelPosition: ModelPosition;
+		viewPosition?: ViewPosition;
+		isPhantom?: boolean;
+	} ];
+};
+
+export type ViewToModelPositionEvent = {
+	name: 'viewToModelPosition';
+	args: [ {
+		mapper: Mapper;
+		modelPosition?: ModelPosition;
+		viewPosition: ViewPosition;
+	} ];
+};

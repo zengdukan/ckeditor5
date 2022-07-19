@@ -32,7 +32,7 @@ import type ModelElement from './element';
 import type Operation from './operation/operation';
 
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
-import ObservableMixin, { type Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
+import ObservableMixin, { type DecoratedMethodEvent, type Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
 
 // @if CK_DEBUG_ENGINE // const { dumpTrees } = require( '../dev-utils/utils' );
@@ -1123,3 +1123,10 @@ mix( Model, ObservableMixin );
 interface Model extends Observable {}
 
 export default Model;
+
+export type ApplyOperationEvent = DecoratedMethodEvent<Model, 'applyOperation'>;
+export type InsertContentEvent = DecoratedMethodEvent<Model, 'insertContent'>;
+export type InsertObjectEvent = DecoratedMethodEvent<Model, 'insertObject'>;
+export type DeleteContentEvent = DecoratedMethodEvent<Model, 'deleteContent'>;
+export type ModifySelectionEvent = DecoratedMethodEvent<Model, 'modifySelection'>;
+export type GetSelectedContentEvent = DecoratedMethodEvent<Model, 'getSelectedContent'>;

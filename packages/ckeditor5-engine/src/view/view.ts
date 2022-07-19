@@ -7,13 +7,19 @@
  * @module engine/view/view
  */
 
-import Document from './document';
+import Document, { type LayoutChangedEvent } from './document';
 import DowncastWriter from './downcastwriter';
 import Renderer from './renderer';
 import DomConverter from './domconverter';
 import Position from './position';
 import Range from './range';
 import Selection from './selection';
+
+import { type default as Observer, type ObserverConstructor } from './observer/observer';
+import type { ChangeEvent as SelectionChangeEvent } from './documentselection';
+import type { StylesProcessor } from './stylesmap';
+import type Element from './element';
+import type Item from './item';
 
 import KeyObserver from './observer/keyobserver';
 import FakeSelectionObserver from './observer/fakeselectionobserver';
@@ -24,16 +30,16 @@ import InputObserver from './observer/inputobserver';
 import ArrowKeysObserver from './observer/arrowkeysobserver';
 import TabObserver from './observer/tabobserver';
 
-import { default as ObservableMixin, type Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
+import {
+	default as ObservableMixin,
+	type ChangeEvent as ObservableChangeEvent,
+	type Observable
+} from '@ckeditor/ckeditor5-utils/src/observablemixin';
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
 import { scrollViewportToShowTarget } from '@ckeditor/ckeditor5-utils/src/dom/scroll';
 import { injectUiElementHandling } from './uielement';
 import { injectQuirksHandling } from './filler';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
-import type { StylesProcessor } from './stylesmap';
-import { type default as Observer, type ObserverConstructor } from './observer/observer';
-import type Element from './element';
-import type Item from './item';
 
 /**
  * Editor's view controller class. Its main responsibility is DOM - View management for editing purposes, to provide
@@ -217,23 +223,23 @@ class View {
 		injectUiElementHandling( this );
 
 		// Use 'normal' priority so that rendering is performed as first when using that priority.
-		this.on( 'render', () => {
+		this.on<RenderEvent>( 'render', () => {
 			this._render();
 
 			// Informs that layout has changed after render.
-			this.document.fire( 'layoutChanged' );
+			this.document.fire<LayoutChangedEvent>( 'layoutChanged' );
 
 			// Reset the `_hasChangedSinceTheLastRendering` flag after rendering.
 			this._hasChangedSinceTheLastRendering = false;
 		} );
 
 		// Listen to the document selection changes directly.
-		this.listenTo( this.document.selection, 'change', () => {
+		this.listenTo<SelectionChangeEvent>( this.document.selection, 'change', () => {
 			this._hasChangedSinceTheLastRendering = true;
 		} );
 
 		// Trigger re-render if only the focus changed.
-		this.listenTo( this.document, 'change:isFocused', () => {
+		this.listenTo<ObservableChangeEvent>( this.document, 'change:isFocused', () => {
 			this._hasChangedSinceTheLastRendering = true;
 		} );
 	}
@@ -513,7 +519,7 @@ class View {
 				this.document._callPostFixers( this._writer );
 				this._postFixersInProgress = false;
 
-				this.fire( 'render' );
+				this.fire<RenderEvent>( 'render' );
 			}
 
 			return callbackResult;
@@ -744,3 +750,8 @@ mix( View, ObservableMixin );
 interface View extends Observable {}
 
 export default View;
+
+export type RenderEvent = {
+	name: 'render';
+	args: [];
+};

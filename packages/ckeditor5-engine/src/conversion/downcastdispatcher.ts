@@ -260,7 +260,7 @@ class DowncastDispatcher {
 
 		this._addConsumablesForSelection( conversionApi.consumable, selection, markersAtSelection );
 
-		this.fire( 'selection', { selection }, conversionApi );
+		this.fire<SelectionEvent>( 'selection', { selection }, conversionApi );
 
 		if ( !selection.isCollapsed ) {
 			return;
@@ -280,14 +280,14 @@ class DowncastDispatcher {
 			};
 
 			if ( conversionApi.consumable.test( selection, 'addMarker:' + marker.name ) ) {
-				this.fire( 'addMarker:' + marker.name, data, conversionApi );
+				this.fire<AddMarkerEvent>( `addMarker:${ marker.name }`, data, conversionApi );
 			}
 		}
 
 		for ( const key of selection.getAttributeKeys() ) {
 			const data = {
 				item: selection,
-				range: selection.getFirstRange(),
+				range: selection.getFirstRange()!,
 				attributeKey: key,
 				attributeOldValue: null,
 				attributeNewValue: selection.getAttribute( key )
@@ -295,7 +295,7 @@ class DowncastDispatcher {
 
 			// Do not fire event if the attribute has been consumed.
 			if ( conversionApi.consumable.test( selection, 'attribute:' + data.attributeKey ) ) {
-				this.fire( 'attribute:' + data.attributeKey + ':$text', data, conversionApi );
+				this.fire<AttributeEvent>( `attribute:${ data.attributeKey }:$text`, data, conversionApi );
 			}
 		}
 	}
@@ -346,7 +346,7 @@ class DowncastDispatcher {
 		name: string,
 		conversionApi: DowncastConversionApi
 	): void {
-		this.fire( 'remove:' + name, { position, length }, conversionApi );
+		this.fire<RemoveEvent>( `remove:${ name }`, { position, length }, conversionApi );
 	}
 
 	/**
@@ -433,14 +433,14 @@ class DowncastDispatcher {
 		}
 
 		// In markers' case, event name == consumable name.
-		const eventName = 'addMarker:' + markerName;
+		const eventName = `addMarker:${ markerName }` as const;
 
 		//
 		// First, fire an event for the whole marker.
 		//
 		conversionApi.consumable.add( markerRange, eventName );
 
-		this.fire( eventName, { markerName, markerRange }, conversionApi );
+		this.fire<AddMarkerEvent>( eventName, { markerName, markerRange }, conversionApi );
 
 		//
 		// Do not fire events for each item inside the range if the range got consumed.
@@ -463,7 +463,7 @@ class DowncastDispatcher {
 
 			const data = { item, range: Range._createOn( item ), markerName, markerRange };
 
-			this.fire( eventName, data, conversionApi );
+			this.fire<AddMarkerEvent>( eventName, data, conversionApi );
 		}
 	}
 
@@ -482,7 +482,7 @@ class DowncastDispatcher {
 			return;
 		}
 
-		this.fire( 'removeMarker:' + markerName, { markerName, markerRange }, conversionApi );
+		this.fire<RemoveMarkerEvent>( `removeMarker:${ markerName }`, { markerName, markerRange }, conversionApi );
 	}
 
 	/**
@@ -500,7 +500,7 @@ class DowncastDispatcher {
 	private _reduceChanges( changes: Iterable<DiffItem> ): Iterable<DiffItem | DiffItemReinsert> {
 		const data: { changes: Iterable<DiffItem | DiffItemReinsert> } = { changes };
 
-		this.fire( 'reduceChanges', data );
+		this.fire<ReduceChangesEvent>( 'reduceChanges', data );
 
 		return data.changes;
 	}
@@ -592,9 +592,9 @@ class DowncastDispatcher {
 	 * @param {Object} data Event data.
 	 * @param {module:engine/conversion/downcastdispatcher~DowncastConversionApi} conversionApi The conversion API object.
 	 */
-	private _testAndFire(
-		type: string,
-		data: { item: Item | DocumentSelection; reconversion?: boolean },
+	private _testAndFire<TType extends 'insert' | 'attribute'>(
+		type: TType | `${ TType }:${ string }`,
+		data: EventData[ TType ],
 		conversionApi: DowncastConversionApi
 	): void {
 		const eventName = getEventName( type, data );
@@ -611,7 +611,7 @@ class DowncastDispatcher {
 			return;
 		}
 
-		this.fire( eventName, data, conversionApi );
+		this.fire<DowncastEvent<TType>>( eventName, data, conversionApi );
 	}
 
 	/**
@@ -625,7 +625,7 @@ class DowncastDispatcher {
 		item: Item,
 		conversionApi: DowncastConversionApi
 	): void {
-		const data: AttributeEventData = {
+		const data: EventData[ 'attribute' ] = {
 			item,
 			range: Range._createOn( item )
 		} as any;
@@ -813,13 +813,44 @@ interface DowncastDispatcher extends Emitter {}
 
 export default DowncastDispatcher;
 
-export interface AttributeEventData {
-	item: Item | DocumentSelection;
-	range: Range;
-	attributeKey: string;
-	attributeOldValue: unknown;
-	attributeNewValue: unknown;
-}
+export type ReduceChangesEvent = {
+	name: 'reduceChanges';
+	args: [ data: {
+		changes: Iterable<DiffItem | DiffItemReinsert>;
+	} ];
+};
+
+type EventData = {
+	insert: { item: Item; range: Range; reconversion?: boolean };
+	remove: { position: Position; length: number };
+	attribute: {
+		item: Item | Selection | DocumentSelection;
+		range: Range;
+		attributeKey: string;
+		attributeOldValue: unknown;
+		attributeNewValue: unknown;
+	};
+	selection: { selection: Selection };
+	addMarker: { item?: Item | Selection; range?: Range; markerRange: Range; markerName: string };
+	removeMarker: { markerRange: Range; markerName: string };
+};
+
+export type DowncastEvent<TName extends keyof EventData> = {
+	name: TName | `${ TName }:${ string }`;
+	args: [ data: EventData[ TName ], conversionApi: DowncastConversionApi ];
+};
+
+export type InsertEvent = DowncastEvent<'insert'>;
+
+export type RemoveEvent = DowncastEvent<'remove'>;
+
+export type AttributeEvent = DowncastEvent<'attribute'>;
+
+export type SelectionEvent = DowncastEvent<'selection'>;
+
+export type AddMarkerEvent = DowncastEvent<'addMarker'>;
+
+export type RemoveMarkerEvent = DowncastEvent<'removeMarker'>;
 
 export interface DiffItemReinsert {
 	type: 'reinsert';
@@ -856,10 +887,10 @@ function shouldMarkerChangeBeConverted(
 	return !hasCustomHandling;
 }
 
-function getEventName( type: string, data: { item: Item | DocumentSelection } ) {
+function getEventName<TType extends string>( type: TType, data: { item: Item | Selection | DocumentSelection } ) {
 	const name = data.item.is( 'element' ) ? data.item.name : '$text';
 
-	return `${ type }:${ name }`;
+	return `${ type }:${ name }` as const;
 }
 
 function walkerValueToEventData( value: TreeWalkerValue ) {

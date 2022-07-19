@@ -8,7 +8,7 @@
  */
 
 import TypeCheckable from './typecheckable';
-import LiveRange from './liverange';
+import LiveRange, { type ChangeEvent as LiveRangeChangeEvent } from './liverange';
 
 import type Position from './position';
 import type Range from './range';
@@ -141,7 +141,7 @@ class MarkerCollection implements Iterable<Marker> {
 			}
 
 			if ( hasChanged ) {
-				this.fire( 'update:' + markerName, oldMarker, oldRange, range, oldMarkerData );
+				this.fire<UpdateEvent>( `update:${ markerName }`, oldMarker, oldRange, range, oldMarkerData );
 			}
 
 			return oldMarker;
@@ -151,7 +151,7 @@ class MarkerCollection implements Iterable<Marker> {
 		const marker = new Marker( markerName, liveRange, managedUsingOperations, affectsData );
 
 		this._markers.set( markerName, marker );
-		this.fire( 'update:' + markerName, marker, null, range, { ...marker.getData(), range: null } );
+		this.fire<UpdateEvent>( `update:${ markerName }`, marker, null, range, { ...marker.getData(), range: null } );
 
 		return marker;
 	}
@@ -171,7 +171,7 @@ class MarkerCollection implements Iterable<Marker> {
 
 		if ( oldMarker ) {
 			this._markers.delete( markerName );
-			this.fire( 'update:' + markerName, oldMarker, oldMarker.getRange(), null, oldMarker.getData() );
+			this.fire<UpdateEvent>( `update:${ markerName }`, oldMarker, oldMarker.getRange(), null, oldMarker.getData() );
 
 			this._destroyMarker( oldMarker );
 
@@ -206,7 +206,7 @@ class MarkerCollection implements Iterable<Marker> {
 
 		const range = marker.getRange();
 
-		this.fire( 'update:' + markerName, marker, range, range, marker.getData() );
+		this.fire<UpdateEvent>( `update:${ markerName }`, marker, range, range, marker.getData() );
 	}
 
 	/**
@@ -618,6 +618,13 @@ mix( Marker, EmitterMixin );
 interface Marker extends Emitter {}
 
 export { type Marker };
+
+export type ChangeEvent = LiveRangeChangeEvent;
+
+export type UpdateEvent = {
+	name: 'update' | `update:${ string }`;
+	args: [ marker: Marker, oldRange: Range | null, newRange: Range | null, oldMarkerData: MarkerData ];
+};
 
 /**
  * Cannot use a {@link module:engine/model/markercollection~MarkerCollection#destroy destroyed marker} instance.

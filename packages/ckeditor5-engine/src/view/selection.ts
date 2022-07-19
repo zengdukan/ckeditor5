@@ -573,7 +573,7 @@ class Selection extends TypeCheckable {
 			throw new CKEditorError( 'view-selection-setto-not-selectable', this );
 		}
 
-		this.fire( 'change' );
+		this.fire<ChangeEvent>( 'change' );
 	}
 
 	/**
@@ -613,7 +613,7 @@ class Selection extends TypeCheckable {
 			this._addRange( new Range( anchor, newFocus ) );
 		}
 
-		this.fire( 'change' );
+		this.fire<ChangeEvent>( 'change' );
 	}
 
 	/**
@@ -753,6 +753,11 @@ mix( Selection, EmitterMixin );
 interface Selection extends Emitter {}
 
 export default Selection;
+
+export type ChangeEvent = {
+	name: 'change';
+	args: [];
+};
 
 /**
  * An entity that is used to set selection.

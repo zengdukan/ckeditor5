@@ -8,7 +8,7 @@
  */
 
 import TypeCheckable from './typecheckable';
-import Selection from './selection';
+import Selection, { type ChangeEvent as SelectionChangeEvent } from './selection';
 
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
 import { default as EmitterMixin, type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
@@ -403,3 +403,5 @@ mix( DocumentSelection, EmitterMixin );
 interface DocumentSelection extends Emitter {}
 
 export default DocumentSelection;
+
+export type ChangeEvent = SelectionChangeEvent;
