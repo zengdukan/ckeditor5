@@ -99,7 +99,7 @@ class Model {
 
 		// Adding operation validation with `highest` priority, so it is called before any other feature would like
 		// to do anything with the operation. If the operation has incorrect parameters it should throw on the earliest occasion.
-		this.on( 'applyOperation', ( evt, args ) => {
+		this.on<ApplyOperationEvent>( 'applyOperation', ( evt, args ) => {
 			const operation = args[ 0 ];
 
 			operation._validate();
