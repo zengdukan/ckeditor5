@@ -40,6 +40,8 @@ import type { InsertEvent } from './downcastdispatcher';
 import Mapper, {ModelToViewPositionEvent} from "./mapper";
 import ViewPosition from "../view/position";
 import {AttributeEvent, ReduceChangesEvent} from "./downcastdispatcher";
+import ModelTextProxy from "../model/textproxy";
+import ModelText from "../model/text";
 
 /**
  * Downcast conversion helper functions.
@@ -826,7 +828,11 @@ export default class DowncastHelpers extends ConversionHelpers<DowncastDispatche
  * @returns {Function} Insert text event converter.
  */
 export function insertText() {
-	return ( evt, data, conversionApi ) => {
+	return (
+		evt: { name: string },
+		data: { item: ModelText | ModelTextProxy; range: ModelRange },
+		conversionApi: DowncastConversionApi
+	): void => {
 		if ( !conversionApi.consumable.consume( data.item, evt.name ) ) {
 			return;
 		}
@@ -845,7 +851,11 @@ export function insertText() {
  * @returns {Function} The converter.
  */
 export function insertAttributesAndChildren() {
-	return ( evt, data, conversionApi ) => {
+	return (
+		evt: unknown,
+		data: { item: ModelItem; reconversion?: boolean },
+		conversionApi: DowncastConversionApi
+	): void => {
 		conversionApi.convertAttributes( data.item );
 
 		// Start converting children of the current item.
@@ -864,7 +874,11 @@ export function insertAttributesAndChildren() {
  * @returns {Function} Remove event converter.
  */
 export function remove() {
-	return ( evt, data, conversionApi ) => {
+	return (
+		evt: unknown,
+		data: { position: ModelPosition; length: number },
+		conversionApi: DowncastConversionApi
+	): void => {
 		// Find the view range start position by mapping the model position at which the remove happened.
 		const viewStart = conversionApi.mapper.toViewPosition( data.position );
 
@@ -879,7 +893,7 @@ export function remove() {
 		// After the range is removed, unbind all view elements from the model.
 		// Range inside view document fragment is used to unbind deeply.
 		for ( const child of conversionApi.writer.createRangeIn( removed ).getItems() ) {
-			conversionApi.mapper.unbindViewElement( child, { defer: true } );
+			conversionApi.mapper.unbindViewElement( child as ViewElement, { defer: true } );
 		}
 	};
 }
