@@ -594,7 +594,7 @@ class DowncastDispatcher {
 	 */
 	private _testAndFire<TType extends 'insert' | 'attribute'>(
 		type: TType | `${ TType }:${ string }`,
-		data: EventData[ TType ],
+		data: EventMap[ TType ],
 		conversionApi: DowncastConversionApi
 	): void {
 		const eventName = getEventName( type, data );
@@ -625,7 +625,7 @@ class DowncastDispatcher {
 		item: Item,
 		conversionApi: DowncastConversionApi
 	): void {
-		const data: EventData[ 'attribute' ] = {
+		const data: EventMap[ 'attribute' ] = {
 			item,
 			range: Range._createOn( item )
 		} as any;
@@ -820,8 +820,8 @@ export type ReduceChangesEvent = {
 	} ];
 };
 
-type EventData = {
-	insert: { item: Item; range: Range; reconversion?: boolean };
+type EventMap<TItem = Item> = {
+	insert: { item: TItem; range: Range; reconversion?: boolean };
 	remove: { position: Position; length: number };
 	attribute: {
 		item: Item | Selection | DocumentSelection;
@@ -835,12 +835,12 @@ type EventData = {
 	removeMarker: { markerRange: Range; markerName: string };
 };
 
-export type DowncastEvent<TName extends keyof EventData> = {
+export type DowncastEvent<TName extends keyof EventMap<TItem>, TItem extends Item = Item> = {
 	name: TName | `${ TName }:${ string }`;
-	args: [ data: EventData[ TName ], conversionApi: DowncastConversionApi ];
+	args: [ data: EventMap<TItem>[ TName ], conversionApi: DowncastConversionApi ];
 };
 
-export type InsertEvent = DowncastEvent<'insert'>;
+export type InsertEvent<TItem extends Item = Item> = DowncastEvent<'insert', TItem>;
 
 export type RemoveEvent = DowncastEvent<'remove'>;
 

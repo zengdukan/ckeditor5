@@ -24,18 +24,21 @@ import toArray from '@ckeditor/ckeditor5-utils/src/toarray';
 
 import type DowncastDispatcher from './downcastdispatcher';
 import type ElementDefinition from '../view/elementdefinition';
-import { ViewElement } from '..';
-import { ModelNode } from '../model/node';
-import ModelItem from '../model/item'
-import { PriorityString } from '@ckeditor/ckeditor5-utils/src/priorities';
-import { DiffItemReinsert, DowncastConversionApi } from './downcastdispatcher';
-import ModelConsumable from './modelconsumable';
-import DocumentFragment from '../view/documentfragment';
-import { DiffItem } from '../model/differ';
-import DowncastWriter from '../view/downcastwriter';
-import AttributeElement from '../view/attributeelement';
-import UIElement from '../view/uielement';
-import EventInfo from '@ckeditor/ckeditor5-utils/src/eventinfo';
+import type { ViewElement } from '..';
+import type ModelNode from '../model/node';
+import type ModelItem from '../model/item';
+import type { PriorityString } from '@ckeditor/ckeditor5-utils/src/priorities';
+import type { DiffItemReinsert, DowncastConversionApi } from './downcastdispatcher';
+import type ModelConsumable from './modelconsumable';
+import type DocumentFragment from '../view/documentfragment';
+import type { DiffItem } from '../model/differ';
+import type DowncastWriter from '../view/downcastwriter';
+import type AttributeElement from '../view/attributeelement';
+import type UIElement from '../view/uielement';
+import type EventInfo from '@ckeditor/ckeditor5-utils/src/eventinfo';
+import type { InsertEvent } from './downcastdispatcher';
+import Mapper, {ModelToViewPositionEvent} from "./mapper";
+import ViewPosition from "../view/position";
 
 /**
  * Downcast conversion helper functions.
@@ -179,6 +182,7 @@ export default class DowncastHelpers extends ConversionHelpers<DowncastDispatche
 			children?: boolean;
 		};
 		view: ElementDefinition | ElementCreatorFunction;
+		converterPriority?: PriorityString | number;
 	} ): this {
 		return this.add( downcastElementToElement( config ) );
 	}
@@ -322,9 +326,9 @@ export default class DowncastHelpers extends ConversionHelpers<DowncastDispatche
 		model: string | {
 			name: string;
 			attributes?: string | string[];
-			children?: boolean;
 		};
-		view: ElementDefinition | ElementCreatorFunction;
+		view: StructureCreatorFunction;
+		converterPriority?: PriorityString | number;
 	} ): this {
 		return this.add( downcastElementToStructure( config ) );
 	}
@@ -1170,7 +1174,7 @@ export function insertStructure( elementCreator: ElementCreatorFunction, consume
 			return;
 		}
 
-		const slotsMap = new Map();
+		const slotsMap: Map<ViewElement, ModelNode[]> = new Map();
 
 		conversionApi.writer._registerSlotFactory( createSlotFactory( data.item, slotsMap, conversionApi ) );
 
@@ -1765,8 +1769,8 @@ function downcastElementToElement( config: {
 	}
 
 	return ( dispatcher: DowncastDispatcher ) => {
-		dispatcher.on(
-			'insert:' + model.name,
+		dispatcher.on<InsertEvent<ModelElement>>(
+			`insert:${ model.name }`,
 			insertElement( view, createConsumer( model ) ),
 			{ priority: config.converterPriority || 'normal' }
 		);
@@ -1792,9 +1796,8 @@ function downcastElementToStructure(
 		model: string | {
 			name: string;
 			attributes?: string | string[];
-			children?: boolean;
 		};
-		view: ElementDefinition | ElementCreatorFunction;
+		view: StructureCreatorFunction;
 		converterPriority?: PriorityString | number;
 	}
 ) {
@@ -1848,8 +1851,8 @@ function downcastElementToStructure(
 			throw new CKEditorError( 'conversion-element-to-structure-disallowed-text', dispatcher, { elementName: model.name } );
 		}
 
-		dispatcher.on(
-			'insert:' + model.name,
+		dispatcher.on<InsertEvent<ModelElement>>(
+			`insert:${ model.name }`,
 			insertStructure( view, createConsumer( model ) ),
 			{ priority: config.converterPriority || 'normal' }
 		);
@@ -2076,9 +2079,9 @@ interface NormalizedModelElementConfig {
 // @param {'container'|'attribute'|'ui'} viewElementType View element type to create.
 // @returns {Function} Element creator function to use in lower level converters.
 function normalizeToElementConfig(
-	view: any,
+	view: ElementDefinition | ElementCreatorFunction,
 	viewElementType: 'container' | 'attribute' | 'ui'
-): any {
+): ElementCreatorFunction {
 	if ( typeof view == 'function' ) {
 		// If `view` is already a function, don't do anything.
 		return view;
@@ -2326,10 +2329,10 @@ function createConsumer( model: NormalizedModelElementConfig ): ConsumerFunction
 // @param {module:engine/conversion/downcastdispatcher~DowncastConversionApi} conversionApi
 // @returns {Function} Exposed by writer as createSlot().
 function createSlotFactory( element: ModelElement, slotsMap: Map<ViewElement, ModelNode[]>, conversionApi: DowncastConversionApi ) {
-	return ( writer: DowncastWriter, modeOrFilter = 'children' ) => {
+	return ( writer: DowncastWriter, modeOrFilter: string | SlotFilter = 'children' ) => {
 		const slot = writer.createContainerElement( '$slot' );
 
-		let children = null;
+		let children: ModelNode[] | null = null;
 
 		if ( modeOrFilter === 'children' ) {
 			children = Array.from( element.getChildren() );
@@ -2355,7 +2358,11 @@ function createSlotFactory( element: ModelElement, slotsMap: Map<ViewElement, Mo
 // @param {module:engine/model/element~Element}
 // @param {Map.<module:engine/view/element~Element,Array.<module:engine/model/node~Node>>} slotsMap
 // @param {module:engine/conversion/downcastdispatcher~DowncastConversionApi} conversionApi
-function validateSlotsChildren( element, slotsMap, conversionApi ) {
+function validateSlotsChildren(
+	element: ModelElement,
+	slotsMap: Map<ViewElement, ModelNode[]>,
+	conversionApi: DowncastConversionApi
+) {
 	const childrenInSlots = Array.from( slotsMap.values() ).flat();
 	const uniqueChildrenInSlots = new Set( childrenInSlots );
 
@@ -2390,12 +2397,17 @@ function validateSlotsChildren( element, slotsMap, conversionApi ) {
 // @param {module:engine/conversion/downcastdispatcher~DowncastConversionApi} conversionApi
 // @param {Object} options
 // @param {Boolean} [options.reconversion]
-function fillSlots( viewElement, slotsMap, conversionApi, options ) {
+function fillSlots(
+	viewElement: ViewElement,
+	slotsMap: Map<ViewElement, ModelNode[]>,
+	conversionApi: DowncastConversionApi,
+	options: { reconversion?: boolean }
+): void {
 	// Set temporary position mapping to redirect child view elements into a proper slots.
-	conversionApi.mapper.on( 'modelToViewPosition', toViewPositionMapping, { priority: 'highest' } );
+	conversionApi.mapper.on<ModelToViewPositionEvent>( 'modelToViewPosition', toViewPositionMapping, { priority: 'highest' } );
 
-	let currentSlot = null;
-	let currentSlotNodes = null;
+	let currentSlot: ViewElement | null = null;
+	let currentSlotNodes: ModelNode[] | null = null;
 
 	// Fill slots with nested view nodes.
 	for ( [ currentSlot, currentSlotNodes ] of slotsMap ) {
@@ -2410,17 +2422,22 @@ function fillSlots( viewElement, slotsMap, conversionApi, options ) {
 
 	conversionApi.mapper.off( 'modelToViewPosition', toViewPositionMapping );
 
-	function toViewPositionMapping( evt, data ) {
-		const element = data.modelPosition.nodeAfter;
+	function toViewPositionMapping( evt: unknown, data: {
+		mapper: Mapper;
+		modelPosition: ModelPosition;
+		viewPosition?: ViewPosition;
+		isPhantom?: boolean;
+	} ) {
+		const element = data.modelPosition.nodeAfter!;
 
 		// Find the proper offset within the slot.
-		const index = currentSlotNodes.indexOf( element );
+		const index = currentSlotNodes!.indexOf( element );
 
 		if ( index < 0 ) {
 			return;
 		}
 
-		data.viewPosition = data.mapper.findPositionIn( currentSlot, index );
+		data.viewPosition = data.mapper.findPositionIn( currentSlot!, index );
 	}
 }
 
@@ -2469,7 +2486,7 @@ function reinsertNode(
 		return false;
 	}
 
-	const viewChildNode = mapper.toViewElement( modelNode );
+	const viewChildNode = modelNode.is( 'element' ) ? mapper.toViewElement( modelNode ) : undefined;
 
 	// ...or there is no view to reinsert or it was already inserted to the view structure...
 	if ( !viewChildNode || viewChildNode.root == viewRoot ) {
@@ -2563,6 +2580,7 @@ interface HighlightDescriptor {
  * @see module:engine/conversion/downcasthelpers~DowncastHelpers#elementToStructure
  * @see module:engine/conversion/downcasthelpers~insertStructure
  */
+export type SlotFilter = ( node: ModelNode ) => boolean;
 
 /**
  * A view element creator function that takes the model element and {@link module:engine/conversion/downcastdispatcher~DowncastConversionApi
@@ -2580,7 +2598,6 @@ interface HighlightDescriptor {
  * @see module:engine/conversion/downcasthelpers~DowncastHelpers#elementToElement
  * @see module:engine/conversion/downcasthelpers~insertElement
  */
-
 export type ElementCreatorFunction = (
 	element: ModelElement,
 	conversionApi: DowncastConversionApi,
@@ -2606,6 +2623,7 @@ export type ElementCreatorFunction = (
  * @see module:engine/conversion/downcasthelpers~DowncastHelpers#elementToStructure
  * @see module:engine/conversion/downcasthelpers~insertStructure
  */
+export type StructureCreatorFunction = ElementCreatorFunction;
 
 /**
  * A view element creator function that takes the model attribute value and
@@ -2690,5 +2708,8 @@ export type MarkerDataCreatorFunction = (
  *
  * @see module:engine/conversion/downcasthelpers~insertStructure
  */
-
-export type ConsumerFunction = ( element: ModelElement, consumable: ModelConsumable, options?: { preflight?: boolean } ) => boolean | null;
+export type ConsumerFunction = (
+	element: ModelElement,
+	consumable: ModelConsumable,
+	options?: { preflight?: boolean }
+) => boolean | null;
