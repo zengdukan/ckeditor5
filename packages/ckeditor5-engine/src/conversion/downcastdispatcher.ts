@@ -250,7 +250,7 @@ class DowncastDispatcher {
 	 * @param {module:engine/view/downcastwriter~DowncastWriter} writer View writer that should be used to modify the view document.
 	 */
 	public convertSelection(
-		selection: Selection,
+		selection: Selection | DocumentSelection,
 		markers: MarkerCollection,
 		writer: DowncastWriter
 	): void {
@@ -566,7 +566,7 @@ class DowncastDispatcher {
 	 */
 	private _addConsumablesForSelection(
 		consumable: Consumable,
-		selection: Selection,
+		selection: Selection | DocumentSelection,
 		markers: Iterable<Marker>
 	): Consumable {
 		consumable.add( selection, 'selection' );
@@ -821,8 +821,15 @@ export type ReduceChangesEvent = {
 };
 
 type EventMap<TItem = Item> = {
-	insert: { item: TItem; range: Range; reconversion?: boolean };
-	remove: { position: Position; length: number };
+	insert: {
+		item: TItem;
+		range: Range;
+		reconversion?: boolean;
+	};
+	remove: {
+		position: Position;
+		length: number;
+	};
 	attribute: {
 		item: Item | Selection | DocumentSelection;
 		range: Range;
@@ -830,9 +837,19 @@ type EventMap<TItem = Item> = {
 		attributeOldValue: unknown;
 		attributeNewValue: unknown;
 	};
-	selection: { selection: Selection };
-	addMarker: { item?: Item | Selection; range?: Range; markerRange: Range; markerName: string };
-	removeMarker: { markerRange: Range; markerName: string };
+	selection: {
+		selection: Selection | DocumentSelection;
+	};
+	addMarker: {
+		item?: Item | Selection | DocumentSelection;
+		range?: Range;
+		markerRange: Range;
+		markerName: string;
+	};
+	removeMarker: {
+		markerRange: Range;
+		markerName: string;
+	};
 };
 
 export type DowncastEvent<TName extends keyof EventMap<TItem>, TItem extends Item = Item> = {

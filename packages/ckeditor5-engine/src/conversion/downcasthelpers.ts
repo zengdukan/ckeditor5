@@ -15,7 +15,7 @@ import ModelElement from '../model/element';
 import ModelPosition from '../model/position';
 
 import ViewAttributeElement from '../view/attributeelement';
-import DocumentSelection from '../model/documentselection';
+import ModelDocumentSelection from '../model/documentselection';
 import ConversionHelpers from './conversionhelpers';
 
 import { cloneDeep } from 'lodash-es';
@@ -39,6 +39,7 @@ import type EventInfo from '@ckeditor/ckeditor5-utils/src/eventinfo';
 import type { InsertEvent } from './downcastdispatcher';
 import Mapper, {ModelToViewPositionEvent} from "./mapper";
 import ViewPosition from "../view/position";
+import {AttributeEvent, ReduceChangesEvent} from "./downcastdispatcher";
 
 /**
  * Downcast conversion helper functions.
@@ -420,25 +421,32 @@ export default class DowncastHelpers extends ConversionHelpers<DowncastDispatche
 	 * @param {module:utils/priorities~PriorityString} [config.converterPriority='normal'] Converter priority.
 	 * @returns {module:engine/conversion/downcasthelpers~DowncastHelpers}
 	 */
-	public attributeToElement(
-		config: {
-			model: string | {
-				key: string;
-				name?: string;
-				values?: undefined;
-			};
-			view: ElementDefinition | AttributeElementCreatorFunction;
-			converterPriority?: PriorityString | number;
-		} | {
-			model: string | {
-				key: string;
-				name?: string;
-				values: string[];
-			};
-			view: Record<string, ElementDefinition | AttributeElementCreatorFunction>;
-			converterPriority?: PriorityString | number;
-		}
-	): this {
+	public attributeToElement( config: {
+		model: string | {
+			key: string;
+			name?: string;
+		};
+		view: ElementDefinition | AttributeElementCreatorFunction;
+		converterPriority?: PriorityString | number;
+	} ): this;
+	public attributeToElement<TValues extends keyof any>( config: {
+		model: {
+			key: string;
+			name?: string;
+			values: TValues[];
+		};
+		view: Record<TValues, ElementDefinition | AttributeElementCreatorFunction>;
+		converterPriority?: PriorityString | number;
+	} ): this;
+	public attributeToElement( config: {
+		model: string | {
+			key: string;
+			name?: string;
+			values?: string[];
+		};
+		view: ElementDefinition | AttributeElementCreatorFunction | Record<string, ElementDefinition | AttributeElementCreatorFunction>;
+		converterPriority?: PriorityString | number;
+	} ): this {
 		return this.add( downcastAttributeToElement( config ) );
 	}
 
@@ -1050,7 +1058,17 @@ export function clearAttributes() {
  * @returns {Function} Set/change attribute converter.
  */
 export function wrap( elementCreator: AttributeElementCreatorFunction ) {
-	return ( evt, data, conversionApi ) => {
+	return (
+		evt: { name: string },
+		data: {
+			item: ModelItem | ModelSelection | ModelDocumentSelection;
+			range: ModelRange;
+			attributeKey: string;
+			attributeOldValue: unknown;
+			attributeNewValue: unknown;
+		},
+		conversionApi: DowncastConversionApi
+	): void => {
 		if ( !conversionApi.consumable.test( data.item, evt.name ) ) {
 			return;
 		}
@@ -1071,9 +1089,9 @@ export function wrap( elementCreator: AttributeElementCreatorFunction ) {
 		const viewWriter = conversionApi.writer;
 		const viewSelection = viewWriter.document.selection;
 
-		if ( data.item instanceof ModelSelection || data.item instanceof DocumentSelection ) {
+		if ( data.item instanceof ModelSelection || data.item instanceof ModelDocumentSelection ) {
 			// Selection attribute conversion.
-			viewWriter.wrap( viewSelection.getFirstRange(), newViewElement );
+			viewWriter.wrap( viewSelection.getFirstRange()!, newViewElement );
 		} else {
 			// Node attribute conversion.
 			let viewRange = conversionApi.mapper.toViewRange( data.range );
@@ -1164,7 +1182,7 @@ export function insertElement( elementCreator: ElementCreatorFunction, consumer:
  * that were used by the element creator.
  * @returns {Function} Insert element event converter.
 */
-export function insertStructure( elementCreator: ElementCreatorFunction, consumer: ConsumerFunction ) {
+export function insertStructure( elementCreator: StructureCreatorFunction, consumer: ConsumerFunction ) {
 	return (
 		evt: unknown,
 		data: { item: ModelElement; range: ModelRange; reconversion?: boolean },
@@ -1584,7 +1602,7 @@ function highlightText( highlightDescriptor ) {
 			return;
 		}
 
-		if ( !( data.item instanceof ModelSelection || data.item instanceof DocumentSelection ) && !data.item.is( '$textProxy' ) ) {
+		if ( !( data.item instanceof ModelSelection || data.item instanceof ModelDocumentSelection ) && !data.item.is( '$textProxy' ) ) {
 			return;
 		}
 
@@ -1602,7 +1620,7 @@ function highlightText( highlightDescriptor ) {
 		const viewElement = createViewElementFromHighlightDescriptor( viewWriter, descriptor );
 		const viewSelection = viewWriter.document.selection;
 
-		if ( data.item instanceof ModelSelection || data.item instanceof DocumentSelection ) {
+		if ( data.item instanceof ModelSelection || data.item instanceof ModelDocumentSelection ) {
 			viewWriter.wrap( viewSelection.getFirstRange(), viewElement, viewSelection );
 		} else {
 			const viewRange = conversionApi.mapper.toViewRange( data.range );
@@ -1776,7 +1794,7 @@ function downcastElementToElement( config: {
 		);
 
 		if ( model.children || model.attributes.length ) {
-			dispatcher.on( 'reduceChanges', createChangeReducer( model ), { priority: 'low' } );
+			dispatcher.on<ReduceChangesEvent>( 'reduceChanges', createChangeReducer( model ), { priority: 'low' } );
 		}
 	};
 }
@@ -1857,7 +1875,7 @@ function downcastElementToStructure(
 			{ priority: config.converterPriority || 'normal' }
 		);
 
-		dispatcher.on( 'reduceChanges', createChangeReducer( model ), { priority: 'low' } );
+		dispatcher.on<ReduceChangesEvent>( 'reduceChanges', createChangeReducer( model ), { priority: 'low' } );
 	};
 }
 
@@ -1875,17 +1893,15 @@ function downcastElementToStructure(
 // definitions or functions.
 // @param {module:utils/priorities~PriorityString} [config.converterPriority='normal'] Converter priority.
 // @returns {Function} Conversion helper.
-function downcastAttributeToElement(
-	config: {
-		model: string | {
-			key: string;
-			name?: string;
-			values?: string[];
-		};
-		view: ElementDefinition | AttributeElementCreatorFunction | Record<string, ElementDefinition | AttributeElementCreatorFunction>;
-		converterPriority?: PriorityString | number;
-	}
-) {
+function downcastAttributeToElement( config: {
+	model: string | {
+		key: string;
+		name?: string;
+		values?: string[];
+	};
+	view: ElementDefinition | AttributeElementCreatorFunction | Record<string, ElementDefinition | AttributeElementCreatorFunction>;
+	converterPriority?: PriorityString | number;
+} ) {
 	config = cloneDeep( config );
 
 	let model = config.model;
@@ -1894,7 +1910,7 @@ function downcastAttributeToElement(
 		model = { key: model };
 	}
 
-	let eventName = 'attribute:' + model.key;
+	let eventName = `attribute:${ model.key }` as const;
 
 	if ( model.name ) {
 		eventName += ':' + model.name;
@@ -1911,7 +1927,7 @@ function downcastAttributeToElement(
 	const elementCreator = getFromAttributeCreator( config );
 
 	return ( dispatcher: DowncastDispatcher ) => {
-		dispatcher.on( eventName, wrap( elementCreator ), { priority: config.converterPriority || 'normal' } );
+		dispatcher.on<AttributeEvent>( eventName, wrap( elementCreator ), { priority: config.converterPriority || 'normal' } );
 	};
 }
 
@@ -2249,7 +2265,7 @@ function createChangeReducer( model: NormalizedModelElementConfig ) {
 
 	return (
 		evt: unknown,
-		data: { changes: Iterable<DiffItem | DiffItemReinsert>; reconvertedElements: Set<ModelNode> }
+		data: { changes: Iterable<DiffItem | DiffItemReinsert>; reconvertedElements?: Set<ModelNode> }
 	) => {
 		const reducedChanges: ( DiffItem | DiffItemReinsert )[] = [];
 
@@ -2650,7 +2666,7 @@ export type AttributeElementCreatorFunction = (
 	attributeValue: any,
 	conversionApi: DowncastConversionApi,
 	data: {
-		item: ModelItem | DocumentSelection;
+		item: ModelItem | ModelSelection | ModelDocumentSelection;
 		range: ModelRange;
 		attributeKey: string;
 		attributeOldValue: unknown;
