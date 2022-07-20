@@ -2607,6 +2607,15 @@ export type ElementCreatorFunction = (
 	}
 ) => ViewElement;
 
+export type ElementCreatorFunction = (
+	element: ModelElement,
+	conversionApi: DowncastConversionApi,
+	data: {
+		item: ModelItem;
+		range: ModelRange;
+	}
+) => ViewElement;
+
 /**
  * A function that takes the model element and {@link module:engine/conversion/downcastdispatcher~DowncastConversionApi downcast
  * conversion API} as parameters and returns a view container element with slots for model child nodes to be converted into.
