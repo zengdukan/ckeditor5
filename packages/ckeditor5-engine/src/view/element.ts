@@ -78,7 +78,7 @@ export default class Element extends Node {
 	constructor(
 		document: Document,
 		name: string,
-		attrs?: Record<string, string> | Iterable<[ string, string ]>,
+		attrs?: Record<string, string> | Iterable<[ string, string ]> | null,
 		children?: Node | Iterable<Node>
 	) {
 		super( document );
@@ -921,7 +921,7 @@ Element.prototype.is = function( type: string, name?: string ): boolean {
 //
 // @param {Object|Iterable} attrs Attributes to parse.
 // @returns {Map} Parsed attributes.
-function parseAttributes( attrs: Record<string, string> | Iterable<[ string, string ]> | undefined ) {
+function parseAttributes( attrs: Record<string, string> | Iterable<[ string, string ]> | null | undefined ) {
 	const attrsMap = toMap( attrs );
 
 	for ( const [ key, value ] of attrsMap ) {

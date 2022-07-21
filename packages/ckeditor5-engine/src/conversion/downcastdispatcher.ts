@@ -831,7 +831,7 @@ type EventMap<TItem = Item> = {
 		length: number;
 	};
 	attribute: {
-		item: Item | Selection | DocumentSelection;
+		item: TItem;
 		range: Range;
 		attributeKey: string;
 		attributeOldValue: unknown;
@@ -852,7 +852,7 @@ type EventMap<TItem = Item> = {
 	};
 };
 
-export type DowncastEvent<TName extends keyof EventMap<TItem>, TItem extends Item = Item> = {
+export type DowncastEvent<TName extends keyof EventMap<TItem>, TItem = Item> = {
 	name: TName | `${ TName }:${ string }`;
 	args: [ data: EventMap<TItem>[ TName ], conversionApi: DowncastConversionApi ];
 };
@@ -861,7 +861,7 @@ export type InsertEvent<TItem extends Item = Item> = DowncastEvent<'insert', TIt
 
 export type RemoveEvent = DowncastEvent<'remove'>;
 
-export type AttributeEvent = DowncastEvent<'attribute'>;
+export type AttributeEvent<TItem = Item | Selection | DocumentSelection> = DowncastEvent<'attribute', TItem>;
 
 export type SelectionEvent = DowncastEvent<'selection'>;
 

@@ -113,6 +113,15 @@ class DocumentFragment extends TypeCheckable {
 	}
 
 	/**
+	 * Artificial isAttached check of `DocumentFragment`. Returns `false`. Added for compatibility reasons.
+	 *
+	 * @returns {Boolean}
+	 */
+	public isAttached(): boolean {
+		return false;
+	}
+
+	/**
 	 * {@link module:engine/view/documentfragment~DocumentFragment#_insertChild Insert} a child node or a list of child nodes at the end
 	 * and sets the parent of these nodes to this fragment.
 	 *
