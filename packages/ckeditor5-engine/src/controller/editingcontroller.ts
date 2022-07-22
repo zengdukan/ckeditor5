@@ -10,7 +10,7 @@
 import RootEditableElement from '../view/rooteditableelement';
 import View from '../view/view';
 import Mapper from '../conversion/mapper';
-import DowncastDispatcher from '../conversion/downcastdispatcher';
+import DowncastDispatcher, { type InsertEvent, type RemoveEvent, type SelectionEvent } from '../conversion/downcastdispatcher';
 import {
 	clearAttributes,
 	convertCollapsedSelection,
@@ -20,10 +20,18 @@ import {
 	remove
 } from '../conversion/downcasthelpers';
 
-import ObservableMixin from '@ckeditor/ckeditor5-utils/src/observablemixin';
+import ObservableMixin, { type Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 import { convertSelectionChange } from '../conversion/upcasthelpers';
+
+import type Model from '../model/model';
+import type ModelItem from '../model/item';
+import type ModelText from '../model/text';
+import type ModelTextProxy from '../model/textproxy';
+import type { ChangeEvent } from '../model/document';
+import type { Marker } from '../model/markercollection';
+import type { StylesProcessor } from '../view/stylesmap';
 
 // @if CK_DEBUG_ENGINE // const { dumpTrees, initDocumentDumping } = require( '../dev-utils/utils' );
 
@@ -34,14 +42,19 @@ import { convertSelectionChange } from '../conversion/upcasthelpers';
  *
  * @mixes module:utils/observablemixin~ObservableMixin
  */
-export default class EditingController {
+class EditingController {
+	public readonly model: Model;
+	public readonly view: View;
+	public readonly mapper: Mapper;
+	public readonly downcastDispatcher: DowncastDispatcher;
+
 	/**
 	 * Creates an editing controller instance.
 	 *
 	 * @param {module:engine/model/model~Model} model Editing model.
 	 * @param {module:engine/view/stylesmap~StylesProcessor} stylesProcessor The styles processor instance.
 	 */
-	constructor( model, stylesProcessor ) {
+	constructor( model: Model, stylesProcessor: StylesProcessor ) {
 		/**
 		 * Editor model.
 		 *
@@ -97,7 +110,7 @@ export default class EditingController {
 		// Whenever model document is changed, convert those changes to the view (using model.Document#differ).
 		// Do it on 'low' priority, so changes are converted after other listeners did their job.
 		// Also convert model selection.
-		this.listenTo( doc, 'change', () => {
+		this.listenTo<ChangeEvent>( doc, 'change', () => {
 			this.view.change( writer => {
 				this.downcastDispatcher.convertChanges( doc.differ, markers, writer );
 				this.downcastDispatcher.convertSelection( selection, markers, writer );
@@ -108,14 +121,14 @@ export default class EditingController {
 		this.listenTo( this.view.document, 'selectionChange', convertSelectionChange( this.model, this.mapper ) );
 
 		// Attach default model converters.
-		this.downcastDispatcher.on( 'insert:$text', insertText(), { priority: 'lowest' } );
-		this.downcastDispatcher.on( 'insert', insertAttributesAndChildren(), { priority: 'lowest' } );
-		this.downcastDispatcher.on( 'remove', remove(), { priority: 'low' } );
+		this.downcastDispatcher.on<InsertEvent<ModelText | ModelTextProxy>>( 'insert:$text', insertText(), { priority: 'lowest' } );
+		this.downcastDispatcher.on<InsertEvent>( 'insert', insertAttributesAndChildren(), { priority: 'lowest' } );
+		this.downcastDispatcher.on<RemoveEvent>( 'remove', remove(), { priority: 'low' } );
 
 		// Attach default model selection converters.
-		this.downcastDispatcher.on( 'selection', clearAttributes(), { priority: 'high' } );
-		this.downcastDispatcher.on( 'selection', convertRangeSelection(), { priority: 'low' } );
-		this.downcastDispatcher.on( 'selection', convertCollapsedSelection(), { priority: 'low' } );
+		this.downcastDispatcher.on<SelectionEvent>( 'selection', clearAttributes(), { priority: 'high' } );
+		this.downcastDispatcher.on<SelectionEvent>( 'selection', convertRangeSelection(), { priority: 'low' } );
+		this.downcastDispatcher.on<SelectionEvent>( 'selection', convertCollapsedSelection(), { priority: 'low' } );
 
 		// Binds {@link module:engine/view/document~Document#roots view roots collection} to
 		// {@link module:engine/model/document~Document#roots model roots collection} so creating
@@ -149,7 +162,7 @@ export default class EditingController {
 	 * Removes all event listeners attached to the `EditingController`. Destroys all objects created
 	 * by `EditingController` that need to be destroyed.
 	 */
-	destroy() {
+	public destroy(): void {
 		this.view.destroy();
 		this.stopListening();
 	}
@@ -187,7 +200,7 @@ export default class EditingController {
 	 *
 	 * @param {String|module:engine/model/markercollection~Marker} markerOrName Name of a marker to update, or a marker instance.
 	 */
-	reconvertMarker( markerOrName ) {
+	public reconvertMarker( markerOrName: Marker | string ): void {
 		const markerName = typeof markerOrName == 'string' ? markerOrName : markerOrName.name;
 		const currentMarker = this.model.markers.get( markerName );
 
@@ -216,7 +229,7 @@ export default class EditingController {
 	 *
 	 * @param {module:engine/model/item~Item} item Item to refresh.
 	 */
-	reconvertItem( item ) {
+	public reconvertItem( item: ModelItem ): void {
 		this.model.change( () => {
 			this.model.document.differ._refreshItem( item );
 		} );
@@ -224,3 +237,7 @@ export default class EditingController {
 }
 
 mix( EditingController, ObservableMixin );
+
+interface EditingController extends Observable {}
+
+export default EditingController;
