@@ -14,6 +14,7 @@ import toArray from '@ckeditor/ckeditor5-utils/src/toarray';
 
 import type DowncastDispatcher from './downcastdispatcher';
 import type UpcastDispatcher from './upcastdispatcher';
+import type { PriorityString } from '@ckeditor/ckeditor5-utils/src/priorities';
 
 /**
  * A utility class that helps add converters to upcast and downcast dispatchers.
@@ -615,7 +616,7 @@ export default class Conversion {
 	private _createConversionHelpers(
 		{ name, dispatchers, isDowncast }: {
 			name: string;
-			dispatchers: ( DowncastDispatcher | UpcastDispatcher)[];
+			dispatchers: ( DowncastDispatcher | UpcastDispatcher )[];
 			isDowncast: boolean;
 		}
 	): void {
@@ -655,7 +656,9 @@ export default class Conversion {
 
 export interface ConverterDefinition {
 	model: unknown;
-	TODO: unknown;
+	view: unknown;
+	upcastAlso?: unknown;
+	converterPriority?: PriorityString | number;
 }
 
 // Helper function that creates a joint array out of an item passed in `definition.view` and items passed in
@@ -677,7 +680,7 @@ function* _getAllUpcastDefinitions( definition ) {
 	}
 }
 
-function* _getUpcastDefinition( model, view, upcastAlso ) {
+function* _getUpcastDefinition( model: unknown, view: unknown, upcastAlso?: unknown ) {
 	yield { model, view };
 
 	if ( upcastAlso ) {

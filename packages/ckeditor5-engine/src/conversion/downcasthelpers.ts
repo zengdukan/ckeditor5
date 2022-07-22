@@ -462,19 +462,6 @@ export default class DowncastHelpers extends ConversionHelpers<DowncastDispatche
 		return this.add( downcastAttributeToElement( config ) );
 	}
 
-	private aaa() {
-		this.attributeToElement( {
-			model: {
-				key: 'a',
-				values: [ 'q', 'w' ]
-			},
-			view: {
-				q: 'Q',
-				w: 'W'
-			}
-		} );
-	}
-
 	/**
 	 * Model attribute to view attribute conversion helper.
 	 *
@@ -2900,7 +2887,7 @@ export type AttributeDescriptor = {
 	key: 'style';
 	value: Record<string, string>;
 } | {
-	key: string;
+	key: Exclude<string, 'class' | 'style'>;
 	value: string;
 };
 
