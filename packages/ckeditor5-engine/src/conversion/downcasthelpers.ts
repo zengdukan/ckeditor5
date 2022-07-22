@@ -1429,7 +1429,7 @@ function handleMarkerBoundary(
 			isBefore = false;
 		}
 
-		const viewElement = conversionApi.mapper.toViewElement( modelElement! );
+		const viewElement = conversionApi.mapper.toViewElement( modelElement! ) as ViewElement | undefined;
 
 		// In rare circumstances, the model element may be not mapped to any view element and that would cause an error.
 		// One of those situations is a soft break inside code block.
@@ -1590,7 +1590,7 @@ function changeAttribute( attributeCreator: AttributeCreatorFunction ) {
 
 		conversionApi.consumable.consume( data.item, evt.name );
 
-		const viewElement = conversionApi.mapper.toViewElement( data.item );
+		const viewElement = conversionApi.mapper.toViewElement( data.item ) as ViewElement | undefined;
 		const viewWriter = conversionApi.writer;
 
 		// If model item cannot be mapped to a view element, it means item is not an `Element` instance but a `TextProxy` node.
@@ -1787,7 +1787,7 @@ function highlightElement( highlightDescriptor: HighlightDescriptor | HighlightD
 			return;
 		}
 
-		const viewElement = conversionApi.mapper.toViewElement( data.item );
+		const viewElement = conversionApi.mapper.toViewElement( data.item ) as ViewElement | undefined;
 
 		if ( viewElement && viewElement.getCustomProperty( 'addHighlight' ) ) {
 			// Consume element itself.
@@ -2675,7 +2675,7 @@ function reinsertNode(
 		return false;
 	}
 
-	const viewChildNode = modelNode.is( 'element' ) ? mapper.toViewElement( modelNode ) : undefined;
+	const viewChildNode = modelNode.is( 'element' ) ? mapper.toViewElement( modelNode ) as ViewElement | undefined : undefined;
 
 	// ...or there is no view to reinsert or it was already inserted to the view structure...
 	if ( !viewChildNode || viewChildNode.root == viewRoot ) {

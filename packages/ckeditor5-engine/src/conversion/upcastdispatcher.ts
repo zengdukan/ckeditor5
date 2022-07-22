@@ -279,11 +279,23 @@ class UpcastDispatcher {
 		const data: UpcastConversionData = { viewItem, modelCursor, modelRange: null };
 
 		if ( viewItem.is( 'element' ) ) {
-			this.fire( 'element:' + viewItem.name, data, this.conversionApi ); // TODO
+			this.fire<ElementEvent>(
+				`element:${ viewItem.name }`,
+				data as UpcastConversionData<ViewElement>,
+				this.conversionApi
+			);
 		} else if ( viewItem.is( '$text' ) ) {
-			this.fire( 'text', data, this.conversionApi ); // TODO
+			this.fire<TextEvent>(
+				'text',
+				data as UpcastConversionData<ViewText>,
+				this.conversionApi
+			);
 		} else {
-			this.fire( 'documentFragment', data, this.conversionApi ); // TODO
+			this.fire<DocumentFragmentEvent>(
+				'documentFragment',
+				data as UpcastConversionData<ViewDocumentFragment>,
+				this.conversionApi
+			);
 		}
 
 		// Handle incorrect conversion result.
@@ -633,7 +645,10 @@ function extractMarkersFromModelFragment( modelItem: ModelDocumentFragment, writ
 }
 
 // Creates model fragment according to given context and returns position in the bottom (the deepest) element.
-function createContextTree( contextDefinition: SchemaContextDefinition, writer: ModelWriter ): ModelPosition | undefined {
+function createContextTree(
+	contextDefinition: SchemaContextDefinition,
+	writer: ModelWriter
+): ModelPosition | undefined {
 	let position: ModelPosition | undefined;
 
 	for ( const item of new SchemaContext( contextDefinition ) ) {

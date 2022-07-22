@@ -654,6 +654,7 @@ export default class Conversion {
  * @property {module:utils/priorities~PriorityString} [converterPriority] The converter priority.
  */
 
+// TODO
 export interface ConverterDefinition {
 	model: unknown;
 	view: unknown;
