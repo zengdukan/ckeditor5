@@ -223,7 +223,7 @@ class DowncastDispatcher {
 		range: Range,
 		markers: Map<string, Range>,
 		writer: DowncastWriter,
-		options = {} // TODO
+		options: unknown = {}
 	): void {
 		const conversionApi = this._createConversionApi( writer, undefined, options );
 
@@ -653,7 +653,7 @@ class DowncastDispatcher {
 	private _createConversionApi(
 		writer: DowncastWriter,
 		refreshedItems: Set<Item> = new Set(),
-		options = {} // TODO
+		options: unknown = {}
 	): DowncastConversionApi {
 		const conversionApi: DowncastConversionApi = {
 			...this._conversionApi,
@@ -934,7 +934,7 @@ export interface DowncastConversionApi {
 	mapper: Mapper;
 	schema: Schema;
 	writer: DowncastWriter;
-	options: unknown; // TODO
+	options: unknown;
 
 	convertItem( item: Item ): void;
 	convertChildren( element: Element ): void;

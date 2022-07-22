@@ -12,6 +12,7 @@ import ModelRange from '../model/range';
 import ModelPosition from '../model/position';
 import type ModelElement from '../model/element';
 import type ViewElement from '../view/element';
+import type ViewText from '../view/text';
 import type ViewDocumentFragment from '../view/documentfragment';
 import type ModelDocumentFragment from '../model/documentfragment';
 import { type default as Schema, SchemaContext, type SchemaContextDefinition } from '../model/schema';
@@ -182,6 +183,9 @@ class UpcastDispatcher {
 		 */
 		this.conversionApi = {
 			...conversionApi,
+			consumable: null as any,
+			writer: null as any,
+			store: null,
 			convertItem: ( viewItem, modelCursor ) => this._convertItem( viewItem, modelCursor ),
 			convertChildren: ( viewElement, positionOrElement ) => this._convertChildren( viewElement, positionOrElement ),
 			safeInsert: ( modelElement, position ) => this._safeInsert( modelElement, position ),
@@ -257,7 +261,7 @@ class UpcastDispatcher {
 		this._emptyElementsToKeep.clear();
 
 		// Clear conversion API.
-		this.conversionApi.writer = null;
+		( this.conversionApi as any ).writer = null;
 		this.conversionApi.store = null;
 
 		// Return fragment as conversion result.
@@ -301,7 +305,10 @@ class UpcastDispatcher {
 	 * @private
 	 * @see module:engine/conversion/upcastdispatcher~UpcastConversionApi#convertChildren
 	 */
-	private _convertChildren( viewItem: ViewElement, elementOrModelCursor: ModelPosition | ModelElement ): {
+	private _convertChildren(
+		viewItem: ViewElement | ViewDocumentFragment,
+		elementOrModelCursor: ModelPosition | ModelElement
+	): {
 		modelRange: ModelRange;
 		modelCursor: ModelPosition;
 	} {
@@ -326,7 +333,10 @@ class UpcastDispatcher {
 	 * @private
 	 * @see module:engine/conversion/upcastdispatcher~UpcastConversionApi#safeInsert
 	 */
-	private _safeInsert( modelElement: ModelElement, position: ModelPosition ): boolean {
+	private _safeInsert(
+		modelElement: ModelElement,
+		position: ModelPosition
+	): boolean {
 		// Find allowed parent for element that we are going to insert.
 		// If current parent does not allow to insert element but one of the ancestors does
 		// then split nodes to allowed parent.
@@ -572,15 +582,15 @@ export type ViewCleanupEvent = {
 	args: [ ViewElement | ViewDocumentFragment ];
 };
 
-type UpcastEvent<TName extends string> = {
+type UpcastEvent<TName extends string, TItem extends ViewItem | ViewDocumentFragment> = {
 	name: TName | `${ TName }:${ string }`;
-	args: [ data: UpcastConversionData, conversionApi: UpcastConversionApi ];
+	args: [ data: UpcastConversionData<TItem>, conversionApi: UpcastConversionApi ];
 };
-export type ElementEvent = UpcastEvent<'element'>;
+export type ElementEvent = UpcastEvent<'element', ViewElement>;
 
-export type TextEvent = UpcastEvent<'text'>;
+export type TextEvent = UpcastEvent<'text', ViewText>;
 
-export type DocumentFragmentEvent = UpcastEvent<'documentFragment'>;
+export type DocumentFragmentEvent = UpcastEvent<'documentFragment', ViewDocumentFragment>;
 
 // Traverses given model item and searches elements which marks marker range. Found element is removed from
 // DocumentFragment but path of this element is stored in a Map which is then returned.
@@ -652,16 +662,16 @@ function createContextTree( contextDefinition: SchemaContextDefinition, writer: 
  * @interface module:engine/conversion/upcastdispatcher~UpcastConversionApi
  */
 export interface UpcastConversionApi {
-	consumable?: ViewConsumable;
+	consumable: ViewConsumable;
 	schema: Schema;
-	writer?: ModelWriter | null;
-	store?: unknown;
+	writer: ModelWriter;
+	store: unknown;
 
 	convertItem( viewItem: ViewItem, modelCursor: ModelPosition ): {
 		modelRange: ModelRange | null;
 		modelCursor: ModelPosition;
 	};
-	convertChildren( viewElement: ViewElement, positionOrElement: ModelPosition | ModelElement ): {
+	convertChildren( viewElement: ViewElement | ViewDocumentFragment, positionOrElement: ModelPosition | ModelElement ): {
 		modelRange: ModelRange | null;
 		modelCursor: ModelPosition;
 	};
@@ -900,8 +910,8 @@ export interface UpcastConversionApi {
  * @property {module:engine/model/range~Range} [modelRange] The current state of conversion result. Every change to
  * the converted element should be reflected by setting or modifying this property.
  */
-export type UpcastConversionData = {
-	viewItem: ViewItem | ViewDocumentFragment;
+export type UpcastConversionData<TItem extends ViewItem | ViewDocumentFragment = ViewItem | ViewDocumentFragment> = {
+	viewItem: TItem;
 	modelCursor: ModelPosition;
 	modelRange: ModelRange | null;
 };
