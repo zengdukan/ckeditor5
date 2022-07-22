@@ -117,7 +117,7 @@ class DocumentFragment extends TypeCheckable {
 	 *
 	 * @returns {Boolean}
 	 */
-	public isAttached(): boolean {
+	public isAttached(): false {
 		return false;
 	}
 

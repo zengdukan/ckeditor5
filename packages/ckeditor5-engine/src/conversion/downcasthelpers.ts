@@ -976,7 +976,7 @@ export function convertRangeSelection() {
 			return;
 		}
 
-		const viewRanges = [] as ViewRange[];
+		const viewRanges: ViewRange[] = [];
 
 		for ( const range of selection.getRanges() ) {
 			viewRanges.push( conversionApi.mapper.toViewRange( range ) );
@@ -1245,7 +1245,7 @@ export function insertStructure( elementCreator: StructureCreatorFunction, consu
 			return;
 		}
 
-		const slotsMap: Map<ViewElement, ModelNode[]> = new Map();
+		const slotsMap = new Map<ViewElement, ModelNode[]>();
 
 		conversionApi.writer._registerSlotFactory( createSlotFactory( data.item, slotsMap, conversionApi ) );
 
