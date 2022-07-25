@@ -3,6 +3,8 @@
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
+/* eslint-disable new-cap */
+
 /**
  * @module engine/view/editableelement
  */
@@ -24,7 +26,7 @@ import { default as ObservableMixin, type Observable } from '@ckeditor/ckeditor5
  * @extends module:engine/view/containerelement~ContainerElement
  * @mixes module:utils/observablemixin~ObservableMixin
  */
-class EditableElement extends ContainerElement {
+export default class EditableElement extends ObservableMixin( ContainerElement ) {
 	declare public isReadOnly: boolean;
 	declare public isFocused: boolean;
 
@@ -120,9 +122,3 @@ EditableElement.prototype.is = function( type: string, name?: string ): boolean 
 		);
 	}
 };
-
-mix( EditableElement, ObservableMixin );
-
-interface EditableElement extends Observable {}
-
-export default EditableElement;

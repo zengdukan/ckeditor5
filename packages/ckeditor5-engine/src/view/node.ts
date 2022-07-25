@@ -3,6 +3,8 @@
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
+/* eslint-disable new-cap */
+
 /**
  * @module engine/view/node
  */
@@ -10,8 +12,7 @@
 import TypeCheckable from './typecheckable';
 
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
-import EmitterMixin, { type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
+import EmitterMixin from '@ckeditor/ckeditor5-utils/src/emittermixin';
 import compareArrays from '@ckeditor/ckeditor5-utils/src/comparearrays';
 import { clone } from 'lodash-es';
 
@@ -31,7 +32,7 @@ import type Element from './element';
  *
  * @abstract
  */
-abstract class Node extends TypeCheckable {
+export default abstract class Node extends EmitterMixin( TypeCheckable ) {
 	public document: Document;
 	public parent: Element | DocumentFragment | null;
 
@@ -404,12 +405,6 @@ Node.prototype.is = function( type: string ): boolean {
 /**
  * @event change
  */
-
-mix( Node, EmitterMixin );
-
-interface Node extends Emitter {}
-
-export default Node;
 
 export type ChangeEvent = {
 	name: 'change' | `change:${ ChangeType }`;

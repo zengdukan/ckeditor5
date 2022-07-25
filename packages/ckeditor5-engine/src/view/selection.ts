@@ -3,6 +3,8 @@
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
+/* eslint-disable new-cap */
+
 /**
  * @module engine/view/selection
  */
@@ -16,8 +18,7 @@ import DocumentSelection from './documentselection';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 import count from '@ckeditor/ckeditor5-utils/src/count';
 import isIterable from '@ckeditor/ckeditor5-utils/src/isiterable';
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
-import { default as EmitterMixin, type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
+import EmitterMixin from '@ckeditor/ckeditor5-utils/src/emittermixin';
 
 import type Element from './element';
 import type Item from './item';
@@ -34,7 +35,7 @@ import type Item from './item';
  * A selection can consist of {@link module:engine/view/range~Range ranges} that can be set by using
  * the {@link module:engine/view/selection~Selection#setTo `Selection#setTo()`} method.
  */
-class Selection extends TypeCheckable {
+export default class Selection extends EmitterMixin( TypeCheckable ) {
 	private _ranges: Range[];
 	private _lastRangeBackward: boolean;
 	private _isFake: boolean;
@@ -747,12 +748,6 @@ class Selection extends TypeCheckable {
 Selection.prototype.is = function( type: string ): boolean {
 	return type === 'selection' || type === 'view:selection';
 };
-
-mix( Selection, EmitterMixin );
-
-interface Selection extends Emitter {}
-
-export default Selection;
 
 export type ChangeEvent = {
 	name: 'change';
