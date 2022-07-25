@@ -33,13 +33,13 @@ const decoratedOriginal = Symbol( 'decoratedOriginal' );
  * @mixes module:utils/emittermixin~EmitterMixin
  * @implements module:utils/observablemixin~Observable
  */
-export default function ObservableMixin<Base extends new( ...args: any[] ) => Emitter>(
+export default function ObservableMixin<Base extends abstract new( ...args: any[] ) => Emitter>(
 	base: Base
 ): {
 	new( ...args: ConstructorParameters<Base> ): InstanceType<Base> & Observable;
 	prototype: InstanceType<Base> & Observable;
 } {
-	class Mixin extends base implements ObservableInternal {
+	abstract class Mixin extends base implements ObservableInternal {
 		public set( name: string | { [ name: string ]: unknown }, value?: unknown ): void {
 			// If the first parameter is an Object, iterate over its properties.
 			if ( isObject( name ) ) {
