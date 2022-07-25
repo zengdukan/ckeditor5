@@ -11,15 +11,10 @@ import ViewText from './text';
 import ViewPosition from './position';
 import { INLINE_FILLER, INLINE_FILLER_LENGTH, startsWithFiller, isInlineFiller } from './filler';
 
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
 import { default as diff, type DiffResult } from '@ckeditor/ckeditor5-utils/src/diff';
 import insertAt from '@ckeditor/ckeditor5-utils/src/dom/insertat';
 import remove from '@ckeditor/ckeditor5-utils/src/dom/remove';
-import {
-	default as ObservableMixin,
-	type Observable,
-	type ChangeEvent as ObservableChangeEvent
-} from '@ckeditor/ckeditor5-utils/src/observablemixin';
+import { Observable, type ChangeEvent as ObservableChangeEvent } from '@ckeditor/ckeditor5-utils/src/observablemixin';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 import isText from '@ckeditor/ckeditor5-utils/src/dom/istext';
 import isComment from '@ckeditor/ckeditor5-utils/src/dom/iscomment';
@@ -55,7 +50,7 @@ type DomSelection = globalThis.Selection;
  * Renderer uses {@link module:engine/view/domconverter~DomConverter} to transform view nodes and positions
  * to and from the DOM.
  */
-class Renderer {
+export default class Renderer extends Observable {
 	public readonly domDocuments: Set<DomDocument>;
 	public readonly domConverter: DomConverter;
 	public readonly markedAttributes: Set<ViewElement>;
@@ -76,6 +71,8 @@ class Renderer {
 	 * @param {module:engine/view/documentselection~DocumentSelection} selection View selection.
 	 */
 	constructor( domConverter: DomConverter, selection: DocumentSelection ) {
+		super();
+
 		/**
 		 * Set of DOM Documents instances.
 		 *
@@ -966,12 +963,6 @@ class Renderer {
 		}
 	}
 }
-
-mix( Renderer, ObservableMixin );
-
-interface Renderer extends Observable {}
-
-export default Renderer;
 
 // Checks if provided element is editable.
 //

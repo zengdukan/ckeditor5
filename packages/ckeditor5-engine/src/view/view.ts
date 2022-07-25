@@ -30,12 +30,7 @@ import InputObserver from './observer/inputobserver';
 import ArrowKeysObserver from './observer/arrowkeysobserver';
 import TabObserver from './observer/tabobserver';
 
-import {
-	default as ObservableMixin,
-	type ChangeEvent as ObservableChangeEvent,
-	type Observable
-} from '@ckeditor/ckeditor5-utils/src/observablemixin';
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
+import { Observable, type ChangeEvent as ObservableChangeEvent } from '@ckeditor/ckeditor5-utils/src/observablemixin';
 import { scrollViewportToShowTarget } from '@ckeditor/ckeditor5-utils/src/dom/scroll';
 import { injectUiElementHandling } from './uielement';
 import { injectQuirksHandling } from './filler';
@@ -73,7 +68,7 @@ import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
  *
  * @mixes module:utils/observablemixin~ObservableMixin
  */
-class View {
+export default class View extends Observable {
 	public readonly document: Document;
 	public readonly domConverter: DomConverter;
 	public readonly domRoots: Map<string, HTMLElement>;
@@ -96,6 +91,8 @@ class View {
 	 * @param {module:engine/view/stylesmap~StylesProcessor} stylesProcessor The styles processor instance.
 	 */
 	constructor( stylesProcessor: StylesProcessor ) {
+		super();
+
 		/**
 		 * Instance of the {@link module:engine/view/document~Document} associated with this view controller.
 		 *
@@ -744,12 +741,6 @@ class View {
 	 * @event module:engine/view/view~View#event:render
 	 */
 }
-
-mix( View, ObservableMixin );
-
-interface View extends Observable {}
-
-export default View;
 
 export type RenderEvent = {
 	name: 'render';

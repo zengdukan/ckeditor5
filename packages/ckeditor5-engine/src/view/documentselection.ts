@@ -3,6 +3,8 @@
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
+/* eslint-disable new-cap */
+
 /**
  * @module engine/view/documentselection
  */
@@ -10,8 +12,7 @@
 import TypeCheckable from './typecheckable';
 import Selection, { type ChangeEvent as SelectionChangeEvent } from './selection';
 
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
-import { default as EmitterMixin, type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
+import EmitterMixin from '@ckeditor/ckeditor5-utils/src/emittermixin';
 
 import type EditableElement from './editableelement';
 import type Element from './element';
@@ -29,7 +30,7 @@ import type Range from './range';
  * the {@link module:engine/view/view~View#change `View#change()`} block
  * (so via {@link module:engine/view/downcastwriter~DowncastWriter#setSelection `DowncastWriter#setSelection()`}).
  */
-class DocumentSelection extends TypeCheckable {
+export default class DocumentSelection extends EmitterMixin( TypeCheckable ) {
 	private readonly _selection: Selection;
 
 	/**
@@ -397,11 +398,5 @@ DocumentSelection.prototype.is = function( type: string ): boolean {
 		type == 'view:selection' ||
 		type == 'view:documentSelection';
 };
-
-mix( DocumentSelection, EmitterMixin );
-
-interface DocumentSelection extends Emitter {}
-
-export default DocumentSelection;
 
 export type ChangeEvent = SelectionChangeEvent;

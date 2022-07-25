@@ -3,6 +3,8 @@
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
+/* eslint-disable new-cap */
+
 /**
  * @module engine/view/documentfragment
  */
@@ -10,9 +12,8 @@
 import TypeCheckable from './typecheckable';
 import Text from './text';
 import TextProxy from './textproxy';
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
 import isIterable from '@ckeditor/ckeditor5-utils/src/isiterable';
-import EmitterMixin, { type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
+import EmitterMixin from '@ckeditor/ckeditor5-utils/src/emittermixin';
 import type { default as Document, ChangeType } from './document';
 
 import type Item from './item';
@@ -25,7 +26,7 @@ import type Node from './node';
  * {@link module:engine/view/upcastwriter~UpcastWriter#createDocumentFragment `UpcastWriter#createDocumentFragment()`}
  * method.
  */
-class DocumentFragment extends TypeCheckable {
+export default class DocumentFragment extends EmitterMixin( TypeCheckable ) {
 	public readonly document: Document;
 	private readonly _children: Node[];
 
@@ -251,12 +252,6 @@ class DocumentFragment extends TypeCheckable {
 DocumentFragment.prototype.is = function( type: string ): boolean {
 	return type === 'documentFragment' || type === 'view:documentFragment';
 };
-
-mix( DocumentFragment, EmitterMixin );
-
-interface DocumentFragment extends Emitter {}
-
-export default DocumentFragment;
 
 // Converts strings to Text and non-iterables to arrays.
 //
