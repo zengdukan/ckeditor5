@@ -7,8 +7,7 @@
  * @module engine/controller/datacontroller
  */
 
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
-import ObservableMixin from '@ckeditor/ckeditor5-utils/src/observablemixin';
+import { Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 
 import Mapper from '../conversion/mapper';
@@ -44,7 +43,7 @@ import HtmlDataProcessor from '../dataprocessor/htmldataprocessor';
  *
  * @mixes module:utils/observablemixin~ObservableMixin
  */
-export default class DataController {
+export default class DataController extends Observable {
 	/**
 	 * Creates a data controller instance.
 	 *
@@ -52,6 +51,8 @@ export default class DataController {
 	 * @param {module:engine/view/stylesmap~StylesProcessor} stylesProcessor The styles processor instance.
 	 */
 	constructor( model, stylesProcessor ) {
+		super();
+
 		/**
 		 * Data model.
 		 *
@@ -524,8 +525,6 @@ export default class DataController {
 	 * @event get
 	 */
 }
-
-mix( DataController, ObservableMixin );
 
 // Helper function for downcast conversion.
 //

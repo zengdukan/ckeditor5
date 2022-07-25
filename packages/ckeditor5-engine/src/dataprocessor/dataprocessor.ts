@@ -7,7 +7,6 @@
  * @module engine/dataprocessor/dataprocessor
  */
 
-import type ViewNode from '../view/node';
 import type ViewDocumentFragment from '../view/documentfragment';
 import { type MatcherPattern } from '../view/matcher';
 

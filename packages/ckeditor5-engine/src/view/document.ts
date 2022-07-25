@@ -3,15 +3,16 @@
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
+/* eslint-disable new-cap */
+
 /**
  * @module engine/view/document
  */
 
 import DocumentSelection from './documentselection';
 import Collection from '@ckeditor/ckeditor5-utils/src/collection';
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
-import BubblingEmitterMixin, { type BubblingEmitter } from './observer/bubblingemittermixin';
-import ObservableMixin, { type Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
+import BubblingEmitterMixin from './observer/bubblingemittermixin';
+import { Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
 
 import type { StylesProcessor } from './stylesmap';
 import type RootEditableElement from './rooteditableelement';
@@ -26,7 +27,7 @@ import type DowncastWriter from './downcastwriter';
  * @mixes module:engine/view/observer/bubblingemittermixin~BubblingEmitterMixin
  * @mixes module:utils/observablemixin~ObservableMixin
  */
-class Document {
+export default class Document extends BubblingEmitterMixin( Observable ) {
 	public readonly selection: DocumentSelection;
 	public readonly roots: Collection<RootEditableElement, 'rootName'>;
 	public readonly stylesProcessor: StylesProcessor;
@@ -44,6 +45,8 @@ class Document {
 	 * @param {module:engine/view/stylesmap~StylesProcessor} stylesProcessor The styles processor instance.
 	 */
 	constructor( stylesProcessor: StylesProcessor ) {
+		super();
+
 		/**
 		 * Selection done on this document.
 		 *
@@ -233,16 +236,7 @@ class Document {
 	// @if CK_DEBUG_ENGINE // }
 }
 
-mix( Document, BubblingEmitterMixin );
-mix( Document, ObservableMixin );
-
-type ObservableBubblingEmitter = BubblingEmitter & Observable;
-
 type ViewDocumentPostFixer = ( writer: DowncastWriter ) => boolean;
-
-interface Document extends ObservableBubblingEmitter {}
-
-export default Document;
 
 /**
  * Enum representing type of the change.

@@ -3,6 +3,8 @@
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
+/* eslint-disable new-cap */
+
 /**
  * @module engine/model/documentselection
  */
@@ -27,8 +29,7 @@ import type Range from './range';
 
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 import Collection from '@ckeditor/ckeditor5-utils/src/collection';
-import EmitterMixin, { type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
+import EmitterMixin from '@ckeditor/ckeditor5-utils/src/emittermixin';
 import toMap from '@ckeditor/ckeditor5-utils/src/tomap';
 import uid from '@ckeditor/ckeditor5-utils/src/uid';
 
@@ -60,7 +61,7 @@ const storePrefix = 'selection:';
  *
  * @mixes module:utils/emittermixin~EmitterMixin
  */
-class DocumentSelection extends TypeCheckable {
+export default class DocumentSelection extends EmitterMixin( TypeCheckable ) {
 	protected _selection: LiveSelection;
 
 	/**
@@ -552,12 +553,6 @@ DocumentSelection.prototype.is = function( type: string ): boolean {
 		type == 'documentSelection' ||
 		type == 'model:documentSelection';
 };
-
-mix( DocumentSelection, EmitterMixin );
-
-interface DocumentSelection extends Emitter {}
-
-export default DocumentSelection;
 
 /**
  * Fired when selection range(s) changed.

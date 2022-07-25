@@ -3,6 +3,8 @@
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
+/* eslint-disable new-cap */
+
 /**
  * @module engine/model/markercollection
  */
@@ -13,9 +15,8 @@ import LiveRange, { type ChangeEvent as LiveRangeChangeEvent } from './liverange
 import type Position from './position';
 import type Range from './range';
 
-import EmitterMixin, { type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
+import EmitterMixin, { Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
 
 /**
  * The collection of all {@link module:engine/model/markercollection~Marker markers} attached to the document.
@@ -31,13 +32,15 @@ import mix from '@ckeditor/ckeditor5-utils/src/mix';
  *
  * @see module:engine/model/markercollection~Marker
  */
-class MarkerCollection implements Iterable<Marker> {
+export default class MarkerCollection extends Emitter implements Iterable<Marker> {
 	private _markers: Map<string, Marker>;
 
 	/**
 	 * Creates a markers collection.
 	 */
 	constructor() {
+		super();
+
 		/**
 		 * Stores {@link ~Marker markers} added to the collection.
 		 *
@@ -295,12 +298,6 @@ class MarkerCollection implements Iterable<Marker> {
 	 */
 }
 
-mix( MarkerCollection, EmitterMixin );
-
-interface MarkerCollection extends Emitter {}
-
-export default MarkerCollection;
-
 /**
  * @typedef {Object} module:engine/model/markercollection~MarkerData
  *
@@ -382,7 +379,7 @@ export interface MarkerData {
  *
  * `Marker` instances are created and destroyed only by {@link ~MarkerCollection MarkerCollection}.
  */
-class Marker extends TypeCheckable {
+class Marker extends EmitterMixin( TypeCheckable ) {
 	public readonly name: string;
 
 	protected _liveRange: LiveRange | null;
@@ -612,10 +609,6 @@ class Marker extends TypeCheckable {
 Marker.prototype.is = function( type: string ): boolean {
 	return type === 'marker' || type === 'model:marker';
 };
-
-mix( Marker, EmitterMixin );
-
-interface Marker extends Emitter {}
 
 export { type Marker };
 

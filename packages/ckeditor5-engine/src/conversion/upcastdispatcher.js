@@ -14,8 +14,7 @@ import { SchemaContext } from '../model/schema';
 import { isParagraphable, wrapInParagraph } from '../model/utils/autoparagraphing';
 
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
-import EmitterMixin from '@ckeditor/ckeditor5-utils/src/emittermixin';
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
+import { Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
 
 /**
  * Upcast dispatcher is a central point of the view-to-model conversion, which is a process of
@@ -112,7 +111,7 @@ import mix from '@ckeditor/ckeditor5-utils/src/mix';
  * @fires text
  * @fires documentFragment
  */
-export default class UpcastDispatcher {
+export default class UpcastDispatcher extends Emitter {
 	/**
 	 * Creates an upcast dispatcher that operates using the passed API.
 	 *
@@ -121,6 +120,8 @@ export default class UpcastDispatcher {
 	 * by the upcast dispatcher.
 	 */
 	constructor( conversionApi = {} ) {
+		super();
+
 		/**
 		 * The list of elements that were created during splitting.
 		 *
@@ -534,8 +535,6 @@ export default class UpcastDispatcher {
 	 * @see #event:element
 	 */
 }
-
-mix( UpcastDispatcher, EmitterMixin );
 
 // Traverses given model item and searches elements which marks marker range. Found element is removed from
 // DocumentFragment but path of this element is stored in a Map which is then returned.

@@ -14,9 +14,8 @@ import ViewPosition from '../view/position';
 import ViewRange from '../view/range';
 import ViewText from '../view/text';
 
-import EmitterMixin, { type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
+import { Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
 
 import type { ViewDocumentFragment, ViewElement } from '..';
 import type ModelElement from '../model/element';
@@ -42,7 +41,7 @@ import type ViewNode from '../view/node';
  * stop the event.
  * @mixes module:utils/emittermixin~EmitterMixin
  */
-class Mapper {
+export default class Mapper extends Emitter {
 	private _modelToViewMapping: WeakMap<ModelElement, ViewElement>;
 	private _viewToModelMapping: WeakMap<ViewNode, ModelElement>;
 	private _viewToModelLengthCallbacks: Map<string, ( element: ViewElement ) => number>;
@@ -55,6 +54,8 @@ class Mapper {
 	 * Creates an instance of the mapper.
 	 */
 	constructor() {
+		super();
+
 		/**
 		 * Model element to view element mapping.
 		 *
@@ -762,12 +763,6 @@ class Mapper {
 	 * @param {module:engine/conversion/mapper~Mapper} data.mapper Mapper instance that fired the event.
 	 */
 }
-
-mix( Mapper, EmitterMixin );
-
-interface Mapper extends Emitter {}
-
-export default Mapper;
 
 export type ModelToViewPositionEvent = {
 	name: 'modelToViewPosition';

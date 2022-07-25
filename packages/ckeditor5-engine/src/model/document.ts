@@ -21,9 +21,8 @@ import type Range from './range';
 import type Writer from './writer';
 
 import Collection from '@ckeditor/ckeditor5-utils/src/collection';
-import EmitterMixin, { type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
+import { Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
 import { isInsideSurrogatePair, isInsideCombinedSymbol } from '@ckeditor/ckeditor5-utils/src/unicode';
 
 import { clone } from 'lodash-es';
@@ -48,7 +47,7 @@ const graveyardName = '$graveyard';
  *
  * @mixes module:utils/emittermixin~EmitterMixin
  */
-class Document {
+export default class Document extends Emitter {
 	public readonly model: Model;
 	public readonly history: History;
 	public readonly selection: DocumentSelection;
@@ -63,6 +62,8 @@ class Document {
 	 * the {@link #graveyard graveyard root}).
 	 */
 	constructor( model: Model ) {
+		super();
+
 		/**
 		 * The {@link module:engine/model/model~Model model} that the document is a part of.
 		 *
@@ -489,12 +490,6 @@ class Document {
 	// @if CK_DEBUG_ENGINE // 	logDocument( this, version );
 	// @if CK_DEBUG_ENGINE // }
 }
-
-mix( Document, EmitterMixin );
-
-interface Document extends Emitter {}
-
-export default Document;
 
 export type ChangeEvent = {
 	name: 'change' | 'change:data';
