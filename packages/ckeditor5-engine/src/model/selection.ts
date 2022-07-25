@@ -3,6 +3,8 @@
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
+/* eslint-disable new-cap */
+
 /**
  * @module engine/model/selection
  */
@@ -18,9 +20,8 @@ import type Element from './element';
 import type Item from './item';
 
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
-import EmitterMixin, { type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
+import EmitterMixin from '@ckeditor/ckeditor5-utils/src/emittermixin';
 import isIterable from '@ckeditor/ckeditor5-utils/src/isiterable';
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
 
 /**
  * Selection is a set of {@link module:engine/model/range~Range ranges}. It has a direction specified by its
@@ -31,7 +32,7 @@ import mix from '@ckeditor/ckeditor5-utils/src/mix';
  *
  * @mixes module:utils/emittermixin~EmitterMixin
  */
-class Selection extends TypeCheckable {
+export default class Selection extends EmitterMixin( TypeCheckable ) {
 	private _lastRangeBackward: boolean;
 	protected _attrs: Map<string, unknown>;
 
@@ -843,12 +844,6 @@ class Selection extends TypeCheckable {
 Selection.prototype.is = function( type: string ): boolean {
 	return type === 'selection' || type === 'model:selection';
 };
-
-mix( Selection, EmitterMixin );
-
-interface Selection extends Emitter {}
-
-export default Selection;
 
 export type ChangeEvent = {
 	name: 'change' | 'change:range' | 'change:attribute';

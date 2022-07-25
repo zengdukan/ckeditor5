@@ -22,8 +22,7 @@ import { isParagraphable, wrapInParagraph } from '../model/utils/autoparagraphin
 import type ViewItem from '../view/item';
 
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
-import EmitterMixin, { type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
+import { Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
 
 /**
  * Upcast dispatcher is a central point of the view-to-model conversion, which is a process of
@@ -120,7 +119,7 @@ import mix from '@ckeditor/ckeditor5-utils/src/mix';
  * @fires text
  * @fires documentFragment
  */
-class UpcastDispatcher {
+export default class UpcastDispatcher extends Emitter {
 	public conversionApi: UpcastConversionApi;
 
 	private _splitParts: Map<ModelElement, ModelElement[]>;
@@ -136,6 +135,8 @@ class UpcastDispatcher {
 	 * by the upcast dispatcher.
 	 */
 	constructor( conversionApi: Pick<UpcastConversionApi, 'schema'> ) {
+		super();
+
 		/**
 		 * The list of elements that were created during splitting.
 		 *
@@ -582,12 +583,6 @@ class UpcastDispatcher {
 	 * @see #event:element
 	 */
 }
-
-mix( UpcastDispatcher, EmitterMixin );
-
-interface UpcastDispatcher extends Emitter {}
-
-export default UpcastDispatcher;
 
 export type ViewCleanupEvent = {
 	name: 'viewCleanup';

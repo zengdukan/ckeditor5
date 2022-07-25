@@ -7,8 +7,7 @@
  * @module engine/view/observer/observer
  */
 
-import DomEmitterMixin, { type Emitter as DomEmitter } from '@ckeditor/ckeditor5-utils/src/dom/emittermixin';
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
+import { Emitter as DomEmitter } from '@ckeditor/ckeditor5-utils/src/dom/emittermixin';
 
 import type Document from '../document';
 import type View from '../view';
@@ -21,7 +20,7 @@ import type View from '../view';
  *
  * @abstract
  */
-abstract class Observer {
+export default abstract class Observer extends DomEmitter {
 	public readonly view: View;
 	public readonly document: Document;
 	public readonly isEnabled: false;
@@ -32,6 +31,8 @@ abstract class Observer {
 	 * @param {module:engine/view/view~View} view
 	 */
 	constructor( view: View ) {
+		super();
+
 		/**
 		 * An instance of the view controller.
 		 *
@@ -124,14 +125,8 @@ abstract class Observer {
 	public abstract observe( domElement: HTMLElement, name: string ): void;
 }
 
-mix( Observer, DomEmitterMixin );
-
-interface Observer extends DomEmitter {}
-
 /**
  * TODO
  * The for all all classes that inherit from Observer but excludes the abstract Observer itself.
  */
 export type ObserverConstructor = new ( view: View ) => Observer;
-
-export default Observer;

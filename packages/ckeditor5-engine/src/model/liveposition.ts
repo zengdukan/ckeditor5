@@ -3,6 +3,8 @@
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
+/* eslint-disable new-cap */
+
 /**
  * @module engine/model/liveposition
  */
@@ -15,8 +17,7 @@ import type Item from './item';
 import type Operation from './operation/operation';
 import type RootElement from './rootelement';
 
-import EmitterMixin, { type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
+import EmitterMixin from '@ckeditor/ckeditor5-utils/src/emittermixin';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 
 /**
@@ -34,7 +35,7 @@ import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
  *
  * @extends module:engine/model/position~Position
  */
-class LivePosition extends Position {
+export default class LivePosition extends EmitterMixin( Position ) {
 	declare public readonly root: RootElement;
 
 	/**
@@ -200,11 +201,6 @@ function transform( this: LivePosition, operation: Operation ) {
 		this.fire<ChangeEvent>( 'change', oldPosition );
 	}
 }
-
-mix( LivePosition, EmitterMixin );
-
-interface LivePosition extends Emitter {}
-export default LivePosition;
 
 export type ChangeEvent = {
 	name: 'change';

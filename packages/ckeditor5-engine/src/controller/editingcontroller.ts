@@ -20,8 +20,7 @@ import {
 	remove
 } from '../conversion/downcasthelpers';
 
-import ObservableMixin, { type Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
+import { Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 import { convertSelectionChange } from '../conversion/upcasthelpers';
 
@@ -42,7 +41,7 @@ import type { StylesProcessor } from '../view/stylesmap';
  *
  * @mixes module:utils/observablemixin~ObservableMixin
  */
-class EditingController {
+export default class EditingController extends Observable {
 	public readonly model: Model;
 	public readonly view: View;
 	public readonly mapper: Mapper;
@@ -55,6 +54,8 @@ class EditingController {
 	 * @param {module:engine/view/stylesmap~StylesProcessor} stylesProcessor The styles processor instance.
 	 */
 	constructor( model: Model, stylesProcessor: StylesProcessor ) {
+		super();
+
 		/**
 		 * Editor model.
 		 *
@@ -235,9 +236,3 @@ class EditingController {
 		} );
 	}
 }
-
-mix( EditingController, ObservableMixin );
-
-interface EditingController extends Observable {}
-
-export default EditingController;

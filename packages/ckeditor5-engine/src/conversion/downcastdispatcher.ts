@@ -10,8 +10,7 @@
 import Consumable from './modelconsumable';
 import Range from '../model/range';
 
-import EmitterMixin, { type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
+import { Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
 
 import type { default as Differ, DiffItem } from '../model/differ';
 import type { default as MarkerCollection, Marker } from '../model/markercollection';
@@ -115,7 +114,7 @@ import type ViewElement from '../view/element';
  *			conversionApi.writer.insert( viewPosition, viewElement );
  *		} );
  */
-class DowncastDispatcher {
+export default class DowncastDispatcher extends Emitter {
 	/** @internal */
 	public readonly _conversionApi: Pick<DowncastConversionApi, 'dispatcher' | 'mapper' | 'schema'>;
 
@@ -129,6 +128,8 @@ class DowncastDispatcher {
 	 * by the downcast dispatcher.
 	 */
 	constructor( conversionApi: Pick<DowncastConversionApi, 'mapper' | 'schema'> ) {
+		super();
+
 		/**
 		 * A template for an interface passed by the dispatcher to the event callbacks.
 		 *
@@ -806,12 +807,6 @@ class DowncastDispatcher {
 	 * to be used by callback, passed in `DowncastDispatcher` constructor.
 	 */
 }
-
-mix( DowncastDispatcher, EmitterMixin );
-
-interface DowncastDispatcher extends Emitter {}
-
-export default DowncastDispatcher;
 
 export type ReduceChangesEvent = {
 	name: 'reduceChanges';

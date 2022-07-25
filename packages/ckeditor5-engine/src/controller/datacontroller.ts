@@ -7,10 +7,9 @@
  * @module engine/controller/datacontroller
  */
 
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
-import ObservableMixin, { type Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
+import { Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
-import EmitterMixin, { type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
+import { Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
 
 import Mapper from '../conversion/mapper';
 
@@ -57,7 +56,7 @@ import type DataProcessor from '../dataprocessor/dataprocessor';
  *
  * @mixes module:utils/emittermixin~EmitterMixin
  */
-class DataController {
+export default class DataController extends Emitter {
 	public readonly model: Model;
 	public readonly mapper: Mapper;
 	public readonly downcastDispatcher: DowncastDispatcher;
@@ -76,6 +75,8 @@ class DataController {
 	 * @param {module:engine/view/stylesmap~StylesProcessor} stylesProcessor The styles processor instance.
 	 */
 	constructor( model: Model, stylesProcessor: StylesProcessor ) {
+		super();
+
 		/**
 		 * Data model.
 		 *
@@ -168,9 +169,9 @@ class DataController {
 		this.upcastDispatcher.on<ElementEvent>( 'element', convertToModelFragment(), { priority: 'lowest' } );
 		this.upcastDispatcher.on<DocumentFragmentEvent>( 'documentFragment', convertToModelFragment(), { priority: 'lowest' } );
 
-		ObservableMixin.decorate.call( this, 'init' as any );
-		ObservableMixin.decorate.call( this, 'set' as any );
-		ObservableMixin.decorate.call( this, 'get' as any );
+		Observable.prototype.decorate.call( this, 'init' as any );
+		Observable.prototype.decorate.call( this, 'set' as any );
+		Observable.prototype.decorate.call( this, 'get' as any );
 
 		// Fire the `ready` event when the initialization has completed. Such low-level listener offers the possibility
 		// to plug into the initialization pipeline without interrupting the initialization flow.
@@ -559,12 +560,6 @@ class DataController {
 	 * @event get
 	 */
 }
-
-mix( DataController, EmitterMixin );
-
-interface DataController extends Emitter {}
-
-export default DataController;
 
 // Helper function for downcast conversion.
 //

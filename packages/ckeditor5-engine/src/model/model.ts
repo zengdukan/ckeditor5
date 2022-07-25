@@ -32,8 +32,7 @@ import type ModelElement from './element';
 import type Operation from './operation/operation';
 
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
-import ObservableMixin, { type DecoratedMethodEvent, type Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
+import { type DecoratedMethodEvent, Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
 
 // @if CK_DEBUG_ENGINE // const { dumpTrees } = require( '../dev-utils/utils' );
 // @if CK_DEBUG_ENGINE // const { OperationReplayer } = require( '../dev-utils/operationreplayer' ).default;
@@ -44,7 +43,7 @@ import mix from '@ckeditor/ckeditor5-utils/src/mix';
  *
  * @mixes module:utils/observablemixin~ObservableMixin
  */
-class Model {
+export default class Model extends Observable {
 	public readonly markers: MarkerCollection;
 	public readonly document: Document;
 	public readonly schema: Schema;
@@ -53,6 +52,8 @@ class Model {
 	private _currentWriter: Writer | null;
 
 	constructor() {
+		super();
+
 		/**
 		 * Model's marker collection.
 		 *
@@ -1117,12 +1118,6 @@ class Model {
 	 * @param {Array} args The arguments passed to the original method.
 	 */
 }
-
-mix( Model, ObservableMixin );
-
-interface Model extends Observable {}
-
-export default Model;
 
 export type ApplyOperationEvent = DecoratedMethodEvent<Model, 'applyOperation'>;
 export type InsertContentEvent = DecoratedMethodEvent<Model, 'insertContent'>;

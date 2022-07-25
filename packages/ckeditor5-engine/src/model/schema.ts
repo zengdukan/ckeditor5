@@ -15,15 +15,13 @@ import TreeWalker from './treewalker';
 
 import type DocumentFragment from './documentfragment';
 import type DocumentSelection from './documentselection';
-import type EventInfo from '@ckeditor/ckeditor5-utils/src/eventinfo';
 import type Item from './item';
 import type Node from './node';
 import type Selection from './selection';
 import type Writer from './writer';
 
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
-import mix from '@ckeditor/ckeditor5-utils/src/mix';
-import ObservableMixin, { type Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
+import { Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
 
 /**
  * The model's schema. It defines the allowed and disallowed structures of nodes as well as nodes' attributes.
@@ -40,7 +38,7 @@ import ObservableMixin, { type Observable } from '@ckeditor/ckeditor5-utils/src/
  *
  * @mixes module:utils/observablemixin~ObservableMixin
  */
-class Schema {
+export default class Schema extends Observable {
 	private readonly _sourceDefinitions: Record<string, SchemaItemDefinition[]>;
 	private readonly _attributeProperties: Record<string, AttributeProperties>;
 	private _compiledDefinitions?: Record<string, SchemaCompiledItemDefinition> | null;
@@ -49,6 +47,8 @@ class Schema {
 	 * Creates a schema instance.
 	 */
 	constructor() {
+		super();
+
 		this._sourceDefinitions = {};
 
 		/**
@@ -1042,12 +1042,6 @@ class Schema {
 		}
 	}
 }
-
-mix( Schema, ObservableMixin );
-
-interface Schema extends Observable {}
-
-export default Schema;
 
 /**
  * Event fired when the {@link #checkChild} method is called. It allows plugging in

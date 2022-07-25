@@ -11,6 +11,8 @@ import EventInfo from '@ckeditor/ckeditor5-utils/src/eventinfo';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 
 import EmitterMixin, {
+	type GetEventInfo,
+	type GetNameOrEventInfo,
 	type BaseEvent,
 	type CallbackOptions,
 	type Emitter,
@@ -23,6 +25,7 @@ import type Document from '../document';
 import type Node from '../node';
 import type Range from '../range';
 import type Element from '../element';
+import type DocumentSelection from '../documentselection';
 
 const contextsSymbol = Symbol( 'bubbling contexts' );
 
@@ -33,118 +36,130 @@ const contextsSymbol = Symbol( 'bubbling contexts' );
  * @mixin BubblingEmitterMixin
  * @implements module:engine/view/observer/bubblingemittermixin~BubblingEmitter
  */
-const BubblingEmitterMixin = {
-	/**
-	 * @inheritDoc
-	 */
-	fire( this: Document, eventOrInfo: string | EventInfo, ...eventArgs: unknown[] ): unknown {
-		try {
-			const eventInfo = eventOrInfo instanceof EventInfo ? eventOrInfo : new EventInfo( this, eventOrInfo );
+export default function BubblingEmitterMixin<Base extends abstract new( ...args: any[] ) => Emitter>(
+	base: Base
+): {
+	new( ...args: ConstructorParameters<Base> ): InstanceType<Base> & BubblingEmitter;
+	prototype: InstanceType<Base> & BubblingEmitter;
+} {
+	abstract class Mixin extends base implements BubblingEmitter {
+		public abstract get selection(): DocumentSelection;
+
+		public override fire<TEvent extends BaseEvent>(
+			eventOrInfo: GetNameOrEventInfo<TEvent>,
+			...eventArgs: TEvent[ 'args' ]
+		): GetEventInfo<TEvent>[ 'return' ] {
+			try {
+				const eventInfo = eventOrInfo instanceof EventInfo ? eventOrInfo : new EventInfo( this, eventOrInfo );
+				const eventContexts = getBubblingContexts( this );
+
+				if ( !eventContexts.size ) {
+					return;
+				}
+
+				updateEventInfo( eventInfo, 'capturing', this );
+
+				// The capture phase of the event.
+				if ( fireListenerFor( eventContexts, '$capture', eventInfo, ...eventArgs ) ) {
+					return eventInfo.return;
+				}
+
+				const startRange = ( eventInfo as BubblingEventInfo ).startRange || this.selection.getFirstRange();
+				const selectedElement = startRange ? startRange.getContainedElement() : null;
+				const isCustomContext = selectedElement ? Boolean( getCustomContext( eventContexts, selectedElement ) ) : false;
+
+				let node: Node | null = selectedElement || getDeeperRangeParent( startRange );
+
+				updateEventInfo( eventInfo, 'atTarget', node );
+
+				// For the not yet bubbling event trigger for $text node if selection can be there and it's not a custom context selected.
+				if ( !isCustomContext ) {
+					if ( fireListenerFor( eventContexts, '$text', eventInfo, ...eventArgs ) ) {
+						return eventInfo.return;
+					}
+
+					updateEventInfo( eventInfo, 'bubbling', node );
+				}
+
+				while ( node ) {
+					// Root node handling.
+					if ( node.is( 'rootElement' ) ) {
+						if ( fireListenerFor( eventContexts, '$root', eventInfo, ...eventArgs ) ) {
+							return eventInfo.return;
+						}
+					}
+
+					// Element node handling.
+					else if ( node.is( 'element' ) ) {
+						if ( fireListenerFor( eventContexts, node.name, eventInfo, ...eventArgs ) ) {
+							return eventInfo.return;
+						}
+					}
+
+					// Check custom contexts (i.e., a widget).
+					if ( fireListenerFor( eventContexts, node, eventInfo, ...eventArgs ) ) {
+						return eventInfo.return;
+					}
+
+					node = node.parent as Node;
+
+					updateEventInfo( eventInfo, 'bubbling', node );
+				}
+
+				updateEventInfo( eventInfo, 'bubbling', this );
+
+				// Document context.
+				fireListenerFor( eventContexts, '$document', eventInfo, ...eventArgs );
+
+				return eventInfo.return;
+			} catch ( err: any ) {
+				// @if CK_DEBUG // throw err;
+				/* istanbul ignore next */
+				CKEditorError.rethrowUnexpectedError( err, this );
+			}
+		}
+
+		public _addEventListener(
+			this: Document,
+			event: string,
+			callback: ( ev: EventInfo, ...args: any[] ) => void,
+			options: BubblingCallbackOptions
+		) {
+			const contexts = toArray( options.context || '$document' );
 			const eventContexts = getBubblingContexts( this );
 
-			if ( !eventContexts.size ) {
-				return;
-			}
+			for ( const context of contexts ) {
+				let emitter = eventContexts.get( context );
 
-			updateEventInfo( eventInfo, 'capturing', this );
-
-			// The capture phase of the event.
-			if ( fireListenerFor( eventContexts, '$capture', eventInfo, ...eventArgs ) ) {
-				return eventInfo.return;
-			}
-
-			const startRange = ( eventInfo as BubblingEventInfo ).startRange || this.selection.getFirstRange();
-			const selectedElement = startRange ? startRange.getContainedElement() : null;
-			const isCustomContext = selectedElement ? Boolean( getCustomContext( eventContexts, selectedElement ) ) : false;
-
-			let node: Node | null = selectedElement || getDeeperRangeParent( startRange );
-
-			updateEventInfo( eventInfo, 'atTarget', node );
-
-			// For the not yet bubbling event trigger for $text node if selection can be there and it's not a custom context selected.
-			if ( !isCustomContext ) {
-				if ( fireListenerFor( eventContexts, '$text', eventInfo, ...eventArgs ) ) {
-					return eventInfo.return;
+				if ( !emitter ) {
+					emitter = Object.create( EmitterMixin );
+					eventContexts.set( context, emitter! );
 				}
 
-				updateEventInfo( eventInfo, 'bubbling', node );
+				this.listenTo( emitter!, event, callback, options );
 			}
-
-			while ( node ) {
-				// Root node handling.
-				if ( node.is( 'rootElement' ) ) {
-					if ( fireListenerFor( eventContexts, '$root', eventInfo, ...eventArgs ) ) {
-						return eventInfo.return;
-					}
-				}
-
-				// Element node handling.
-				else if ( node.is( 'element' ) ) {
-					if ( fireListenerFor( eventContexts, node.name, eventInfo, ...eventArgs ) ) {
-						return eventInfo.return;
-					}
-				}
-
-				// Check custom contexts (i.e., a widget).
-				if ( fireListenerFor( eventContexts, node, eventInfo, ...eventArgs ) ) {
-					return eventInfo.return;
-				}
-
-				node = node.parent as Node;
-
-				updateEventInfo( eventInfo, 'bubbling', node );
-			}
-
-			updateEventInfo( eventInfo, 'bubbling', this );
-
-			// Document context.
-			fireListenerFor( eventContexts, '$document', eventInfo, ...eventArgs );
-
-			return eventInfo.return;
-		} catch ( err: any ) {
-			// @if CK_DEBUG // throw err;
-			/* istanbul ignore next */
-			CKEditorError.rethrowUnexpectedError( err, this );
 		}
-	},
 
-	/**
-	 * @inheritDoc
-	 */
-	_addEventListener(
-		this: Document,
-		event: string,
-		callback: ( ev: EventInfo, ...args: any[] ) => void,
-		options: BubblingCallbackOptions
-	): void {
-		const contexts = toArray( options.context || '$document' );
-		const eventContexts = getBubblingContexts( this );
+		public _removeEventListener( this: Document, event: string, callback: Function ): void {
+			const eventContexts = getBubblingContexts( this );
 
-		for ( const context of contexts ) {
-			let emitter = eventContexts.get( context );
-
-			if ( !emitter ) {
-				emitter = Object.create( EmitterMixin );
-				eventContexts.set( context, emitter! );
+			for ( const emitter of eventContexts.values() ) {
+				this.stopListening( emitter, event, callback );
 			}
-
-			this.listenTo( emitter!, event, callback, options );
-		}
-	},
-
-	/**
-	 * @inheritDoc
-	 */
-	_removeEventListener( this: Document, event: string, callback: Function ): void {
-		const eventContexts = getBubblingContexts( this );
-
-		for ( const emitter of eventContexts.values() ) {
-			this.stopListening( emitter, event, callback );
 		}
 	}
-};
 
-export default BubblingEmitterMixin;
+	return Mixin as any;
+}
+
+// Backward compatibility with `mix`.
+{
+	const mixin = ( BubblingEmitterMixin as any )( Object );
+
+	[ 'fire', '_addEventListener', '_removeEventListener' ].forEach( key => {
+		( BubblingEmitterMixin as any )[ key ] = mixin.prototype[ key ];
+	} );
+}
 
 // Update the event info bubbling fields.
 //
@@ -154,7 +169,7 @@ export default BubblingEmitterMixin;
 function updateEventInfo(
 	eventInfo: EventInfo,
 	eventPhase: BubblingEventInfo[ '_eventPhase' ],
-	currentTarget: BubblingEventInfo[ '_currentTarget' ]
+	currentTarget: unknown
 ) {
 	if ( eventInfo instanceof BubblingEventInfo ) {
 		( eventInfo as any )._eventPhase = eventPhase;
@@ -204,7 +219,7 @@ function getCustomContext( eventContexts: BubblingEventContexts, node: Node ): E
 }
 
 // Returns bubbling contexts map for the source (emitter).
-function getBubblingContexts( source: Document & { [ contextsSymbol ]?: BubblingEventContexts } ) {
+function getBubblingContexts( source: { [ x: string ]: any; [ contextsSymbol ]?: BubblingEventContexts } ) {
 	if ( !source[ contextsSymbol ] ) {
 		source[ contextsSymbol ] = new Map();
 	}
