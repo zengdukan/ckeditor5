@@ -10,6 +10,7 @@
 import mix from '@ckeditor/ckeditor5-utils/src/mix';
 import ObservableMixin, { type Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
+import EmitterMixin, { type Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
 
 import Mapper from '../conversion/mapper';
 
@@ -54,7 +55,7 @@ import type DataProcessor from '../dataprocessor/dataprocessor';
  *
  *		editor.data.get( { rootName: 'customRoot' } ); // -> '<p>Hello!</p>'
  *
- * @mixes module:utils/observablemixin~ObservableMixin
+ * @mixes module:utils/emittermixin~EmitterMixin
  */
 class DataController {
 	public readonly model: Model;
@@ -167,9 +168,9 @@ class DataController {
 		this.upcastDispatcher.on<ElementEvent>( 'element', convertToModelFragment(), { priority: 'lowest' } );
 		this.upcastDispatcher.on<DocumentFragmentEvent>( 'documentFragment', convertToModelFragment(), { priority: 'lowest' } );
 
-		this.decorate( 'init' );
-		this.decorate( 'set' );
-		this.decorate( 'get' );
+		ObservableMixin.decorate.call( this, 'init' as any );
+		ObservableMixin.decorate.call( this, 'set' as any );
+		ObservableMixin.decorate.call( this, 'get' as any );
 
 		// Fire the `ready` event when the initialization has completed. Such low-level listener offers the possibility
 		// to plug into the initialization pipeline without interrupting the initialization flow.
@@ -559,10 +560,9 @@ class DataController {
 	 */
 }
 
-mix( DataController, ObservableMixin );
+mix( DataController, EmitterMixin );
 
-// TODO there is a conflict for the set() method.
-interface DataController extends Observable {}
+interface DataController extends Emitter {}
 
 export default DataController;
 
