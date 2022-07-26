@@ -330,7 +330,7 @@ export default class ViewConsumable {
 }
 
 export interface Consumables {
-	name: boolean;
+	name?: boolean;
 	attributes?: string | string[];
 	classes?: string | string[];
 	styles?: string | string[];
