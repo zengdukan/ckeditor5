@@ -45,7 +45,7 @@ import type ViewNode from '../view/node';
  */
 export default class Mapper extends Emitter {
 	private _modelToViewMapping: WeakMap<ModelElement | ModelDocumentFragment, ViewElement | ViewDocumentFragment>;
-	private _viewToModelMapping: WeakMap<ViewNode | ViewDocumentFragment, ModelElement | ModelDocumentFragment>;
+	private _viewToModelMapping: WeakMap<ViewElement | ViewDocumentFragment, ModelElement | ModelDocumentFragment>;
 	private _viewToModelLengthCallbacks: Map<string, ( element: ViewElement ) => number>;
 	private _markerNameToElements: Map<string, Set<ViewElement>>;
 	private _elementToMarkerNames: Map<ViewElement, Set<string>>;
@@ -329,7 +329,9 @@ export default class Mapper extends Emitter {
 	 * @param {module:engine/view/element~Element} viewElement View element.
 	 * @returns {module:engine/model/element~Element|undefined} Corresponding model element or `undefined` if not found.
 	 */
-	public toModelElement( viewElement: ViewElement ): ModelElement | ModelDocumentFragment | undefined {
+	public toModelElement( viewElement: ViewElement ): ModelElement | undefined;
+	public toModelElement( viewDocumentFragment: ViewDocumentFragment ): ModelDocumentFragment | undefined;
+	public toModelElement( viewElement: ViewElement | ViewDocumentFragment ): ModelElement | ModelDocumentFragment | undefined {
 		return this._viewToModelMapping.get( viewElement );
 	}
 
@@ -339,7 +341,9 @@ export default class Mapper extends Emitter {
 	 * @param {module:engine/model/element~Element} modelElement Model element.
 	 * @returns {module:engine/view/element~Element|undefined} Corresponding view element or `undefined` if not found.
 	 */
-	public toViewElement( modelElement: ModelElement ): ViewElement | ViewDocumentFragment | undefined {
+	public toViewElement( modelElement: ModelElement ): ViewElement | undefined;
+	public toViewElement( modelDocumentFragment: ModelDocumentFragment ): ViewDocumentFragment | undefined;
+	public toViewElement( modelElement: ModelElement | ModelDocumentFragment ): ViewElement | ViewDocumentFragment | undefined {
 		return this._modelToViewMapping.get( modelElement );
 	}
 
@@ -563,7 +567,7 @@ export default class Mapper extends Emitter {
 			const callback = this._viewToModelLengthCallbacks.get( ( viewNode as any ).name )!;
 
 			return callback( viewNode as ViewElement );
-		} else if ( this._viewToModelMapping.has( viewNode ) ) {
+		} else if ( this._viewToModelMapping.has( viewNode as ViewElement ) ) {
 			return 1;
 		} else if ( viewNode.is( '$text' ) ) {
 			return viewNode.data.length;

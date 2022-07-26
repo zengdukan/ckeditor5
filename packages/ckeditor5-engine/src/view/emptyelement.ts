@@ -41,7 +41,7 @@ export default class EmptyElement extends Element {
 	constructor(
 		document: Document,
 		name: string,
-		attributes?: Record<string, string> | Iterable<[ string, string ]>,
+		attributes?: Record<string, string> | Iterable<[ string, string ]> | null,
 		children?: Node | Iterable<Node>
 	) {
 		super( document, name, attributes, children );
