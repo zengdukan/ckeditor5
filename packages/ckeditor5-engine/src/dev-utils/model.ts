@@ -55,7 +55,7 @@ import UpcastDispatcher, {
 } from '../conversion/upcastdispatcher';
 import type ViewDocumentSelection from '../view/documentselection';
 import type { BatchType } from '../model/batch';
-import type { default as MarkerCollection, Marker } from '../model/markercollection';
+import type MarkerCollection from '../model/markercollection';
 import type ModelText from '../model/text';
 import type ModelTextProxy from '../model/textproxy';
 import type DowncastWriter from '../view/downcastwriter';
