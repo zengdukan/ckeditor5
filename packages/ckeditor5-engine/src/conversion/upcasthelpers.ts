@@ -92,7 +92,7 @@ export default class UpcastHelpers extends ConversionHelpers<UpcastDispatcher> {
 	 */
 	public elementToElement( config: {
 		view: MatcherPattern;
-		model: 'string' | ElementCreatorFunction;
+		model: string | ElementCreatorFunction;
 		converterPriority?: PriorityString | number;
 	} ): this {
 		return this.add( upcastElementToElement( config ) );
@@ -1175,3 +1175,8 @@ export type MarkerFromAttributeCreatorFunction = (
 	attributeValue: string,
 	conversionApi: UpcastConversionApi
 ) => string;
+
+export type ModelAttributeDefinition<TValue = unknown> = {
+	key: string;
+	value: TValue;
+};

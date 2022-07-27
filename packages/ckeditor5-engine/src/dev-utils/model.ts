@@ -55,7 +55,7 @@ import UpcastDispatcher, {
 } from '../conversion/upcastdispatcher';
 import type ViewDocumentSelection from '../view/documentselection';
 import type { BatchType } from '../model/batch';
-import { default as MarkerCollection, type Marker } from '../model/markercollection';
+import type { default as MarkerCollection, Marker } from '../model/markercollection';
 import type ModelText from '../model/text';
 import type ModelTextProxy from '../model/textproxy';
 import type DowncastWriter from '../view/downcastwriter';
@@ -230,7 +230,7 @@ setData._parse = parse;
 export function stringify(
 	node: ModelNode | ModelDocumentFragment,
 	selectionOrPositionOrRange: ModelSelection | DocumentSelection | ModelPosition | ModelRange | null = null,
-	markers: Iterable<Marker> | null = null
+	markers: MarkerCollection | null = null
 ): string {
 	const model = new Model();
 	const mapper = new Mapper();
@@ -325,18 +325,7 @@ export function stringify(
 
 	// Convert model selection to view selection.
 	if ( selection ) {
-		let markerCollection = model.markers;
-
-		// Translate markers list to the MarkerCollection.
-		if ( markers ) {
-			markerCollection = new MarkerCollection();
-
-			for ( const marker of markers ) {
-				( markerCollection as any )._markers.set( marker.name, marker );
-			}
-		}
-
-		downcastDispatcher.convertSelection( selection, markerCollection, writer );
+		downcastDispatcher.convertSelection( selection, markers || model.markers, writer );
 	}
 
 	// Parse view to data string.

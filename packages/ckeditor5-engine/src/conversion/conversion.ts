@@ -9,12 +9,17 @@
 
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 import UpcastHelpers from './upcasthelpers';
-import DowncastHelpers from './downcasthelpers';
-import toArray from '@ckeditor/ckeditor5-utils/src/toarray';
+import DowncastHelpers, {
+	type AttributeCreatorFunction,
+	type AttributeDescriptor
+} from './downcasthelpers';
+import toArray, { type ArrayOrItem } from '@ckeditor/ckeditor5-utils/src/toarray';
 
 import type DowncastDispatcher from './downcastdispatcher';
 import type UpcastDispatcher from './upcastdispatcher';
 import type { PriorityString } from '@ckeditor/ckeditor5-utils/src/priorities';
+import type ElementDefinition from '../view/elementdefinition';
+import type { MatcherPattern } from '../view/matcher';
 
 /**
  * A utility class that helps add converters to upcast and downcast dispatchers.
@@ -74,8 +79,8 @@ export default class Conversion {
 	 * Array.<module:engine/conversion/upcastdispatcher~UpcastDispatcher>} upcastDispatchers
 	 */
 	constructor(
-		downcastDispatchers: DowncastDispatcher | DowncastDispatcher[],
-		upcastDispatchers: UpcastDispatcher | UpcastDispatcher[]
+		downcastDispatchers: ArrayOrItem<DowncastDispatcher>,
+		upcastDispatchers: ArrayOrItem<UpcastDispatcher>
 	) {
 		/**
 		 * Maps dispatchers group name to ConversionHelpers instances.
@@ -291,7 +296,12 @@ export default class Conversion {
 	 *
 	 * @param {module:engine/conversion/conversion~ConverterDefinition} definition The converter definition.
 	 */
-	public elementToElement( definition: ConverterDefinition ): void {
+	public elementToElement( definition: {
+		model: string;
+		view: ElementDefinition;
+		upcastAlso?: ArrayOrItem<ElementDefinition | MatcherPattern>;
+		converterPriority?: PriorityString | number;
+	} ): void {
 		// Set up downcast converter.
 		this.for( 'downcast' ).elementToElement( definition );
 
@@ -464,7 +474,26 @@ export default class Conversion {
 	 *
 	 * @param {module:engine/conversion/conversion~ConverterDefinition} definition The converter definition.
 	 */
-	attributeToElement( definition ) {
+	public attributeToElement<TValues extends string>(
+		definition: {
+			model: string | {
+				key: string;
+				name?: string;
+			};
+			view: ElementDefinition;
+			upcastAlso?: ArrayOrItem<MatcherPattern>;
+			converterPriority?: PriorityString | number;
+		} | {
+			model: {
+				key: string;
+				name?: string;
+				values: TValues[];
+			};
+			view: Record<TValues, ElementDefinition>;
+			upcastAlso?: Record<TValues, MatcherPattern>;
+			converterPriority?: PriorityString | number;
+		}
+	): void {
 		// Set up downcast converter.
 		this.for( 'downcast' ).attributeToElement( definition );
 
@@ -589,7 +618,25 @@ export default class Conversion {
 	 * Any view element matching `definition.upcastAlso` will also be converted to the given model attribute. `definition.upcastAlso`
 	 * is used only if `config.model.values` is specified.
 	 */
-	attributeToAttribute( definition ) {
+	public attributeToAttribute<TValues extends string>(
+		definition: {
+			model: string | {
+				key: string;
+				name?: string;
+			};
+			view: string | ( AttributeDescriptor & { name?: string } );
+			upcastAlso?: ArrayOrItem<string | ( AttributeDescriptor & { name?: string } ) | AttributeCreatorFunction>;
+			converterPriority?: PriorityString | number;
+		} | {
+			model: {
+				key: string;
+				name?: string;
+				values: TValues[];
+			};
+			view: Record<TValues, ( AttributeDescriptor & { name?: string } )>;
+			upcastAlso?: Record<TValues, ( AttributeDescriptor & { name?: string } ) | AttributeCreatorFunction>;
+			converterPriority?: PriorityString | number;
+		} ): void {
 		// Set up downcast converter.
 		this.for( 'downcast' ).attributeToAttribute( definition );
 
@@ -667,7 +714,7 @@ export interface ConverterDefinition {
 //
 // @param {module:engine/conversion/conversion~ConverterDefinition} definition
 // @returns {Array} Array containing view definitions.
-function* _getAllUpcastDefinitions( definition ) {
+function* _getAllUpcastDefinitions( definition: any ): IterableIterator<{ model: any; view: any }> {
 	if ( definition.model.values ) {
 		for ( const value of definition.model.values ) {
 			const model = { key: definition.model.key, value };
@@ -681,7 +728,7 @@ function* _getAllUpcastDefinitions( definition ) {
 	}
 }
 
-function* _getUpcastDefinition( model: unknown, view: unknown, upcastAlso?: unknown ) {
+function* _getUpcastDefinition( model: unknown, view: unknown, upcastAlso?: unknown ): any {
 	yield { model, view };
 
 	if ( upcastAlso ) {

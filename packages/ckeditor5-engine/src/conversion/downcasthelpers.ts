@@ -433,32 +433,24 @@ export default class DowncastHelpers extends ConversionHelpers<DowncastDispatche
 	 * @param {module:utils/priorities~PriorityString} [config.converterPriority='normal'] Converter priority.
 	 * @returns {module:engine/conversion/downcasthelpers~DowncastHelpers}
 	 */
-	public attributeToElement( config: {
-		model: string | {
-			key: string;
-			name?: string;
-		};
-		view: ElementDefinition | AttributeElementCreatorFunction;
-		converterPriority?: PriorityString | number;
-	} ): this;
-	public attributeToElement<TValues extends string>( config: {
-		model: {
-			key: string;
-			name?: string;
-			values: TValues[];
-		};
-		view: Record<TValues, ElementDefinition | AttributeElementCreatorFunction>;
-		converterPriority?: PriorityString | number;
-	} ): this;
-	public attributeToElement( config: {
-		model: string | {
-			key: string;
-			name?: string;
-			values?: string[];
-		};
-		view: ElementDefinition | AttributeElementCreatorFunction | Record<string, ElementDefinition | AttributeElementCreatorFunction>;
-		converterPriority?: PriorityString | number;
-	} ): this {
+	public attributeToElement<TValues extends string>(
+		config: {
+			model: string | {
+				key: string;
+				name?: string;
+			};
+			view: ElementDefinition | AttributeElementCreatorFunction;
+			converterPriority?: PriorityString | number;
+		} | {
+			model: {
+				key: string;
+				name?: string;
+				values: TValues[];
+			};
+			view: Record<TValues, ElementDefinition | AttributeElementCreatorFunction>;
+			converterPriority?: PriorityString | number;
+		}
+	): this {
 		return this.add( downcastAttributeToElement( config ) );
 	}
 
@@ -542,32 +534,24 @@ export default class DowncastHelpers extends ConversionHelpers<DowncastDispatche
 	 * @param {module:utils/priorities~PriorityString} [config.converterPriority='normal'] Converter priority.
 	 * @returns {module:engine/conversion/downcasthelpers~DowncastHelpers}
 	 */
-	public attributeToAttribute( config: {
-		model: string | {
-			key: string;
-			name?: string;
-		};
-		view: string | AttributeDescriptor | AttributeCreatorFunction;
-		converterPriority?: PriorityString | number;
-	} ): this;
-	public attributeToAttribute<TValues extends string>( config: {
-		model: {
-			key: string;
-			name?: string;
-			values: TValues[];
-		};
-		view: Record<TValues, AttributeDescriptor | AttributeCreatorFunction>;
-		converterPriority?: PriorityString | number;
-	} ): this;
-	public attributeToAttribute( config: {
-		model: string | {
-			key: string;
-			name?: string;
-			values?: string[];
-		};
-		view: string | AttributeDescriptor | AttributeCreatorFunction | Record<string, AttributeDescriptor | AttributeCreatorFunction>;
-		converterPriority?: PriorityString | number;
-	} ): this {
+	public attributeToAttribute<TValues extends string>(
+		config: {
+			model: string | {
+				key: string;
+				name?: string;
+			};
+			view: string | AttributeDescriptor | AttributeCreatorFunction;
+			converterPriority?: PriorityString | number;
+		} | {
+			model: {
+				key: string;
+				name?: string;
+				values: TValues[];
+			};
+			view: Record<TValues, AttributeDescriptor | AttributeCreatorFunction>;
+			converterPriority?: PriorityString | number;
+		}
+	): this {
 		return this.add( downcastAttributeToAttribute( config ) );
 	}
 

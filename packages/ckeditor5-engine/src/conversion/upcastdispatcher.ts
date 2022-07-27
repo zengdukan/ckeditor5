@@ -15,7 +15,8 @@ import type ViewElement from '../view/element';
 import type ViewText from '../view/text';
 import type ViewDocumentFragment from '../view/documentfragment';
 import type ModelDocumentFragment from '../model/documentfragment';
-import { type default as Schema, SchemaContext, type SchemaContextDefinition } from '../model/schema';
+import type { default as Schema, SchemaContextDefinition } from '../model/schema';
+import { SchemaContext } from '../model/schema'; // eslint-disable-line no-duplicate-imports
 import type ModelWriter from '../model/writer';
 import { isParagraphable, wrapInParagraph } from '../model/utils/autoparagraphing';
 
