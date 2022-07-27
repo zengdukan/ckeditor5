@@ -224,7 +224,7 @@ export default class DowncastDispatcher extends Emitter {
 		range: Range,
 		markers: Map<string, Range>,
 		writer: DowncastWriter,
-		options = {} // TODO
+		options: unknown = {}
 	): void {
 		const conversionApi = this._createConversionApi( writer, undefined, options );
 
@@ -251,7 +251,7 @@ export default class DowncastDispatcher extends Emitter {
 	 * @param {module:engine/view/downcastwriter~DowncastWriter} writer View writer that should be used to modify the view document.
 	 */
 	public convertSelection(
-		selection: Selection,
+		selection: Selection | DocumentSelection,
 		markers: MarkerCollection,
 		writer: DowncastWriter
 	): void {
@@ -567,7 +567,7 @@ export default class DowncastDispatcher extends Emitter {
 	 */
 	private _addConsumablesForSelection(
 		consumable: Consumable,
-		selection: Selection,
+		selection: Selection | DocumentSelection,
 		markers: Iterable<Marker>
 	): Consumable {
 		consumable.add( selection, 'selection' );
@@ -595,7 +595,7 @@ export default class DowncastDispatcher extends Emitter {
 	 */
 	private _testAndFire<TType extends 'insert' | 'attribute'>(
 		type: TType | `${ TType }:${ string }`,
-		data: EventData[ TType ],
+		data: EventMap[ TType ],
 		conversionApi: DowncastConversionApi
 	): void {
 		const eventName = getEventName( type, data );
@@ -626,7 +626,7 @@ export default class DowncastDispatcher extends Emitter {
 		item: Item,
 		conversionApi: DowncastConversionApi
 	): void {
-		const data: EventData[ 'attribute' ] = {
+		const data: EventMap[ 'attribute' ] = {
 			item,
 			range: Range._createOn( item )
 		} as any;
@@ -654,7 +654,7 @@ export default class DowncastDispatcher extends Emitter {
 	private _createConversionApi(
 		writer: DowncastWriter,
 		refreshedItems: Set<Item> = new Set(),
-		options = {} // TODO
+		options: unknown = {}
 	): DowncastConversionApi {
 		const conversionApi: DowncastConversionApi = {
 			...this._conversionApi,
@@ -815,31 +815,48 @@ export type ReduceChangesEvent = {
 	} ];
 };
 
-type EventData = {
-	insert: { item: Item; range: Range; reconversion?: boolean };
-	remove: { position: Position; length: number };
+type EventMap<TItem = Item> = {
+	insert: {
+		item: TItem;
+		range: Range;
+		reconversion?: boolean;
+	};
+	remove: {
+		position: Position;
+		length: number;
+	};
 	attribute: {
-		item: Item | Selection | DocumentSelection;
+		item: TItem;
 		range: Range;
 		attributeKey: string;
 		attributeOldValue: unknown;
 		attributeNewValue: unknown;
 	};
-	selection: { selection: Selection };
-	addMarker: { item?: Item | Selection; range?: Range; markerRange: Range; markerName: string };
-	removeMarker: { markerRange: Range; markerName: string };
+	selection: {
+		selection: Selection | DocumentSelection;
+	};
+	addMarker: {
+		item?: Item | Selection | DocumentSelection;
+		range?: Range;
+		markerRange: Range;
+		markerName: string;
+	};
+	removeMarker: {
+		markerRange: Range;
+		markerName: string;
+	};
 };
 
-export type DowncastEvent<TName extends keyof EventData> = {
+export type DowncastEvent<TName extends keyof EventMap<TItem>, TItem = Item> = {
 	name: TName | `${ TName }:${ string }`;
-	args: [ data: EventData[ TName ], conversionApi: DowncastConversionApi ];
+	args: [ data: EventMap<TItem>[ TName ], conversionApi: DowncastConversionApi ];
 };
 
-export type InsertEvent = DowncastEvent<'insert'>;
+export type InsertEvent<TItem extends Item = Item> = DowncastEvent<'insert', TItem>;
 
 export type RemoveEvent = DowncastEvent<'remove'>;
 
-export type AttributeEvent = DowncastEvent<'attribute'>;
+export type AttributeEvent<TItem = Item | Selection | DocumentSelection> = DowncastEvent<'attribute', TItem>;
 
 export type SelectionEvent = DowncastEvent<'selection'>;
 
@@ -912,7 +929,7 @@ export interface DowncastConversionApi {
 	mapper: Mapper;
 	schema: Schema;
 	writer: DowncastWriter;
-	options: unknown; // TODO
+	options: unknown;
 
 	convertItem( item: Item ): void;
 	convertChildren( element: Element ): void;

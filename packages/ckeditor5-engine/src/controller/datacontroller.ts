@@ -9,22 +9,35 @@
 
 import { Observable } from '@ckeditor/ckeditor5-utils/src/observablemixin';
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
+import { Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
 
 import Mapper from '../conversion/mapper';
 
-import DowncastDispatcher from '../conversion/downcastdispatcher';
+import DowncastDispatcher, { type InsertEvent } from '../conversion/downcastdispatcher';
 import { insertAttributesAndChildren, insertText } from '../conversion/downcasthelpers';
 
-import UpcastDispatcher from '../conversion/upcastdispatcher';
+import UpcastDispatcher, { type DocumentFragmentEvent, type ElementEvent, type TextEvent } from '../conversion/upcastdispatcher';
 import { convertText, convertToModelFragment } from '../conversion/upcasthelpers';
 
 import ViewDocumentFragment from '../view/documentfragment';
 import ViewDocument from '../view/document';
 import ViewDowncastWriter from '../view/downcastwriter';
+import type ViewElement from '../view/element';
+import { type StylesProcessor } from '../view/stylesmap';
+import { type MatcherPattern } from '../view/matcher';
 
 import ModelRange from '../model/range';
+import type Model from '../model/model';
+import type ModelText from '../model/text';
+import type ModelElement from '../model/element';
+import type ModelTextProxy from '../model/textproxy';
+import type ModelDocumentFragment from '../model/documentfragment';
+import { type SchemaContextDefinition } from '../model/schema';
+import { type BatchType } from '../model/batch';
 import { autoParagraphEmptyRoots } from '../model/utils/autoparagraphing';
+
 import HtmlDataProcessor from '../dataprocessor/htmldataprocessor';
+import type DataProcessor from '../dataprocessor/dataprocessor';
 
 /**
  * Controller for the data pipeline. The data pipeline controls how data is retrieved from the document
@@ -41,16 +54,27 @@ import HtmlDataProcessor from '../dataprocessor/htmldataprocessor';
  *
  *		editor.data.get( { rootName: 'customRoot' } ); // -> '<p>Hello!</p>'
  *
- * @mixes module:utils/observablemixin~ObservableMixin
+ * @mixes module:utils/emittermixin~EmitterMixin
  */
-export default class DataController extends Observable {
+export default class DataController extends Emitter {
+	public readonly model: Model;
+	public readonly mapper: Mapper;
+	public readonly downcastDispatcher: DowncastDispatcher;
+	public readonly upcastDispatcher: UpcastDispatcher;
+	public readonly viewDocument: ViewDocument;
+	public readonly stylesProcessor: StylesProcessor;
+	public readonly htmlProcessor: HtmlDataProcessor;
+	public processor: DataProcessor;
+
+	private readonly _viewWriter: ViewDowncastWriter;
+
 	/**
 	 * Creates a data controller instance.
 	 *
 	 * @param {module:engine/model/model~Model} model Data model.
 	 * @param {module:engine/view/stylesmap~StylesProcessor} stylesProcessor The styles processor instance.
 	 */
-	constructor( model, stylesProcessor ) {
+	constructor( model: Model, stylesProcessor: StylesProcessor ) {
 		super();
 
 		/**
@@ -81,8 +105,8 @@ export default class DataController extends Observable {
 			mapper: this.mapper,
 			schema: model.schema
 		} );
-		this.downcastDispatcher.on( 'insert:$text', insertText(), { priority: 'lowest' } );
-		this.downcastDispatcher.on( 'insert', insertAttributesAndChildren(), { priority: 'lowest' } );
+		this.downcastDispatcher.on<InsertEvent<ModelText | ModelTextProxy>>( 'insert:$text', insertText(), { priority: 'lowest' } );
+		this.downcastDispatcher.on<InsertEvent>( 'insert', insertAttributesAndChildren(), { priority: 'lowest' } );
 
 		/**
 		 * Upcast dispatcher used by the {@link #set set method}. Upcast converters should be attached to it.
@@ -141,13 +165,13 @@ export default class DataController extends Observable {
 		// Note that if there is no default converter for the element it will be skipped, for instance `<b>foo</b>` will be
 		// converted to nothing. We therefore add `convertToModelFragment` as a last converter so it converts children of that
 		// element to the document fragment so `<b>foo</b>` will still be converted to `foo` even if there is no converter for `<b>`.
-		this.upcastDispatcher.on( 'text', convertText(), { priority: 'lowest' } );
-		this.upcastDispatcher.on( 'element', convertToModelFragment(), { priority: 'lowest' } );
-		this.upcastDispatcher.on( 'documentFragment', convertToModelFragment(), { priority: 'lowest' } );
+		this.upcastDispatcher.on<TextEvent>( 'text', convertText(), { priority: 'lowest' } );
+		this.upcastDispatcher.on<ElementEvent>( 'element', convertToModelFragment(), { priority: 'lowest' } );
+		this.upcastDispatcher.on<DocumentFragmentEvent>( 'documentFragment', convertToModelFragment(), { priority: 'lowest' } );
 
-		this.decorate( 'init' );
-		this.decorate( 'set' );
-		this.decorate( 'get' );
+		Observable.prototype.decorate.call( this, 'init' as any );
+		Observable.prototype.decorate.call( this, 'set' as any );
+		Observable.prototype.decorate.call( this, 'get' as any );
 
 		// Fire the `ready` event when the initialization has completed. Such low-level listener offers the possibility
 		// to plug into the initialization pipeline without interrupting the initialization flow.
@@ -175,8 +199,8 @@ export default class DataController extends Observable {
 	 * use `'none'`. In such cases the exact content will be returned (for example a `<p>&nbsp;</p>` for an empty editor).
 	 * @returns {String} Output data.
 	 */
-	get( options = {} ) {
-		const { rootName = 'main', trim = 'empty' } = options;
+	public get( options: Record<string, unknown> = {} ): string {
+		const { rootName = 'main', trim = 'empty' } = options as Record<string, string>;
 
 		if ( !this._checkIfRootsExists( [ rootName ] ) ) {
 			/**
@@ -193,7 +217,7 @@ export default class DataController extends Observable {
 			throw new CKEditorError( 'datacontroller-get-non-existent-root', this );
 		}
 
-		const root = this.model.document.getRoot( rootName );
+		const root = this.model.document.getRoot( rootName )!;
 
 		if ( trim === 'empty' && !this.model.hasContent( root, { ignoreWhitespaces: true } ) ) {
 			return '';
@@ -212,7 +236,10 @@ export default class DataController extends Observable {
 	 * @param {Object} [options] Additional configuration passed to the conversion process.
 	 * @returns {String} Output data.
 	 */
-	stringify( modelElementOrFragment, options = {} ) {
+	public stringify(
+		modelElementOrFragment: ModelElement | ModelDocumentFragment,
+		options: Record<string, unknown> = {}
+	): string {
 		// Model -> view.
 		const viewDocumentFragment = this.toView( modelElementOrFragment, options );
 
@@ -232,7 +259,10 @@ export default class DataController extends Observable {
 	 * {@link module:engine/conversion/downcastdispatcher~DowncastConversionApi#options} during the conversion process.
 	 * @returns {module:engine/view/documentfragment~DocumentFragment} Output view DocumentFragment.
 	 */
-	toView( modelElementOrFragment, options = {} ) {
+	public toView(
+		modelElementOrFragment: ModelElement | ModelDocumentFragment,
+		options: Record<string, unknown> = {}
+	): ViewDocumentFragment {
 		const viewDocument = this.viewDocument;
 		const viewWriter = this._viewWriter;
 
@@ -280,7 +310,7 @@ export default class DataController extends Observable {
 	 * pairs to initialize data on multiple roots at once.
 	 * @returns {Promise} Promise that is resolved after the data is set on the editor.
 	 */
-	init( data ) {
+	public init( data: string | Record<string, string> ): Promise<void> {
 		if ( this.model.document.version ) {
 			/**
 			 * Cannot set initial data to a non-empty {@link module:engine/model/document~Document}.
@@ -292,7 +322,8 @@ export default class DataController extends Observable {
 			throw new CKEditorError( 'datacontroller-init-document-not-empty', this );
 		}
 
-		let initialData = {};
+		let initialData: Record<string, string> = {};
+
 		if ( typeof data === 'string' ) {
 			initialData.main = data; // Default root is 'main'. To initiate data on a different root, object should be passed.
 		} else {
@@ -316,7 +347,8 @@ export default class DataController extends Observable {
 
 		this.model.enqueueChange( { isUndoable: false }, writer => {
 			for ( const rootName of Object.keys( initialData ) ) {
-				const modelRoot = this.model.document.getRoot( rootName );
+				const modelRoot = this.model.document.getRoot( rootName )!;
+
 				writer.insert( this.parse( initialData[ rootName ], modelRoot ), modelRoot, 0 );
 			}
 		} );
@@ -354,8 +386,8 @@ export default class DataController extends Observable {
 	 * cleared after the new data is applied (all undo steps will be removed). If the batch type `isUndoable` flag is be set to `true`,
 	 * the undo stack will be preserved instead and not cleared when new data is applied.
 	 */
-	set( data, options = {} ) {
-		let newData = {};
+	public set( data: string | Record<string, string>, options: { batchType?: BatchType } = {} ): void {
+		let newData: Record<string, string> = {};
 
 		if ( typeof data === 'string' ) {
 			newData.main = data; // The default root is 'main'. To set data on a different root, an object should be passed.
@@ -384,7 +416,7 @@ export default class DataController extends Observable {
 
 			for ( const rootName of Object.keys( newData ) ) {
 				// Save to model.
-				const modelRoot = this.model.document.getRoot( rootName );
+				const modelRoot = this.model.document.getRoot( rootName )!;
 
 				writer.remove( writer.createRangeIn( modelRoot ) );
 				writer.insert( this.parse( newData[ rootName ], modelRoot ), modelRoot, 0 );
@@ -402,7 +434,7 @@ export default class DataController extends Observable {
 	 * be converted to the model. See: {@link module:engine/conversion/upcastdispatcher~UpcastDispatcher#convert}.
 	 * @returns {module:engine/model/documentfragment~DocumentFragment} Parsed data.
 	 */
-	parse( data, context = '$root' ) {
+	public parse( data: string, context: SchemaContextDefinition = '$root' ): ModelDocumentFragment {
 		// data -> view
 		const viewDocumentFragment = this.processor.toView( data );
 
@@ -424,7 +456,10 @@ export default class DataController extends Observable {
 	 * be converted to the model. See: {@link module:engine/conversion/upcastdispatcher~UpcastDispatcher#convert}.
 	 * @returns {module:engine/model/documentfragment~DocumentFragment} Output document fragment.
 	 */
-	toModel( viewElementOrFragment, context = '$root' ) {
+	public toModel(
+		viewElementOrFragment: ViewElement | ViewDocumentFragment,
+		context: SchemaContextDefinition = '$root'
+	): ModelDocumentFragment {
 		return this.model.change( writer => {
 			return this.upcastDispatcher.convert( viewElementOrFragment, writer, context );
 		} );
@@ -442,7 +477,7 @@ export default class DataController extends Observable {
 	 *
 	 * @param {Function} callback
 	 */
-	addStyleProcessorRules( callback ) {
+	public addStyleProcessorRules( callback: ( stylesProcessor: StylesProcessor ) => void ): void {
 		callback( this.stylesProcessor );
 	}
 
@@ -457,7 +492,7 @@ export default class DataController extends Observable {
 	 * @param {module:engine/view/matcher~MatcherPattern} pattern Pattern matching all view elements whose content should
 	 * be treated as a raw data.
 	 */
-	registerRawContentMatcher( pattern ) {
+	public registerRawContentMatcher( pattern: MatcherPattern ): void {
 		// No need to register the pattern if both the `htmlProcessor` and `processor` are the same instances.
 		if ( this.processor && this.processor !== this.htmlProcessor ) {
 			this.processor.registerRawContentMatcher( pattern );
@@ -469,7 +504,7 @@ export default class DataController extends Observable {
 	/**
 	 * Removes all event listeners set by the DataController.
 	 */
-	destroy() {
+	public destroy(): void {
 		this.stopListening();
 	}
 
@@ -480,7 +515,7 @@ export default class DataController extends Observable {
 	 * @param {Array.<String>} rootNames Root names to check.
 	 * @returns {Boolean} Whether all provided root names are existing editor roots.
 	 */
-	_checkIfRootsExists( rootNames ) {
+	private _checkIfRootsExists( rootNames: string[] ): boolean {
 		for ( const rootName of rootNames ) {
 			if ( !this.model.document.getRootNames().includes( rootName ) ) {
 				return false;
@@ -531,8 +566,8 @@ export default class DataController extends Observable {
 // Takes a document element (element that is added to a model document) and checks which markers are inside it. If the marker is collapsed
 // at element boundary, it is considered as contained inside the element and marker range is returned. Otherwise, if the marker is
 // intersecting with the element, the intersection is returned.
-function _getMarkersRelativeToElement( element ) {
-	const result = [];
+function _getMarkersRelativeToElement( element: ModelElement ): Map<string, ModelRange> {
+	const result: [ string, ModelRange ][] = [];
 	const doc = element.root.document;
 
 	if ( !doc ) {

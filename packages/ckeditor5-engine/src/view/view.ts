@@ -699,9 +699,10 @@ export default class View extends Observable {
 	 * If the flag is set to `false` and if there was some change in the meantime, then the rendering action will be performed.
 	 *
 	 * @protected
+	 * @internal
 	 * @param {Boolean} flag A flag indicates whether the rendering should be disabled.
 	 */
-	private _disableRendering( flag: boolean ): void {
+	public _disableRendering( flag: boolean ): void {
 		this._renderingDisabled = flag;
 
 		if ( flag == false ) {

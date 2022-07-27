@@ -27,7 +27,7 @@ import type Node from './node';
 import type Element from './element';
 import type DomConverter from './domconverter';
 import type Item from './item';
-import type SlotFilter from '../conversion/downcasthelpers';
+import type { SlotFilter } from '../conversion/downcasthelpers';
 
 type DomDocument = globalThis.Document;
 type DomElement = globalThis.HTMLElement;
@@ -50,7 +50,7 @@ type DomElement = globalThis.HTMLElement;
 export default class DowncastWriter {
 	public readonly document: Document;
 	private readonly _cloneGroups: Map<string | number, Set<AttributeElement>>;
-	private _slotFactory: Function | null;
+	private _slotFactory: ( ( writer: DowncastWriter, modeOrFilter: string | SlotFilter ) => Element ) | null;
 
 	/**
 	 * @param {module:engine/view/document~Document} document The view document instance.
@@ -1216,7 +1216,7 @@ export default class DowncastWriter {
 	 * @param {module:engine/view/element~Element} element Element which is a parent for the range.
 	 * @returns {module:engine/view/range~Range}
 	 */
-	public createRangeIn( element: Element ): Range {
+	public createRangeIn( element: Element | DocumentFragment ): Range {
 		return Range._createIn( element );
 	}
 
@@ -1328,7 +1328,7 @@ export default class DowncastWriter {
 	 * @protected
 	 * @param {Function} slotFactory The slot factory.
 	 */
-	public _registerSlotFactory( slotFactory: Function ): void {
+	public _registerSlotFactory( slotFactory: ( writer: DowncastWriter, modeOrFilter: string | SlotFilter ) => Element ): void {
 		this._slotFactory = slotFactory;
 	}
 

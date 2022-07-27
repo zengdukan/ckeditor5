@@ -9,8 +9,17 @@
 
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 import UpcastHelpers from './upcasthelpers';
-import DowncastHelpers from './downcasthelpers';
-import toArray from '@ckeditor/ckeditor5-utils/src/toarray';
+import DowncastHelpers, {
+	type AttributeCreatorFunction,
+	type AttributeDescriptor
+} from './downcasthelpers';
+import toArray, { type ArrayOrItem } from '@ckeditor/ckeditor5-utils/src/toarray';
+
+import type DowncastDispatcher from './downcastdispatcher';
+import type UpcastDispatcher from './upcastdispatcher';
+import type { PriorityString } from '@ckeditor/ckeditor5-utils/src/priorities';
+import type ElementDefinition from '../view/elementdefinition';
+import type { MatcherPattern } from '../view/matcher';
 
 /**
  * A utility class that helps add converters to upcast and downcast dispatchers.
@@ -57,6 +66,10 @@ import toArray from '@ckeditor/ckeditor5-utils/src/toarray';
  * Model attribute to view attribute and vice versa.
  */
 export default class Conversion {
+	private readonly _helpers: Map<string, DowncastHelpers | UpcastHelpers>;
+	private readonly _downcast: DowncastDispatcher[];
+	private readonly _upcast: UpcastDispatcher[];
+
 	/**
 	 * Creates a new conversion instance.
 	 *
@@ -65,7 +78,10 @@ export default class Conversion {
 	 * @param {module:engine/conversion/upcastdispatcher~UpcastDispatcher|
 	 * Array.<module:engine/conversion/upcastdispatcher~UpcastDispatcher>} upcastDispatchers
 	 */
-	constructor( downcastDispatchers, upcastDispatchers ) {
+	constructor(
+		downcastDispatchers: ArrayOrItem<DowncastDispatcher>,
+		upcastDispatchers: ArrayOrItem<UpcastDispatcher>
+	) {
 		/**
 		 * Maps dispatchers group name to ConversionHelpers instances.
 		 *
@@ -82,6 +98,19 @@ export default class Conversion {
 		this._createConversionHelpers( { name: 'upcast', dispatchers: this._upcast, isDowncast: false } );
 	}
 
+	public addAlias(
+		alias: `${ string }Downcast`,
+		dispatcher: DowncastDispatcher
+	): void;
+	public addAlias(
+		alias: `${ string }Upcast`,
+		dispatcher: UpcastDispatcher
+	): void;
+	public addAlias(
+		alias: string,
+		dispatcher: DowncastDispatcher | UpcastDispatcher
+	): void;
+
 	/**
 	 * Define an alias for registered dispatcher.
 	 *
@@ -96,9 +125,12 @@ export default class Conversion {
 	 * @param {module:engine/conversion/downcastdispatcher~DowncastDispatcher|
 	 * module:engine/conversion/upcastdispatcher~UpcastDispatcher} dispatcher Dispatcher which should have an alias.
 	 */
-	addAlias( alias, dispatcher ) {
-		const isDowncast = this._downcast.includes( dispatcher );
-		const isUpcast = this._upcast.includes( dispatcher );
+	public addAlias(
+		alias: string,
+		dispatcher: DowncastDispatcher | UpcastDispatcher
+	): void {
+		const isDowncast = this._downcast.includes( dispatcher as any );
+		const isUpcast = this._upcast.includes( dispatcher as any );
 
 		if ( !isUpcast && !isDowncast ) {
 			/**
@@ -114,6 +146,10 @@ export default class Conversion {
 
 		this._createConversionHelpers( { name: alias, dispatchers: [ dispatcher ], isDowncast } );
 	}
+
+	public for( groupName: 'downcast' | `${ string }Downcast` ): DowncastHelpers;
+	public for( groupName: 'upcast' | `${ string }Upcast` ): UpcastHelpers;
+	public for( groupName: string ): DowncastHelpers | UpcastHelpers;
 
 	/**
 	 * Provides a chainable API to assign converters to a conversion dispatchers group.
@@ -176,7 +212,7 @@ export default class Conversion {
 	 * @param {String} groupName The name of dispatchers group to add the converters to.
 	 * @returns {module:engine/conversion/downcasthelpers~DowncastHelpers|module:engine/conversion/upcasthelpers~UpcastHelpers}
 	 */
-	for( groupName ) {
+	public for( groupName: string ): DowncastHelpers | UpcastHelpers {
 		if ( !this._helpers.has( groupName ) ) {
 			/**
 			 * Trying to add a converter to an unknown dispatchers group.
@@ -186,7 +222,7 @@ export default class Conversion {
 			throw new CKEditorError( 'conversion-for-unknown-group', this );
 		}
 
-		return this._helpers.get( groupName );
+		return this._helpers.get( groupName )!;
 	}
 
 	/**
@@ -260,7 +296,12 @@ export default class Conversion {
 	 *
 	 * @param {module:engine/conversion/conversion~ConverterDefinition} definition The converter definition.
 	 */
-	elementToElement( definition ) {
+	public elementToElement( definition: {
+		model: string;
+		view: ElementDefinition;
+		upcastAlso?: ArrayOrItem<ElementDefinition | MatcherPattern>;
+		converterPriority?: PriorityString | number;
+	} ): void {
 		// Set up downcast converter.
 		this.for( 'downcast' ).elementToElement( definition );
 
@@ -433,7 +474,26 @@ export default class Conversion {
 	 *
 	 * @param {module:engine/conversion/conversion~ConverterDefinition} definition The converter definition.
 	 */
-	attributeToElement( definition ) {
+	public attributeToElement<TValues extends string>(
+		definition: {
+			model: string | {
+				key: string;
+				name?: string;
+			};
+			view: ElementDefinition;
+			upcastAlso?: ArrayOrItem<MatcherPattern>;
+			converterPriority?: PriorityString | number;
+		} | {
+			model: {
+				key: string;
+				name?: string;
+				values: TValues[];
+			};
+			view: Record<TValues, ElementDefinition>;
+			upcastAlso?: Record<TValues, MatcherPattern>;
+			converterPriority?: PriorityString | number;
+		}
+	): void {
 		// Set up downcast converter.
 		this.for( 'downcast' ).attributeToElement( definition );
 
@@ -558,7 +618,25 @@ export default class Conversion {
 	 * Any view element matching `definition.upcastAlso` will also be converted to the given model attribute. `definition.upcastAlso`
 	 * is used only if `config.model.values` is specified.
 	 */
-	attributeToAttribute( definition ) {
+	public attributeToAttribute<TValues extends string>(
+		definition: {
+			model: string | {
+				key: string;
+				name?: string;
+			};
+			view: string | ( AttributeDescriptor & { name?: string } );
+			upcastAlso?: ArrayOrItem<string | ( AttributeDescriptor & { name?: string } ) | AttributeCreatorFunction>;
+			converterPriority?: PriorityString | number;
+		} | {
+			model: {
+				key: string;
+				name?: string;
+				values: TValues[];
+			};
+			view: Record<TValues, ( AttributeDescriptor & { name?: string } )>;
+			upcastAlso?: Record<TValues, ( AttributeDescriptor & { name?: string } ) | AttributeCreatorFunction>;
+			converterPriority?: PriorityString | number;
+		} ): void {
 		// Set up downcast converter.
 		this.for( 'downcast' ).attributeToAttribute( definition );
 
@@ -582,7 +660,13 @@ export default class Conversion {
 	 * module:engine/conversion/upcastdispatcher~UpcastDispatcher>} options.dispatchers
 	 * @param {Boolean} options.isDowncast
 	 */
-	_createConversionHelpers( { name, dispatchers, isDowncast } ) {
+	private _createConversionHelpers(
+		{ name, dispatchers, isDowncast }: {
+			name: string;
+			dispatchers: ( DowncastDispatcher | UpcastDispatcher )[];
+			isDowncast: boolean;
+		}
+	): void {
 		if ( this._helpers.has( name ) ) {
 			/**
 			 * Trying to register a group name that has already been registered.
@@ -592,7 +676,9 @@ export default class Conversion {
 			throw new CKEditorError( 'conversion-group-exists', this );
 		}
 
-		const helpers = isDowncast ? new DowncastHelpers( dispatchers ) : new UpcastHelpers( dispatchers );
+		const helpers = isDowncast ?
+			new DowncastHelpers( dispatchers as DowncastDispatcher[] ) :
+			new UpcastHelpers( dispatchers as UpcastDispatcher[] );
 
 		this._helpers.set( name, helpers );
 	}
@@ -620,7 +706,7 @@ export default class Conversion {
 //
 // @param {module:engine/conversion/conversion~ConverterDefinition} definition
 // @returns {Array} Array containing view definitions.
-function* _getAllUpcastDefinitions( definition ) {
+function* _getAllUpcastDefinitions( definition: any ): IterableIterator<{ model: any; view: any }> {
 	if ( definition.model.values ) {
 		for ( const value of definition.model.values ) {
 			const model = { key: definition.model.key, value };
@@ -634,7 +720,7 @@ function* _getAllUpcastDefinitions( definition ) {
 	}
 }
 
-function* _getUpcastDefinition( model, view, upcastAlso ) {
+function* _getUpcastDefinition( model: unknown, view: unknown, upcastAlso?: unknown ): any {
 	yield { model, view };
 
 	if ( upcastAlso ) {

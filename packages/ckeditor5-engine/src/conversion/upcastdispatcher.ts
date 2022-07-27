@@ -10,8 +10,17 @@
 import ViewConsumable from './viewconsumable';
 import ModelRange from '../model/range';
 import ModelPosition from '../model/position';
-import { SchemaContext } from '../model/schema';
+import type ModelElement from '../model/element';
+import type ViewElement from '../view/element';
+import type ViewText from '../view/text';
+import type ViewDocumentFragment from '../view/documentfragment';
+import type ModelDocumentFragment from '../model/documentfragment';
+import type { default as Schema, SchemaContextDefinition } from '../model/schema';
+import { SchemaContext } from '../model/schema'; // eslint-disable-line no-duplicate-imports
+import type ModelWriter from '../model/writer';
 import { isParagraphable, wrapInParagraph } from '../model/utils/autoparagraphing';
+
+import type ViewItem from '../view/item';
 
 import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 import { Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
@@ -112,6 +121,13 @@ import { Emitter } from '@ckeditor/ckeditor5-utils/src/emittermixin';
  * @fires documentFragment
  */
 export default class UpcastDispatcher extends Emitter {
+	public conversionApi: UpcastConversionApi;
+
+	private _splitParts: Map<ModelElement, ModelElement[]>;
+	private _cursorParents: Map<ModelElement, ModelElement | ModelDocumentFragment>;
+	private _modelCursor: ModelPosition | null;
+	private _emptyElementsToKeep: Set<ModelElement>;
+
 	/**
 	 * Creates an upcast dispatcher that operates using the passed API.
 	 *
@@ -119,7 +135,7 @@ export default class UpcastDispatcher extends Emitter {
 	 * @param {Object} [conversionApi] Additional properties for an interface that will be passed to events fired
 	 * by the upcast dispatcher.
 	 */
-	constructor( conversionApi = {} ) {
+	constructor( conversionApi: Pick<UpcastConversionApi, 'schema'> ) {
 		super();
 
 		/**
@@ -167,18 +183,20 @@ export default class UpcastDispatcher extends Emitter {
 		 *
 		 * @member {module:engine/conversion/upcastdispatcher~UpcastConversionApi}
 		 */
-		this.conversionApi = Object.assign( {}, conversionApi );
-
-		// The below methods are bound to this `UpcastDispatcher` instance and set on `conversionApi`.
-		// This way only a part of `UpcastDispatcher` API is exposed.
-		this.conversionApi.convertItem = this._convertItem.bind( this );
-		this.conversionApi.convertChildren = this._convertChildren.bind( this );
-		this.conversionApi.safeInsert = this._safeInsert.bind( this );
-		this.conversionApi.updateConversionResult = this._updateConversionResult.bind( this );
-		// Advanced API - use only if custom position handling is needed.
-		this.conversionApi.splitToAllowedParent = this._splitToAllowedParent.bind( this );
-		this.conversionApi.getSplitParts = this._getSplitParts.bind( this );
-		this.conversionApi.keepEmptyElement = this._keepEmptyElement.bind( this );
+		this.conversionApi = {
+			...conversionApi,
+			consumable: null as any,
+			writer: null as any,
+			store: null,
+			convertItem: ( viewItem, modelCursor ) => this._convertItem( viewItem, modelCursor ),
+			convertChildren: ( viewElement, positionOrElement ) => this._convertChildren( viewElement, positionOrElement ),
+			safeInsert: ( modelElement, position ) => this._safeInsert( modelElement, position ),
+			updateConversionResult: ( modelElement, data ) => this._updateConversionResult( modelElement, data ),
+			// Advanced API - use only if custom position handling is needed.
+			splitToAllowedParent: ( modelElement, modelCursor ) => this._splitToAllowedParent( modelElement, modelCursor ),
+			getSplitParts: modelElement => this._getSplitParts( modelElement ),
+			keepEmptyElement: modelElement => this._keepEmptyElement( modelElement )
+		};
 	}
 
 	/**
@@ -187,7 +205,7 @@ export default class UpcastDispatcher extends Emitter {
 	 * @fires element
 	 * @fires text
 	 * @fires documentFragment
-	 * @param {module:engine/view/documentfragment~DocumentFragment|module:engine/view/element~Element} viewItem
+	 * @param {module:engine/view/documentfragment~DocumentFragment|module:engine/view/element~Element} viewElement
 	 * The part of the view to be converted.
 	 * @param {module:engine/model/writer~Writer} writer An instance of the model writer.
 	 * @param {module:engine/model/schema~SchemaContextDefinition} [context=['$root']] Elements will be converted according to this context.
@@ -195,25 +213,29 @@ export default class UpcastDispatcher extends Emitter {
 	 * wrapped in `DocumentFragment`. Converted marker elements will be set as the document fragment's
 	 * {@link module:engine/model/documentfragment~DocumentFragment#markers static markers map}.
 	 */
-	convert( viewItem, writer, context = [ '$root' ] ) {
-		this.fire( 'viewCleanup', viewItem );
+	public convert(
+		viewElement: ViewElement | ViewDocumentFragment,
+		writer: ModelWriter,
+		context: SchemaContextDefinition = [ '$root' ]
+	): ModelDocumentFragment {
+		this.fire<ViewCleanupEvent>( 'viewCleanup', viewElement );
 
 		// Create context tree and set position in the top element.
 		// Items will be converted according to this position.
-		this._modelCursor = createContextTree( context, writer );
+		this._modelCursor = createContextTree( context, writer )!;
 
 		// Store writer in conversion as a conversion API
 		// to be sure that conversion process will use the same batch.
 		this.conversionApi.writer = writer;
 
 		// Create consumable values list for conversion process.
-		this.conversionApi.consumable = ViewConsumable.createFrom( viewItem );
+		this.conversionApi.consumable = ViewConsumable.createFrom( viewElement );
 
 		// Custom data stored by converter for conversion process.
 		this.conversionApi.store = {};
 
 		// Do the conversion.
-		const { modelRange } = this._convertItem( viewItem, this._modelCursor );
+		const { modelRange } = this._convertItem( viewElement, this._modelCursor );
 
 		// Conversion result is always a document fragment so let's create it.
 		const documentFragment = writer.createDocumentFragment();
@@ -229,7 +251,7 @@ export default class UpcastDispatcher extends Emitter {
 			}
 
 			// Extract temporary markers elements from model and set as static markers collection.
-			documentFragment.markers = extractMarkersFromModelFragment( documentFragment, writer );
+			( documentFragment as any ).markers = extractMarkersFromModelFragment( documentFragment, writer );
 		}
 
 		// Clear context position.
@@ -241,7 +263,7 @@ export default class UpcastDispatcher extends Emitter {
 		this._emptyElementsToKeep.clear();
 
 		// Clear conversion API.
-		this.conversionApi.writer = null;
+		( this.conversionApi as any ).writer = null;
 		this.conversionApi.store = null;
 
 		// Return fragment as conversion result.
@@ -252,15 +274,30 @@ export default class UpcastDispatcher extends Emitter {
 	 * @private
 	 * @see module:engine/conversion/upcastdispatcher~UpcastConversionApi#convertItem
 	 */
-	_convertItem( viewItem, modelCursor ) {
-		const data = Object.assign( { viewItem, modelCursor, modelRange: null } );
+	private _convertItem( viewItem: ViewItem | ViewDocumentFragment, modelCursor: ModelPosition ): {
+		modelRange: ModelRange | null;
+		modelCursor: ModelPosition;
+	} {
+		const data: UpcastConversionData = { viewItem, modelCursor, modelRange: null };
 
 		if ( viewItem.is( 'element' ) ) {
-			this.fire( 'element:' + viewItem.name, data, this.conversionApi );
+			this.fire<ElementEvent>(
+				`element:${ viewItem.name }`,
+				data as UpcastConversionData<ViewElement>,
+				this.conversionApi
+			);
 		} else if ( viewItem.is( '$text' ) ) {
-			this.fire( 'text', data, this.conversionApi );
+			this.fire<TextEvent>(
+				'text',
+				data as UpcastConversionData<ViewText>,
+				this.conversionApi
+			);
 		} else {
-			this.fire( 'documentFragment', data, this.conversionApi );
+			this.fire<DocumentFragmentEvent>(
+				'documentFragment',
+				data as UpcastConversionData<ViewDocumentFragment>,
+				this.conversionApi
+			);
 		}
 
 		// Handle incorrect conversion result.
@@ -282,7 +319,13 @@ export default class UpcastDispatcher extends Emitter {
 	 * @private
 	 * @see module:engine/conversion/upcastdispatcher~UpcastConversionApi#convertChildren
 	 */
-	_convertChildren( viewItem, elementOrModelCursor ) {
+	private _convertChildren(
+		viewItem: ViewElement | ViewDocumentFragment,
+		elementOrModelCursor: ModelPosition | ModelElement
+	): {
+		modelRange: ModelRange;
+		modelCursor: ModelPosition;
+	} {
 		let nextModelCursor = elementOrModelCursor.is( 'position' ) ?
 			elementOrModelCursor : ModelPosition._createAt( elementOrModelCursor, 0 );
 
@@ -292,7 +335,7 @@ export default class UpcastDispatcher extends Emitter {
 			const result = this._convertItem( viewChild, nextModelCursor );
 
 			if ( result.modelRange instanceof ModelRange ) {
-				modelRange.end = result.modelRange.end;
+				( modelRange as any ).end = result.modelRange.end;
 				nextModelCursor = result.modelCursor;
 			}
 		}
@@ -304,7 +347,10 @@ export default class UpcastDispatcher extends Emitter {
 	 * @private
 	 * @see module:engine/conversion/upcastdispatcher~UpcastConversionApi#safeInsert
 	 */
-	_safeInsert( modelElement, position ) {
+	private _safeInsert(
+		modelElement: ModelElement,
+		position: ModelPosition
+	): boolean {
 		// Find allowed parent for element that we are going to insert.
 		// If current parent does not allow to insert element but one of the ancestors does
 		// then split nodes to allowed parent.
@@ -316,7 +362,7 @@ export default class UpcastDispatcher extends Emitter {
 		}
 
 		// Insert element on allowed position.
-		this.conversionApi.writer.insert( modelElement, splitResult.position );
+		this.conversionApi.writer!.insert( modelElement, splitResult.position );
 
 		return true;
 	}
@@ -325,10 +371,10 @@ export default class UpcastDispatcher extends Emitter {
 	 * @private
 	 * @see module:engine/conversion/upcastdispatcher~UpcastConversionApi#updateConversionResult
 	 */
-	_updateConversionResult( modelElement, data ) {
+	private _updateConversionResult( modelElement: ModelElement, data: UpcastConversionData ): void {
 		const parts = this._getSplitParts( modelElement );
 
-		const writer = this.conversionApi.writer;
+		const writer = this.conversionApi.writer!;
 
 		// Set conversion result range - only if not set already.
 		if ( !data.modelRange ) {
@@ -359,7 +405,10 @@ export default class UpcastDispatcher extends Emitter {
 	 * @private
 	 * @see module:engine/conversion/upcastdispatcher~UpcastConversionApi#splitToAllowedParent
 	 */
-	_splitToAllowedParent( node, modelCursor ) {
+	private _splitToAllowedParent( node: ModelElement, modelCursor: ModelPosition ): {
+		position: ModelPosition;
+		cursorParent?: ModelElement | ModelDocumentFragment;
+	} | null {
 		const { schema, writer } = this.conversionApi;
 
 		// Try to find allowed parent.
@@ -372,7 +421,7 @@ export default class UpcastDispatcher extends Emitter {
 			}
 
 			// When allowed parent is in context tree (it's outside the converted tree).
-			if ( this._modelCursor.parent.getAncestors().includes( allowedParent ) ) {
+			if ( this._modelCursor!.parent.getAncestors().includes( allowedParent ) ) {
 				allowedParent = null;
 			}
 		}
@@ -384,12 +433,12 @@ export default class UpcastDispatcher extends Emitter {
 			}
 
 			return {
-				position: wrapInParagraph( modelCursor, writer )
+				position: wrapInParagraph( modelCursor, writer! )
 			};
 		}
 
 		// Split element to allowed parent.
-		const splitResult = this.conversionApi.writer.split( modelCursor, allowedParent );
+		const splitResult = this.conversionApi.writer!.split( modelCursor, allowedParent );
 
 		// Using the range returned by `model.Writer#split`, we will pair original elements with their split parts.
 		//
@@ -405,17 +454,17 @@ export default class UpcastDispatcher extends Emitter {
 		//
 		// With those observations in mind, we will pair the original elements with their split parts by saving "closing tags" and matching
 		// them with "opening tags" in the reverse order. For that we can use a stack.
-		const stack = [];
+		const stack: ModelElement[] = [];
 
 		for ( const treeWalkerValue of splitResult.range.getWalker() ) {
 			if ( treeWalkerValue.type == 'elementEnd' ) {
-				stack.push( treeWalkerValue.item );
+				stack.push( treeWalkerValue.item as ModelElement );
 			} else {
 				// There should not be any text nodes after the element is split, so the only other value is `elementStart`.
 				const originalPart = stack.pop();
-				const splitPart = treeWalkerValue.item;
+				const splitPart = treeWalkerValue.item as ModelElement;
 
-				this._registerSplitPair( originalPart, splitPart );
+				this._registerSplitPair( originalPart!, splitPart );
 			}
 		}
 
@@ -437,12 +486,12 @@ export default class UpcastDispatcher extends Emitter {
 	 * @param {module:engine/model/element~Element} originalPart
 	 * @param {module:engine/model/element~Element} splitPart
 	 */
-	_registerSplitPair( originalPart, splitPart ) {
+	private _registerSplitPair( originalPart: ModelElement, splitPart: ModelElement ): void {
 		if ( !this._splitParts.has( originalPart ) ) {
 			this._splitParts.set( originalPart, [ originalPart ] );
 		}
 
-		const list = this._splitParts.get( originalPart );
+		const list = this._splitParts.get( originalPart )!;
 
 		this._splitParts.set( splitPart, list );
 		list.push( splitPart );
@@ -452,13 +501,13 @@ export default class UpcastDispatcher extends Emitter {
 	 * @private
 	 * @see module:engine/conversion/upcastdispatcher~UpcastConversionApi#getSplitParts
 	 */
-	_getSplitParts( element ) {
-		let parts;
+	private _getSplitParts( element: ModelElement ): ModelElement[] {
+		let parts: ModelElement[];
 
 		if ( !this._splitParts.has( element ) ) {
 			parts = [ element ];
 		} else {
-			parts = this._splitParts.get( element );
+			parts = this._splitParts.get( element )!;
 		}
 
 		return parts;
@@ -469,7 +518,7 @@ export default class UpcastDispatcher extends Emitter {
 	 *
 	 * @private
 	 */
-	_keepEmptyElement( element ) {
+	private _keepEmptyElement( element: ModelElement ): void {
 		this._emptyElementsToKeep.add( element );
 	}
 
@@ -481,12 +530,12 @@ export default class UpcastDispatcher extends Emitter {
 	 *
 	 * @private
 	 */
-	_removeEmptyElements() {
+	private _removeEmptyElements(): void {
 		let anyRemoved = false;
 
 		for ( const element of this._splitParts.keys() ) {
 			if ( element.isEmpty && !this._emptyElementsToKeep.has( element ) ) {
-				this.conversionApi.writer.remove( element );
+				this.conversionApi.writer!.remove( element );
 				this._splitParts.delete( element );
 
 				anyRemoved = true;
@@ -536,14 +585,29 @@ export default class UpcastDispatcher extends Emitter {
 	 */
 }
 
+export type ViewCleanupEvent = {
+	name: 'viewCleanup';
+	args: [ ViewElement | ViewDocumentFragment ];
+};
+
+type UpcastEvent<TName extends string, TItem extends ViewItem | ViewDocumentFragment> = {
+	name: TName | `${ TName }:${ string }`;
+	args: [ data: UpcastConversionData<TItem>, conversionApi: UpcastConversionApi ];
+};
+export type ElementEvent = UpcastEvent<'element', ViewElement>;
+
+export type TextEvent = UpcastEvent<'text', ViewText>;
+
+export type DocumentFragmentEvent = UpcastEvent<'documentFragment', ViewDocumentFragment>;
+
 // Traverses given model item and searches elements which marks marker range. Found element is removed from
 // DocumentFragment but path of this element is stored in a Map which is then returned.
 //
 // @param {module:engine/view/documentfragment~DocumentFragment|module:engine/view/node~Node} modelItem Fragment of model.
 // @returns {Map<String, module:engine/model/range~Range>} List of static markers.
-function extractMarkersFromModelFragment( modelItem, writer ) {
-	const markerElements = new Set();
-	const markers = new Map();
+function extractMarkersFromModelFragment( modelItem: ModelDocumentFragment, writer: ModelWriter ): Map<string, ModelRange> {
+	const markerElements = new Set<ModelElement>();
+	const markers = new Map<string, ModelRange>();
 
 	// Create ModelTreeWalker.
 	const range = ModelRange._createIn( modelItem ).getItems();
@@ -551,14 +615,14 @@ function extractMarkersFromModelFragment( modelItem, writer ) {
 	// Walk through DocumentFragment and collect marker elements.
 	for ( const item of range ) {
 		// Check if current element is a marker.
-		if ( item.name == '$marker' ) {
+		if ( item.is( 'element', '$marker' ) ) {
 			markerElements.add( item );
 		}
 	}
 
 	// Walk through collected marker elements store its path and remove its from the DocumentFragment.
 	for ( const markerElement of markerElements ) {
-		const markerName = markerElement.getAttribute( 'data-name' );
+		const markerName = markerElement.getAttribute( 'data-name' ) as string;
 		const currentPosition = writer.createPositionBefore( markerElement );
 
 		// When marker of given name is not stored it means that we have found the beginning of the range.
@@ -566,7 +630,7 @@ function extractMarkersFromModelFragment( modelItem, writer ) {
 			markers.set( markerName, new ModelRange( currentPosition.clone() ) );
 		// Otherwise is means that we have found end of the marker range.
 		} else {
-			markers.get( markerName ).end = currentPosition.clone();
+			( markers.get( markerName ) as any ).end = currentPosition.clone();
 		}
 
 		// Remove marker element from DocumentFragment.
@@ -577,11 +641,14 @@ function extractMarkersFromModelFragment( modelItem, writer ) {
 }
 
 // Creates model fragment according to given context and returns position in the bottom (the deepest) element.
-function createContextTree( contextDefinition, writer ) {
-	let position;
+function createContextTree(
+	contextDefinition: SchemaContextDefinition,
+	writer: ModelWriter
+): ModelPosition | undefined {
+	let position: ModelPosition | undefined;
 
 	for ( const item of new SchemaContext( contextDefinition ) ) {
-		const attributes = {};
+		const attributes: Record<string, unknown> = {};
 
 		for ( const key of item.getAttributeKeys() ) {
 			attributes[ key ] = item.getAttribute( key );
@@ -590,7 +657,7 @@ function createContextTree( contextDefinition, writer ) {
 		const current = writer.createElement( item.name, attributes );
 
 		if ( position ) {
-			writer.append( current, position );
+			writer.insert( current, position );
 		}
 
 		position = ModelPosition._createAt( current, 0 );
@@ -605,6 +672,29 @@ function createContextTree( contextDefinition, writer ) {
  *
  * @interface module:engine/conversion/upcastdispatcher~UpcastConversionApi
  */
+export interface UpcastConversionApi {
+	consumable: ViewConsumable;
+	schema: Schema;
+	writer: ModelWriter;
+	store: unknown;
+
+	convertItem( viewItem: ViewItem, modelCursor: ModelPosition ): {
+		modelRange: ModelRange | null;
+		modelCursor: ModelPosition;
+	};
+	convertChildren( viewElement: ViewElement | ViewDocumentFragment, positionOrElement: ModelPosition | ModelElement ): {
+		modelRange: ModelRange | null;
+		modelCursor: ModelPosition;
+	};
+	safeInsert( modelElement: ModelElement, position: ModelPosition ): boolean;
+	updateConversionResult( modelElement: ModelElement, data: UpcastConversionData ): void;
+	splitToAllowedParent( modelElement: ModelElement, modelCursor: ModelPosition ): {
+		position: ModelPosition;
+		cursorParent?: ModelElement | ModelDocumentFragment;
+	} | null;
+	getSplitParts( modelElement: ModelElement ): ModelElement[];
+	keepEmptyElement( modelElement: ModelElement ): void;
+}
 
 /**
  * Starts the conversion of a given item by firing an appropriate event.
@@ -831,3 +921,8 @@ function createContextTree( contextDefinition, writer ) {
  * @property {module:engine/model/range~Range} [modelRange] The current state of conversion result. Every change to
  * the converted element should be reflected by setting or modifying this property.
  */
+export type UpcastConversionData<TItem extends ViewItem | ViewDocumentFragment = ViewItem | ViewDocumentFragment> = {
+	viewItem: TItem;
+	modelCursor: ModelPosition;
+	modelRange: ModelRange | null;
+};

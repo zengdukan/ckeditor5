@@ -12,6 +12,7 @@ import CKEditorError from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 
 import type Item from '../model/item';
 import type Selection from '../model/selection';
+import type DocumentSelection from '../model/documentselection';
 import type Range from '../model/range';
 
 /**
@@ -137,7 +138,7 @@ export default class ModelConsumable {
 	 * Second colon and everything after will be cut. Passing event name is a safe and good practice.
 	 */
 	public add(
-		item: Item | Selection | Range,
+		item: Item | Selection | DocumentSelection | Range,
 		type: string
 	): void {
 		type = _normalizeConsumableType( type );
@@ -169,7 +170,7 @@ export default class ModelConsumable {
 	 * @returns {Boolean} `true` if consumable value was available and was consumed, `false` otherwise.
 	 */
 	public consume(
-		item: Item | Selection | Range,
+		item: Item | Selection | DocumentSelection | Range,
 		type: string
 	): boolean {
 		type = _normalizeConsumableType( type );
@@ -204,7 +205,7 @@ export default class ModelConsumable {
 	 * already consumed or `true` if it was added and not consumed yet.
 	 */
 	public test(
-		item: Item | Selection | Range,
+		item: Item | Selection | DocumentSelection | Range,
 		type: string
 	): boolean | null {
 		type = _normalizeConsumableType( type );
@@ -244,7 +245,7 @@ export default class ModelConsumable {
 	 * never been added.
 	 */
 	public revert(
-		item: Item | Selection | Range,
+		item: Item | Selection | DocumentSelection | Range,
 		type: string
 	): boolean | null {
 		type = _normalizeConsumableType( type );

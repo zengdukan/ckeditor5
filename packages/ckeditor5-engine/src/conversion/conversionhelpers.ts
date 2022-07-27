@@ -11,7 +11,7 @@
  * Base class for conversion helpers.
  */
 export default class ConversionHelpers<TDispatcher> {
-	private _dispatchers: TDispatcher[];
+	private readonly _dispatchers: TDispatcher[];
 
 	/**
 	 * Creates a conversion helpers instance.

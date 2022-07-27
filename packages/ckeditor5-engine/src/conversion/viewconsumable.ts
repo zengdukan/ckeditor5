@@ -14,6 +14,7 @@ import type Element from '../view/element';
 import type Node from '../view/node';
 import type Text from '../view/text';
 import type DocumentFragment from '../view/documentfragment';
+import { type Match } from '../view/matcher';
 
 /**
  * Class used for handling consumption of view {@link module:engine/view/element~Element elements},
@@ -144,7 +145,7 @@ export default class ViewConsumable {
 	 * @returns {Boolean|null} Returns `true` when all items included in method's call can be consumed. Returns `false`
 	 * when first already consumed item is found and `null` when first non-consumable item is found.
 	 */
-	public test( element: Node | DocumentFragment, consumables: Consumables ): boolean | null {
+	public test( element: Node | DocumentFragment, consumables?: Consumables | Match ): boolean | null {
 		const elementConsumables = this._consumables.get( element );
 
 		if ( elementConsumables === undefined ) {
@@ -157,7 +158,7 @@ export default class ViewConsumable {
 		}
 
 		// For elements test consumables object.
-		return ( elementConsumables as ViewElementConsumables ).test( consumables );
+		return ( elementConsumables as ViewElementConsumables ).test( consumables! );
 	}
 
 	/**
@@ -188,14 +189,14 @@ export default class ViewConsumable {
 	 * @returns {Boolean} Returns `true` when all items included in method's call can be consumed,
 	 * otherwise returns `false`.
 	 */
-	public consume( element: Node | DocumentFragment, consumables: Consumables ): boolean {
+	public consume( element: Node | DocumentFragment, consumables?: Consumables | Match ): boolean {
 		if ( this.test( element, consumables ) ) {
 			if ( element.is( '$text' ) || element.is( 'documentFragment' ) ) {
 				// For text nodes and document fragments set value to false.
 				this._consumables.set( element, false );
 			} else {
 				// For elements - consume consumables object.
-				( this._consumables.get( element ) as ViewElementConsumables ).consume( consumables );
+				( this._consumables.get( element ) as ViewElementConsumables ).consume( consumables! );
 			}
 
 			return true;
@@ -329,7 +330,7 @@ export default class ViewConsumable {
 }
 
 export interface Consumables {
-	name: boolean;
+	name?: boolean;
 	attributes?: string | string[];
 	classes?: string | string[];
 	styles?: string | string[];
@@ -437,7 +438,7 @@ class ViewElementConsumables {
 	 * @returns {Boolean|null} `true` when all tested items can be consumed, `null` when even one of the items
 	 * was never marked for consumption and `false` when even one of the items was already consumed.
 	 */
-	public test( consumables: Consumables ): boolean | null {
+	public test( consumables: Consumables | Match ): boolean | null {
 		// Check if name can be consumed.
 		if ( consumables.name && !this._canConsumeName ) {
 			return this._canConsumeName;
@@ -475,7 +476,7 @@ class ViewElementConsumables {
 	 * @param {String|Array.<String>} consumables.classes Class name or array of class names to consume.
 	 * @param {String|Array.<String>} consumables.styles Style name or array of style names to consume.
 	 */
-	public consume( consumables: Consumables ): void {
+	public consume( consumables: Consumables | Match ): void {
 		if ( consumables.name ) {
 			this._canConsumeName = false;
 		}

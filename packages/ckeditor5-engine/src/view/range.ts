@@ -467,9 +467,9 @@ export default class Range extends TypeCheckable {
 	 * @returns {module:engine/view/range~Range} Created range.
 	 */
 	public static _createFromParentsAndOffsets(
-		startElement: Element,
+		startElement: Element | DocumentFragment,
 		startOffset: number,
-		endElement: Element,
+		endElement: Element | DocumentFragment,
 		endOffset: number
 	): Range {
 		return new this(
@@ -502,7 +502,7 @@ export default class Range extends TypeCheckable {
 	 * @param {module:engine/view/element~Element} element Element which is a parent for the range.
 	 * @returns {module:engine/view/range~Range}
 	 */
-	public static _createIn( element: Element ): Range {
+	public static _createIn( element: Element | DocumentFragment ): Range {
 		return this._createFromParentsAndOffsets( element, 0, element, element.childCount );
 	}
 

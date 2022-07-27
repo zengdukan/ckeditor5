@@ -25,8 +25,6 @@ import ViewRootEditableElement from '../view/rooteditableelement';
 
 import { parse as viewParse, stringify as viewStringify } from '../../src/dev-utils/view';
 
-import DowncastDispatcher from '../conversion/downcastdispatcher';
-import UpcastDispatcher from '../conversion/upcastdispatcher';
 import Mapper from '../conversion/mapper';
 import {
 	convertCollapsedSelection,
@@ -41,6 +39,34 @@ import {
 import { isPlainObject } from 'lodash-es';
 import toMap from '@ckeditor/ckeditor5-utils/src/tomap';
 import { StylesProcessor } from '../view/stylesmap';
+
+import DowncastDispatcher, {
+	type AddMarkerEvent,
+	type AttributeEvent,
+	type InsertEvent,
+	type SelectionEvent
+} from '../conversion/downcastdispatcher';
+import UpcastDispatcher, {
+	type DocumentFragmentEvent,
+	type ElementEvent,
+	type TextEvent,
+	type UpcastConversionApi,
+	type UpcastConversionData
+} from '../conversion/upcastdispatcher';
+import type ViewDocumentSelection from '../view/documentselection';
+import type { BatchType } from '../model/batch';
+import type MarkerCollection from '../model/markercollection';
+import type ModelText from '../model/text';
+import type ModelTextProxy from '../model/textproxy';
+import type DowncastWriter from '../view/downcastwriter';
+import type { default as Schema, SchemaContextDefinition } from '../model/schema';
+import type { ViewDocumentFragment, ViewElement } from '../index';
+import type ViewNode from '../view/node';
+import type EventInfo from '@ckeditor/ckeditor5-utils/src/eventinfo';
+import type ViewText from '../view/text';
+import type Writer from '../model/writer';
+import type ModelNode from '../model/node';
+import type ModelElement from '../model/element';
 
 /**
  * Writes the content of a model {@link module:engine/model/document~Document document} to an HTML-like string.
@@ -63,13 +89,20 @@ import { StylesProcessor } from '../view/stylesmap';
  * @param {Boolean} [options.convertMarkers=false] Whether to include markers in the returned string.
  * @returns {String} The stringified data.
  */
-export function getData( model, options = {} ) {
+export function getData(
+	model: Model,
+	options: {
+		withoutSelection?: boolean;
+		rootName?: string;
+		convertMarkers?: boolean;
+	} = {}
+): string {
 	if ( !( model instanceof Model ) ) {
 		throw new TypeError( 'Model needs to be an instance of module:engine/model/model~Model.' );
 	}
 
 	const rootName = options.rootName || 'main';
-	const root = model.document.getRoot( rootName );
+	const root = model.document.getRoot( rootName )!;
 
 	return getData._stringify(
 		root,
@@ -106,13 +139,23 @@ getData._stringify = stringify;
  * @param {Object} [options.batchType] Batch type used for inserting elements. See {@link module:engine/model/batch~Batch#constructor}.
  * See {@link module:engine/model/batch~Batch#type}.
  */
-export function setData( model, data, options = {} ) {
+export function setData(
+	model: Model,
+	data: string,
+	options: {
+		rootName?: string;
+		selectionAttributes?: Record<string, unknown>;
+		lastRangeBackward?: boolean;
+		batchType?: BatchType;
+	} = {}
+): void {
 	if ( !( model instanceof Model ) ) {
 		throw new TypeError( 'Model needs to be an instance of module:engine/model/model~Model.' );
 	}
 
-	let modelDocumentFragment, selection;
-	const modelRoot = model.document.getRoot( options.rootName || 'main' );
+	let modelDocumentFragment: ModelNode | ModelDocumentFragment;
+	let selection: ModelSelection | null = null;
+	const modelRoot = model.document.getRoot( options.rootName || 'main' )!;
 
 	// Parse data string to model.
 	const parsedResult = setData._parse( data, model.schema, {
@@ -122,7 +165,7 @@ export function setData( model, data, options = {} ) {
 	} );
 
 	// Retrieve DocumentFragment and Selection from parsed model.
-	if ( parsedResult.model ) {
+	if ( 'model' in parsedResult ) {
 		modelDocumentFragment = parsedResult.model;
 		selection = parsedResult.selection;
 	} else {
@@ -135,7 +178,7 @@ export function setData( model, data, options = {} ) {
 		model.change( writeToModel );
 	}
 
-	function writeToModel( writer ) {
+	function writeToModel( writer: Writer ) {
 		// Replace existing model in document by new one.
 		writer.remove( writer.createRangeIn( modelRoot ) );
 		writer.insert( modelDocumentFragment, modelRoot );
@@ -146,7 +189,7 @@ export function setData( model, data, options = {} ) {
 
 		// Update document selection if specified.
 		if ( selection ) {
-			const ranges = [];
+			const ranges: ModelRange[] = [];
 
 			for ( const range of selection.getRanges() ) {
 				const start = new ModelPosition( modelRoot, range.start.path );
@@ -184,10 +227,15 @@ setData._parse = parse;
  * @param {Iterable.<module:engine/model/markercollection~Marker>|null} markers Markers to include.
  * @returns {String} An HTML-like string representing the model.
  */
-export function stringify( node, selectionOrPositionOrRange = null, markers = null ) {
+export function stringify(
+	node: ModelNode | ModelDocumentFragment,
+	selectionOrPositionOrRange: ModelSelection | DocumentSelection | ModelPosition | ModelRange | null = null,
+	markers: MarkerCollection | null = null
+): string {
 	const model = new Model();
 	const mapper = new Mapper();
-	let selection, range;
+	let selection: ModelSelection | DocumentSelection | null = null;
+	let range: ModelRange;
 
 	// Create a range witch wraps passed node.
 	if ( node instanceof RootElement || node instanceof ModelDocumentFragment ) {
@@ -231,11 +279,11 @@ export function stringify( node, selectionOrPositionOrRange = null, markers = nu
 	const downcastDispatcher = new DowncastDispatcher( { mapper, schema: model.schema } );
 
 	// Bind root elements.
-	mapper.bindElements( node.root, viewRoot );
+	mapper.bindElements( node.root as ModelElement | ModelDocumentFragment, viewRoot );
 
-	downcastDispatcher.on( 'insert:$text', insertText() );
-	downcastDispatcher.on( 'insert', insertAttributesAndChildren(), { priority: 'lowest' } );
-	downcastDispatcher.on( 'attribute', ( evt, data, conversionApi ) => {
+	downcastDispatcher.on<InsertEvent<ModelText | ModelTextProxy>>( 'insert:$text', insertText() );
+	downcastDispatcher.on<InsertEvent<ModelElement>>( 'insert', insertAttributesAndChildren(), { priority: 'lowest' } );
+	downcastDispatcher.on<AttributeEvent>( 'attribute', ( evt, data, conversionApi ) => {
 		if ( data.item instanceof ModelSelection || data.item instanceof DocumentSelection || data.item.is( '$textProxy' ) ) {
 			const converter = wrap( ( modelAttributeValue, { writer } ) => {
 				return writer.createAttributeElement(
@@ -247,22 +295,22 @@ export function stringify( node, selectionOrPositionOrRange = null, markers = nu
 			converter( evt, data, conversionApi );
 		}
 	} );
-	downcastDispatcher.on( 'insert', insertElement( modelItem => {
+	downcastDispatcher.on<InsertEvent<ModelElement>>( 'insert', insertElement( modelItem => {
 		// Stringify object types values for properly display as an output string.
 		const attributes = convertAttributes( modelItem.getAttributes(), stringifyAttributeValue );
 
 		return new ViewContainerElement( viewDocument, modelItem.name, attributes );
 	} ) );
 
-	downcastDispatcher.on( 'selection', convertRangeSelection() );
-	downcastDispatcher.on( 'selection', convertCollapsedSelection() );
-	downcastDispatcher.on( 'addMarker', insertUIElement( ( data, { writer } ) => {
+	downcastDispatcher.on<SelectionEvent>( 'selection', convertRangeSelection() );
+	downcastDispatcher.on<SelectionEvent>( 'selection', convertCollapsedSelection() );
+	downcastDispatcher.on<AddMarkerEvent>( 'addMarker', insertUIElement( ( data, { writer } ) => {
 		const name = data.markerName + ':' + ( data.isOpening ? 'start' : 'end' );
 
 		return writer.createUIElement( name );
 	} ) );
 
-	const markersMap = new Map();
+	const markersMap: Map<string, ModelRange> = new Map();
 
 	if ( markers ) {
 		// To provide stable results, sort markers by name.
@@ -272,7 +320,7 @@ export function stringify( node, selectionOrPositionOrRange = null, markers = nu
 	}
 
 	// Convert model to view.
-	const writer = view._writer;
+	const writer: DowncastWriter = ( view as any )._writer;
 	downcastDispatcher.convert( range, markersMap, writer );
 
 	// Convert model selection to view selection.
@@ -310,7 +358,18 @@ export function stringify( node, selectionOrPositionOrRange = null, markers = nu
  * module:engine/model/documentfragment~DocumentFragment|Object} Returns the parsed model node or
  * an object with two fields: `model` and `selection`, when selection ranges were included in the data to parse.
  */
-export function parse( data, schema, options = {} ) {
+export function parse(
+	data: string,
+	schema: Schema,
+	options: {
+		selectionAttributes?: Record<string, unknown> | Iterable<[ string, unknown ]>;
+		lastRangeBackward?: boolean;
+		context?: SchemaContextDefinition;
+	} = {}
+): ModelNode | ModelDocumentFragment | {
+	model: ModelNode | ModelDocumentFragment;
+	selection: ModelSelection;
+} {
 	const mapper = new Mapper();
 
 	// Replace not accepted by XML `$text` tag name by valid one `model-text-with-attributes`.
@@ -323,9 +382,11 @@ export function parse( data, schema, options = {} ) {
 	} );
 
 	// Retrieve DocumentFragment and Selection from parsed view.
-	let viewDocumentFragment, viewSelection, selection;
+	let viewDocumentFragment: ViewNode | ViewDocumentFragment;
+	let viewSelection: ViewDocumentSelection | null = null;
+	let selection: ModelSelection | null = null;
 
-	if ( parsedResult.view && parsedResult.selection ) {
+	if ( 'view' in parsedResult && 'selection' in parsedResult ) {
 		viewDocumentFragment = parsedResult.view;
 		viewSelection = parsedResult.selection;
 	} else {
@@ -334,17 +395,15 @@ export function parse( data, schema, options = {} ) {
 
 	// Set up upcast dispatcher.
 	const modelController = new Model();
-	const upcastDispatcher = new UpcastDispatcher( { schema, mapper } );
+	const upcastDispatcher = new UpcastDispatcher( { schema } );
 
-	upcastDispatcher.on( 'documentFragment', convertToModelFragment() );
-	upcastDispatcher.on( 'element:model-text-with-attributes', convertToModelText( true ) );
-	upcastDispatcher.on( 'element', convertToModelElement() );
-	upcastDispatcher.on( 'text', convertToModelText() );
-
-	upcastDispatcher.isDebug = true;
+	upcastDispatcher.on<DocumentFragmentEvent>( 'documentFragment', convertToModelFragment( mapper ) );
+	upcastDispatcher.on<ElementEvent>( 'element:model-text-with-attributes', convertToModelText() );
+	upcastDispatcher.on<ElementEvent>( 'element', convertToModelElement( mapper ) );
+	upcastDispatcher.on<TextEvent>( 'text', convertToModelText() );
 
 	// Convert view to model.
-	let model = modelController.change(
+	let model: ModelDocumentFragment | ModelNode = modelController.change(
 		writer => upcastDispatcher.convert( viewDocumentFragment.root, writer, options.context || '$root' )
 	);
 
@@ -352,13 +411,13 @@ export function parse( data, schema, options = {} ) {
 
 	// If root DocumentFragment contains only one element - return that element.
 	if ( model.childCount == 1 ) {
-		model = model.getChild( 0 );
+		model = model.getChild( 0 )!;
 	}
 
 	// Convert view selection to model selection.
 
 	if ( viewSelection ) {
-		const ranges = [];
+		const ranges: ModelRange[] = [];
 
 		// Convert ranges.
 		for ( const viewRange of viewSelection.getRanges() ) {
@@ -385,11 +444,15 @@ export function parse( data, schema, options = {} ) {
 
 // -- Converters view -> model -----------------------------------------------------
 
-function convertToModelFragment() {
-	return ( evt, data, conversionApi ) => {
+function convertToModelFragment( mapper: Mapper ) {
+	return (
+		evt: EventInfo,
+		data: UpcastConversionData<ViewDocumentFragment>,
+		conversionApi: UpcastConversionApi
+	) => {
 		const childrenResult = conversionApi.convertChildren( data.viewItem, data.modelCursor );
 
-		conversionApi.mapper.bindElements( data.modelCursor.parent, data.viewItem );
+		mapper.bindElements( data.modelCursor.parent, data.viewItem );
 
 		data = Object.assign( data, childrenResult );
 
@@ -397,8 +460,12 @@ function convertToModelFragment() {
 	};
 }
 
-function convertToModelElement() {
-	return ( evt, data, conversionApi ) => {
+function convertToModelElement( mapper: Mapper ) {
+	return (
+		evt: EventInfo,
+		data: UpcastConversionData<ViewElement>,
+		conversionApi: UpcastConversionApi
+	) => {
 		const elementName = data.viewItem.name;
 
 		if ( !conversionApi.schema.checkChild( data.modelCursor, elementName ) ) {
@@ -412,7 +479,7 @@ function convertToModelElement() {
 
 		conversionApi.writer.insert( element, data.modelCursor );
 
-		conversionApi.mapper.bindElements( element, data.viewItem );
+		mapper.bindElements( element, data.viewItem );
 
 		conversionApi.convertChildren( data.viewItem, element );
 
@@ -423,20 +490,25 @@ function convertToModelElement() {
 	};
 }
 
-function convertToModelText( withAttributes = false ) {
-	return ( evt, data, conversionApi ) => {
+function convertToModelText() {
+	return (
+		evt: EventInfo,
+		data: UpcastConversionData<ViewElement | ViewText >,
+		conversionApi: UpcastConversionApi
+	) => {
 		if ( !conversionApi.schema.checkChild( data.modelCursor, '$text' ) ) {
 			throw new Error( 'Text was not allowed in given position.' );
 		}
 
 		let node;
 
-		if ( withAttributes ) {
+		if ( data.viewItem.is( 'element' ) ) {
 			// View attribute value is a string so we want to typecast it to the original type.
 			// E.g. `bold="true"` - value will be parsed from string `"true"` to boolean `true`.
 			const attributes = convertAttributes( data.viewItem.getAttributes(), parseAttributeValue );
+			const viewText = data.viewItem.getChild( 0 ) as ViewText;
 
-			node = conversionApi.writer.createText( data.viewItem.getChild( 0 ).data, attributes );
+			node = conversionApi.writer.createText( viewText.data, attributes );
 		} else {
 			node = conversionApi.writer.createText( data.viewItem.data );
 		}
@@ -459,7 +531,7 @@ function convertToModelText( withAttributes = false ) {
 // Parse error means that value should be a string:
 //
 //		`'foobar'` => `'foobar'`
-function parseAttributeValue( attribute ) {
+function parseAttributeValue( attribute: string ): any {
 	try {
 		return JSON.parse( attribute );
 	} catch ( e ) {
@@ -468,7 +540,7 @@ function parseAttributeValue( attribute ) {
 }
 
 // When value is an Object stringify it.
-function stringifyAttributeValue( data ) {
+function stringifyAttributeValue( data: any ): string {
 	if ( isPlainObject( data ) ) {
 		return JSON.stringify( data );
 	}
@@ -477,7 +549,10 @@ function stringifyAttributeValue( data ) {
 }
 
 // Loop trough attributes map and converts each value by passed converter.
-function* convertAttributes( attributes, converter ) {
+function* convertAttributes(
+	attributes: IterableIterator<[ string, unknown ]>,
+	converter: ( data: any ) => string
+): IterableIterator<[ string, string ]> {
 	for ( const [ key, value ] of attributes ) {
 		yield [ key, converter( value ) ];
 	}
