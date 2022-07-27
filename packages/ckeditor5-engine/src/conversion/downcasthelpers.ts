@@ -44,6 +44,7 @@ import type ElementDefinition from '../view/elementdefinition';
 import type ViewDocumentFragment from '../view/documentfragment';
 import type UIElement from '../view/uielement';
 import type ViewElement from '../view/element';
+import type ViewNode from '../view/node';
 import type ViewPosition from '../view/position';
 import type ViewRange from '../view/range';
 import type {
@@ -1041,7 +1042,7 @@ export function clearAttributes() {
 			// Not collapsed selection should not have artifacts.
 			if ( range.isCollapsed ) {
 				// Position might be in the node removed by the view writer.
-				if ( range.end.parent.isAttached() ) {
+				if ( ( range.end.parent as ViewNode ).isAttached() ) {
 					conversionApi.writer.mergeAttributes( range.start );
 				}
 			}
@@ -2659,7 +2660,7 @@ function reinsertNode(
 		return false;
 	}
 
-	const viewChildNode = modelNode.is( 'element' ) ? mapper.toViewElement( modelNode ) : undefined;
+	const viewChildNode = mapper.toViewElement( modelNode as ModelElement );
 
 	// ...or there is no view to reinsert or it was already inserted to the view structure...
 	if ( !viewChildNode || viewChildNode.root == viewRoot ) {
