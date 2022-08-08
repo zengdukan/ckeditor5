@@ -42,6 +42,7 @@ import Table from '@ckeditor/ckeditor5-table/src/table';
 import TableToolbar from '@ckeditor/ckeditor5-table/src/tabletoolbar';
 import TextTransformation from '@ckeditor/ckeditor5-typing/src/texttransformation';
 import CloudServices from '@ckeditor/ckeditor5-cloud-services/src/cloudservices';
+import CodeBlock from '@ckeditor/ckeditor5-code-block/src/codeblock';
 
 export default class DecoupledEditor extends DecoupledEditorBase {}
 
@@ -82,7 +83,8 @@ DecoupledEditor.builtinPlugins = [
 	PictureEditing,
 	Table,
 	TableToolbar,
-	TextTransformation
+	TextTransformation,
+	CodeBlock
 ];
 
 // Editor configuration.
@@ -114,6 +116,7 @@ DecoupledEditor.defaultConfig = {
 			'uploadImage',
 			'insertTable',
 			'mediaEmbed',
+			'codeBlock',
 			'|',
 			'undo',
 			'redo'
