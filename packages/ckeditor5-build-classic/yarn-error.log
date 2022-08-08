@@ -1,0 +1,108 @@
+Arguments: 
+  C:\env\nodejs\node.exe C:\Users\evan.zeng\.node\corepack\yarn\1.22.15\bin\yarn.js
+
+PATH: 
+  C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\Microsoft VS Code\bin;C:\Program Files\Git\cmd;C:\Program Files (x86)\Vector CANdb++ 3.1\Exec32;C:\env\flutter\bin;C:\env\Java\jdk1.8.0_301\bin;C:\Users\evan.zeng\AppData\Local\Android\Sdk\cmake\3.18.1\bin;C:\Users\evan.zeng\AppData\Local\Android\Sdk\ndk\21.1.6352462;C:\env\nodejs\;C:\ProgramData\chocolatey\bin;C:\Users\evan.zeng\AppData\Local\Yarn\Data\globa\C:\Users\evan.zeng\AppData\Local\Yarn\Data\global\node_modules;C:\Program Files (x86)\NetSarang\Xshell 7\;C:\Users\evan.zeng\AppData\Local\Microsoft\WindowsApps;C:\Users\evan.zeng\AppData\Roaming\npm;C:\evan\document\DFH56\PhoenixSuit_v1.13\
+
+Yarn version: 
+  1.22.15
+
+Node version: 
+  14.18.1
+
+Platform: 
+  win32 x64
+
+Trace: 
+  Error: unable to verify the first certificate
+      at TLSSocket.onConnectSecure (_tls_wrap.js:1515:34)
+      at TLSSocket.emit (events.js:400:28)
+      at TLSSocket._finishInit (_tls_wrap.js:937:8)
+      at TLSWrap.ssl.onhandshakedone (_tls_wrap.js:709:12)
+
+npm manifest: 
+  {
+    "name": "@ckeditor/ckeditor5-build-classic",
+    "version": "34.0.0",
+    "description": "The classic editor build of CKEditor 5 – the best browser-based rich text editor.",
+    "keywords": [
+      "ckeditor5-build",
+      "ckeditor",
+      "ckeditor5",
+      "ckeditor 5",
+      "wysiwyg",
+      "rich text",
+      "editor",
+      "html",
+      "contentEditable",
+      "editing",
+      "operational transformation",
+      "ot",
+      "collaboration",
+      "collaborative",
+      "real-time",
+      "framework"
+    ],
+    "main": "./build/ckeditor.js",
+    "files": [
+      "build",
+      "ckeditor5-metadata.json"
+    ],
+    "dependencies": {
+      "@ckeditor/ckeditor5-adapter-ckfinder": "^34.0.0",
+      "@ckeditor/ckeditor5-autoformat": "^34.0.0",
+      "@ckeditor/ckeditor5-basic-styles": "^34.0.0",
+      "@ckeditor/ckeditor5-block-quote": "^34.0.0",
+      "@ckeditor/ckeditor5-ckfinder": "^34.0.0",
+      "@ckeditor/ckeditor5-cloud-services": "^34.0.0",
+      "@ckeditor/ckeditor5-easy-image": "^34.0.0",
+      "@ckeditor/ckeditor5-editor-classic": "^34.0.0",
+      "@ckeditor/ckeditor5-essentials": "^34.0.0",
+      "@ckeditor/ckeditor5-heading": "^34.0.0",
+      "@ckeditor/ckeditor5-image": "^34.0.0",
+      "@ckeditor/ckeditor5-indent": "^34.0.0",
+      "@ckeditor/ckeditor5-link": "^34.0.0",
+      "@ckeditor/ckeditor5-list": "^34.0.0",
+      "@ckeditor/ckeditor5-media-embed": "^34.0.0",
+      "@ckeditor/ckeditor5-paragraph": "^34.0.0",
+      "@ckeditor/ckeditor5-paste-from-office": "^34.0.0",
+      "@ckeditor/ckeditor5-table": "^34.0.0",
+      "@ckeditor/ckeditor5-typing": "^34.0.0"
+    },
+    "devDependencies": {
+      "@ckeditor/ckeditor5-core": "^34.0.0",
+      "@ckeditor/ckeditor5-dev-utils": "^30.0.0",
+      "@ckeditor/ckeditor5-dev-webpack-plugin": "^30.0.0",
+      "@ckeditor/ckeditor5-theme-lark": "^34.0.0",
+      "css-loader": "^5.2.7",
+      "postcss-loader": "^4.3.0",
+      "raw-loader": "^4.0.1",
+      "style-loader": "^2.0.0",
+      "terser-webpack-plugin": "^4.2.3",
+      "webpack": "^5.58.1",
+      "webpack-cli": "^4.9.0"
+    },
+    "engines": {
+      "node": ">=14.0.0",
+      "npm": ">=5.7.1"
+    },
+    "author": "CKSource (http://cksource.com/)",
+    "license": "GPL-2.0-or-later",
+    "homepage": "https://ckeditor.com/ckeditor-5",
+    "bugs": "https://github.com/ckeditor/ckeditor5/issues",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/ckeditor/ckeditor5.git",
+      "directory": "packages/ckeditor5-build-classic"
+    },
+    "scripts": {
+      "build": "webpack --mode production",
+      "preversion": "npm run build"
+    }
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
