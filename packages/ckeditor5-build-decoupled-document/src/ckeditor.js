@@ -43,6 +43,7 @@ import TableToolbar from '@ckeditor/ckeditor5-table/src/tabletoolbar';
 import TextTransformation from '@ckeditor/ckeditor5-typing/src/texttransformation';
 import CloudServices from '@ckeditor/ckeditor5-cloud-services/src/cloudservices';
 import CodeBlock from '@ckeditor/ckeditor5-code-block/src/codeblock';
+import AutoSave from '@ckeditor/ckeditor5-autosave/src/autosave';
 
 export default class DecoupledEditor extends DecoupledEditorBase {}
 
@@ -84,7 +85,8 @@ DecoupledEditor.builtinPlugins = [
 	Table,
 	TableToolbar,
 	TextTransformation,
-	CodeBlock
+	CodeBlock,
+	AutoSave
 ];
 
 // Editor configuration.
